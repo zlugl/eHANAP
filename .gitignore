@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Thesis manuscript and documentation drafts
+*THS2-G1-eHANAP*
