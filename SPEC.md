@@ -5,7 +5,7 @@
 > **Researchers**: Margarette Faye G. Lomboy, Lhean Joyce B. Escalona, Regina M. Sacapaño  
 > **Adviser / Professor**: Dr. John Edgar S. Anthony  
 > **Client & Beneficiary**: Municipal Public Employment Service Office (PESO), Municipality of Roxas, Oriental Mindoro  
-> **Database Architecture Directive (Panelist "Dexcem")**: Transition from Firebase/Firestore to **Supabase (PostgreSQL)**  
+> **Database Architecture Directive**: Transition from Firebase/Firestore to **Supabase (PostgreSQL)**  
 
 ---
 
@@ -111,7 +111,7 @@ The deterministic scoring formula evaluates candidates across five discrete crit
 
 ## 4. Technical Architecture: Supabase Migration Specification
 
-Per thesis panel directive (*"dexcem"*), eHANAP is migrating from Firebase Firestore to **Supabase (PostgreSQL)**.
+Per thesis panel directive, eHANAP is migrating from Firebase Firestore to **Supabase (PostgreSQL)**.
 
 ### 4.1 Supabase Relational Schema
 
