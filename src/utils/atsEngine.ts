@@ -1,6 +1,6 @@
 import { AtsScanResult, AtsSectionScore, JobPost, JobSeekerProfile, ResumeFile } from '../types';
 
-export interface AtsEvaluationInput {
+interface AtsEvaluationInput {
   fileName?: string;
   fileType?: string;
   extractedSkills?: string[];

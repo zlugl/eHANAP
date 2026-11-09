@@ -71,18 +71,6 @@ function toDateInputValue(val?: string): string {
   return '';
 }
 
-function formatDateDisplay(isoDate?: string): string {
-  if (!isoDate) return '';
-  const parts = isoDate.split('-');
-  if (parts.length === 3) {
-    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
-    if (!isNaN(d.getTime())) {
-      return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    }
-  }
-  return isoDate;
-}
-
 // Predefined Job Categories for Step 3
 const PRESET_CATEGORIES = [
   // Industry sectors

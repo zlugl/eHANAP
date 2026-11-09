@@ -180,6 +180,3 @@ export function getDemoAccountByEmail(email: string): DemoAccountMeta | undefine
   return DEMO_ACCOUNTS.find(a => a.email.toLowerCase() === email.toLowerCase().trim());
 }
 
-export function getDemoAccountById(id: string): DemoAccountMeta | undefined {
-  return DEMO_ACCOUNTS.find(a => a.id === id || a.userId === id);
-}

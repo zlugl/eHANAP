@@ -5,7 +5,7 @@ import { NotificationItem, User, JobSeekerProfile, Application, Interview, PesoR
  * removing unnecessary notifications when a job seeker has not performed or reached
  * that activity yet (e.g., interviews, applications, referrals, profile completion, skill badges).
  */
-export function isNotificationValidForUser(
+function isNotificationValidForUser(
   notif: NotificationItem,
   currentUser: User | null | undefined,
   seekerProfile?: JobSeekerProfile | null,

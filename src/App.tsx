@@ -155,8 +155,7 @@ function AppContent() {
       userEmailStr.includes('poqiq75') ||
       (typeof window !== 'undefined' && (
         localStorage.getItem(`ehanap_profile_completed_${currentUser.id}`) === 'true' ||
-        (currentUser.email && localStorage.getItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`) === 'true') ||
-        userEmailStr.includes('poqiq75')
+        (currentUser.email && localStorage.getItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`) === 'true')
       ))
     );
 

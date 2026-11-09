@@ -54,19 +54,6 @@ export const JOB_CATEGORIES = [
   "Government & Public Administration",
 ];
 
-export const SKILLS_DATABASE = [
-  "JavaScript", "React.js", "Node.js", "Express.js", "SQL", "PostgreSQL", "HTML/CSS", "Tailwind CSS",
-  "Accountancy", "Bookkeeping", "Financial Analysis", "Auditing", "Taxation", "QuickBooks", "Microsoft Excel",
-  "Agronomy", "Crop Management", "Pest & Disease Control", "Organic Farming", "Agribusiness Marketing", "Soil Analysis",
-  "Port Operations", "Logistics Coordination", "Supply Chain", "Warehouse Management", "Freight Dispatch",
-  "Hotel Operations", "Front Desk Reception", "Food & Beverage", "Event Coordination", "Tour Guiding", "Customer Service",
-  "Civil Engineering", "AutoCAD", "Structural Design", "Construction Management", "Project Scheduling", "Site Safety",
-  "Nursing", "Patient Assessment", "First Aid & CPR", "Medical Records", "Public Health",
-  "Secondary Teaching", "Curriculum Design", "Classroom Management", "Educational Technology",
-  "Communication", "Problem Solving", "Team Leadership", "Time Management", "Critical Thinking", "Adaptability",
-  "Cash Handling", "POS Operation", "Package Handling", "Product Presentation", "Active Selling"
-];
-
 // INITIAL USERS: PESO Admin, Employers (Puregold, Tech, Agri, Sales), and Candidate
 export const INITIAL_USERS: User[] = [
   // 1. PESO Admin

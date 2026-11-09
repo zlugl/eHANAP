@@ -64,7 +64,7 @@ export const SOFT_SKILLS_LIST = [
 ];
 
 // Local Municipalities in Oriental Mindoro
-export const MINDORO_MUNICIPALITIES = [
+const MINDORO_MUNICIPALITIES = [
   'Roxas', 'Mansalay', 'Bongabong', 'Bulalacao', 'Calapan', 'Pinamalayan',
   'Gloria', 'Bansud', 'Pola', 'Socorro', 'Victoria', 'Naujan', 'Baco',
   'San Teodoro', 'Puerto Galera'
@@ -861,8 +861,6 @@ export function extractResumeInfoFromText(rawText: string, fileName?: string): E
   // Look for date ranges in experience lines e.g. "2021 - 2023", "June 2020 - Present", "2019 to 2021"
   const dateRangeRegex = /(?:(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+)?(19\d{2}|20\d{2})\s*(?:-|–|to|until)\s*(?:(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+)?(19\d{2}|20\d{2}|present|current)/i;
 
-  let currentRole: Partial<ExtractedWorkExperienceItem> | null = null;
-
   for (let i = 0; i < expLines.length; i++) {
     const line = expLines[i];
     const dateMatch = line.match(dateRangeRegex);
@@ -970,31 +968,24 @@ export function extractResumeInfoFromText(rawText: string, fileName?: string): E
 
   for (const sk of extractedSkillSet) {
     const lowerSk = sk.toLowerCase();
-    let categorized = false;
 
     if (SOFT_SKILLS_LIST.some(soft => lowerSk.includes(soft))) {
       softSkills.push(sk);
-      categorized = true;
     }
     if (TRADE_SKILLS.some(item => lowerSk.includes(item.toLowerCase()))) {
       tradeSkills.push(sk);
-      categorized = true;
     }
     if (ADMIN_SKILLS.some(item => lowerSk.includes(item.toLowerCase()))) {
       administrativeSkills.push(sk);
-      categorized = true;
     }
     if (SERVICE_HOSPITALITY_SKILLS.some(item => lowerSk.includes(item.toLowerCase()))) {
       serviceHospitalitySkills.push(sk);
-      categorized = true;
     }
     if (SALES_COMMERCE_SKILLS.some(item => lowerSk.includes(item.toLowerCase()))) {
       salesCustomerSkills.push(sk);
-      categorized = true;
     }
     if (IT_CREATIVE_SKILLS.some(item => lowerSk.includes(item.toLowerCase()))) {
       itCreativeSkills.push(sk);
-      categorized = true;
     }
 
     if (!softSkills.includes(sk)) {

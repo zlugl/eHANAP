@@ -263,9 +263,17 @@ Project tracking across database migration to Supabase, candidate ranking automa
    - End-to-end scenario verification covering Seeker, Employer, and Admin workflows.
 2. **Thesis Presentation Runbook**:
    - Step-by-step panel presentation guide highlighting key thesis contributions (Candidate Ranking, LRA handling, Municipal Analytics).
+3. **Static Analysis & Dead-Code Remediation (SPEC.md Section 7) [COMPLETED]**:
+   - Deprecated and removed 9 orphaned component files in `src/components/` (2,899 lines dead boilerplate pruned).
+   - Pruned unreferenced types, constants, helpers, and duplicate sub-modals (`CandidateRanking`, `SKILLS_DATABASE`, `getDemoAccountById`, `SUPABASE_CONFIG`, `StandardStageKey`, `formatDateDisplay`, `EducationModal`, `ExperienceModal`, `CertificationsModal`).
+   - Eliminated dead assignments and inert computations (`totalSkillsCount`, `currentRole`, `categorized`, `isSubmittedDone`).
+   - Simplified redundant ternaries and duplicate conditions (`middleInitial`, `poqiq75`).
+   - Encapsulated file-private helpers by stripping unused `export` keywords (`AtsEvaluationInput`, `isNotificationValidForUser`, `MINDORO_MUNICIPALITIES`, `fileToBase64`).
+   - Verified with `npm run lint` (0 errors), `npx tsx scripts/verify-phase1-supabase.ts` (44/44 passed), and `npm run build` (clean Vite/Node production bundle).
 
 #### Definition of Done Checklist:
 - [ ] Automated tests passing.
+- [x] Dead and no-op code remediation completed (Work Packages 1–5 in SPEC.md Section 7).
 - [ ] Defense presentation runbook completed.
 - [ ] `npm run lint` and `npm run build` pass with 0 errors.
 - [ ] Zero unhandled errors in console during complete walkthrough.

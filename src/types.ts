@@ -472,15 +472,6 @@ export interface Application {
   };
 }
 
-export interface CandidateRanking {
-  rank: number;
-  applicationId: string;
-  jobSeeker: JobSeekerProfile;
-  matchResult: MatchResult;
-  appliedDate: string;
-  currentStatus: ApplicationStatus;
-}
-
 export interface Interview {
   id: string;
   applicationId: string;

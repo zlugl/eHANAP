@@ -60,7 +60,6 @@ export const ApplicationStatusTracker: React.FC<ApplicationStatusTrackerProps> =
   const displayMatchScore = matchScore ?? application.matchScore ?? 94;
 
   // Step completion logic for 4-step vertical progress timeline (Prompt Requirement 5)
-  const isSubmittedDone = true;
   const isUnderReviewDone = [
     'reviewed', 'under_review', 'ats_screened', 'qualified', 'shortlisted', 'for_final_review',
     'interview_scheduled', 'for_interview', 'interview_completed',

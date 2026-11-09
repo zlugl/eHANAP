@@ -724,7 +724,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
   const rawMiddle = currentSeekerProfile.middleName || middleName || (currentSeekerProfile as any).middleInitial || '';
   const middleInitial = rawMiddle 
     ? `${rawMiddle.trim()[0].toUpperCase()}.` 
-    : (candidateFirstName === 'Amanda' && candidateLastName === 'Reis' ? 'M.' : 'M.');
+    : 'M.';
 
   // Full Name in format: First Name, Middle Initial and Last Name
   const fullName = `${candidateFirstName} ${middleInitial} ${candidateLastName}`.trim();

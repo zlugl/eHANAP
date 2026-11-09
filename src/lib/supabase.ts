@@ -23,11 +23,6 @@ export function isSupabaseConfigured(): boolean {
   }
 }
 
-export const SUPABASE_CONFIG = {
-  url: envUrl,
-  hasValidConfig: isSupabaseConfigured(),
-};
-
 // Safe fallback URL and key for offline demonstration / development when credentials are not yet set
 const FALLBACK_URL = 'https://placeholder-offline-ehanap.supabase.co';
 const FALLBACK_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.offline-fallback-token-ehanap-defense';

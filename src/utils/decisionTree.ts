@@ -101,14 +101,6 @@ export function calculateDecisionTreeMatch(seeker: JobSeekerProfile | null | und
   const missingQualifications: string[] = [];
 
   // 1. Profile Completeness check
-  const totalSkillsCount = 
-    (seeker.tradeSkills?.length || 0) +
-    (seeker.administrativeSkills?.length || 0) +
-    (seeker.serviceHospitalitySkills?.length || 0) +
-    (seeker.salesCustomerSkills?.length || 0) +
-    (seeker.itCreativeSkills?.length || 0) +
-    (seeker.technicalSkills?.length || 0);
-
   const isProfileComplete = 
     Boolean(seeker.primaryDegree) &&
     Boolean(seeker.educationalAttainment);

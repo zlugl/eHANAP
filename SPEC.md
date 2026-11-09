@@ -186,3 +186,75 @@ To prevent monolithic redesign failures and maintain defense-ready presentation 
    - `LandingPage.tsx`, `JobSearchPage.tsx`, `JobDetailPage.tsx`, `EmployerSearchPage.tsx`.
 6. **Milestone 06.6 — Comprehensive Design Hardening & Accessibility Audit**:
    - Full `tsc --noEmit` and `npm run build` verification, `sloplint` audit across all views.
+
+---
+
+## 7. Static Analysis & Dead-Code Remediation Action Plan (Milestone 7 Hardening)
+
+As identified in the repository-wide static analysis and linter pass, technical debt, dead code, unused exports, and orphaned components must be pruned during Milestone 7 hardening to ensure the production codebase remains lean, maintainable, and defense-ready.
+
+### 7.1 Action Item Summary Matrix
+
+| ID | Category | Target | Rule ID | Action & Resolution Pattern | Effort |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **ACT-01** | Orphaned Modules | 9 unreferenced component files in `src/components/` | `ORPHANED_MODULE` | Delete completely from repository | Low |
+| **ACT-02** | Unused Symbols | Exported types, interfaces, constants & helpers (`types.ts`, `mockData.ts`, etc.) | `UNUSED_SYMBOL` | Remove unused export or delete dead symbol | Low |
+| **ACT-03** | Redundant Sub-Modals | Duplicate modal components in `SeekerModularProfileModals.tsx` | `UNUSED_SYMBOL` | Remove dead `EducationModal`, `ExperienceModal`, `CertificationsModal` | Medium |
+| **ACT-04** | Dead Assignments | Inert variables & computations (`totalSkillsCount`, `currentRole`, `categorized`, `isSubmittedDone`) | `DEAD_ASSIGNMENT` | Remove dead variables and discarded computations | Low |
+| **ACT-05** | Redundant Logic | Identical branch ternaries & duplicate conditions (`middleInitial`, `poqiq75`) | `IDENTITY_TRANSFORM` / `REDUNDANT_CHECK` | Simplify ternary and eliminate duplicated condition | Low |
+| **ACT-06** | Scope Encapsulation | File-internal helpers with unnecessary `export` keywords | `UNUSED_SYMBOL` | Remove `export` keyword to restrict scope internally | Low |
+
+### 7.2 Detailed Work Packages
+
+#### Work Package 1: Orphaned Modules Deprecation (9 Files)
+The following 9 components were created during iterative prototyping but have **zero imports, zero routes, and zero dynamic references** anywhere in the repository:
+1. `src/components/AdminAnalyticsCharts.tsx` (Lines 1–315) — Superseded by inline charts and `AdminReportsPage.tsx`.
+2. `src/components/ApplicationSubmissionModal.tsx` (Lines 1–475) — Superseded by `ApplyForJobWindow.tsx`.
+3. `src/components/MatchScoreIndicator.tsx` (Lines 1–282) — Standalone indicator superseded by unified ranking badges.
+4. `src/components/ProfileStrengthIndicator.tsx` (Lines 1–333) — Standalone widget superseded by profile strength bar in `SeekerProfilePage.tsx`.
+5. `src/components/ProfileViewsAnalyticsModal.tsx` (Lines 1–138) — Prototype modal superseded by direct seeker analytics tab.
+6. `src/components/QuickApplyModal.tsx` (Lines 1–542) — Prototype modal superseded by `ApplyForJobWindow.tsx`.
+7. `src/components/SeekerApplicationActionModal.tsx` (Lines 1–293) — Superseded by direct application actions in `SeekerApplicationsPage.tsx`.
+8. `src/components/SeekerSkillRadarChart.tsx` (Lines 1–254) — Prototype radar chart superseded by 6-category skill badge grids.
+9. `src/components/SeekerStatusUpdateModal.tsx` (Lines 1–267) — Superseded by status updater in application tracker.
+
+*Action*: Remove these 9 files to eliminate 2,899 lines of dead boilerplate.
+
+#### Work Package 2: Dead & Unused Symbol Elimination
+1. **`src/types.ts:475-482`**: Delete dead interface `CandidateRanking` (zero references repo-wide).
+2. **`src/data/mockData.ts:57-68`**: Delete dead constant `SKILLS_DATABASE` (zero references repo-wide; skill categories are managed via domain objects).
+3. **`src/data/demoAccounts.ts:183-185`**: Delete dead helper `getDemoAccountById` (zero callers; only `getDemoAccountByEmail` is used).
+4. **`src/lib/supabase.ts:26-29`**: Delete unused constant `SUPABASE_CONFIG` (zero references repo-wide).
+5. **`src/components/EmployerStatusUpdateModal.tsx:31-31`**: Delete unused exported type `StandardStageKey`.
+6. **`src/views/seeker/SeekerProfileSetupWizard.tsx:74-84`**: Delete dead local function `formatDateDisplay` (never invoked).
+7. **`src/components/seeker/SeekerModularProfileModals.tsx`**:
+   - Lines 202–335: Delete unused exported component `EducationModal` (handled directly within `SeekerProfilePage.tsx`).
+   - Lines 340–501: Delete unused exported component `ExperienceModal` (handled directly within `SeekerProfilePage.tsx`).
+   - Lines 633–749: Delete unused exported component `CertificationsModal` (handled directly within `SeekerProfilePage.tsx`).
+
+#### Work Package 3: Dead Assignment & Inert Computation Clean-up
+1. **`src/utils/decisionTree.ts:104-110`**: Remove `totalSkillsCount` calculation (computes length of 6 skill arrays but the variable is never read before returning).
+2. **`src/utils/resumeExtractorCore.ts:864-864`**: Remove `let currentRole = null` (declared and never assigned or read).
+3. **`src/utils/resumeExtractorCore.ts:973-973`**: Remove `let categorized = false` and its in-loop assignments (mutated 6 times but never read).
+4. **`src/components/ApplicationStatusTracker.tsx:63-63`**: Remove `const isSubmittedDone = true;` (declared but unused).
+
+#### Work Package 4: Redundant Logic & Identity Transform Simplification
+1. **`src/views/seeker/SeekerProfilePage.tsx:725-728`**:
+   - Replace redundant ternary `(candidateFirstName === 'Amanda' && candidateLastName === 'Reis' ? 'M.' : 'M.')` with constant `'M.'`.
+2. **`src/App.tsx:152-161`**:
+   - Remove duplicate `userEmailStr.includes('poqiq75')` check at line 159 (already verified at line 155).
+
+#### Work Package 5: Internal Symbol Scope Encapsulation
+Remove unnecessary `export` keyword from functions and types only consumed within their declaring file:
+1. `src/utils/atsEngine.ts:3`: Change `export interface AtsEvaluationInput` to `interface AtsEvaluationInput`.
+2. `src/utils/notificationUtils.ts:8`: Change `export function isNotificationValidForUser` to `function isNotificationValidForUser`.
+3. `src/utils/resumeExtractorCore.ts:67`: Change `export const MINDORO_MUNICIPALITIES` to `const MINDORO_MUNICIPALITIES`.
+4. `src/utils/resumeParser.ts:8`: Change `export function fileToBase64` to `function fileToBase64`.
+
+### 7.3 Execution & Verification Protocol
+1. **Pre-flight**: Run baseline compilation check (`npm run lint` / `tsc --noEmit`).
+2. **Execution**: Apply removals across Work Packages 1 through 5.
+3. **Post-flight Verification**:
+   - Run `npm run lint` (`tsc --noEmit`) to confirm zero compilation breaks or dangling imports.
+   - Run `npx tsx scripts/verify-phase1-supabase.ts` to ensure core services remain 100% operational.
+   - Run `npm run build` to verify clean Vite and esbuild production bundling.

@@ -28,8 +28,6 @@ interface EmployerStatusUpdateModalProps {
   onOpenScheduleInterview?: () => void;
 }
 
-export type StandardStageKey = '1_applied' | '2_reviewed' | '3_interview' | '4a_hired' | '4b_rejected';
-
 export const EmployerStatusUpdateModal: React.FC<EmployerStatusUpdateModalProps> = ({
   isOpen,
   onClose,
