@@ -124,7 +124,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
       const targetJob = jobPosts.find(j => j.id === jobId);
       if (targetJob) {
         const matchRes = calculateDecisionTreeMatch(currentSeekerProfile, targetJob);
-        const score = Math.max(65, Math.round(matchRes.overallMatch));
+        const score = Math.min(100, Math.max(0, Math.round(matchRes.overallMatch)));
         const label = score >= 90 ? 'Highly Qualified' :
                       score >= 78 ? 'Qualified' :
                       score >= 65 ? 'Potential Match' : 'General Match';

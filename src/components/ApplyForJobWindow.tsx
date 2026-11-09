@@ -198,7 +198,8 @@ export const ApplyForJobWindow: React.FC<ApplyForJobWindowProps> = ({
       applyForJob(
         job.id,
         currentSeekerProfile.id,
-        attachedResume.id || currentSeekerProfile.activeResumeId || 'res-1'
+        attachedResume.id || currentSeekerProfile.activeResumeId || 'res-1',
+        coverNote
       );
 
       setIsSubmitting(false);

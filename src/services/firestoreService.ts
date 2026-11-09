@@ -48,6 +48,7 @@ export const COLLECTIONS = {
   JOB_SUBSCRIPTIONS: 'jobSubscriptions',
   REFERRAL_SLIPS: 'referralSlips',
   LRA_EVENTS: 'lraEvents',
+  CANDIDATE_MATCHES: 'candidateMatches',
 } as const;
 
 /**

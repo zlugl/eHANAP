@@ -55,7 +55,7 @@ import {
   subscribeToCollection,
   saveDocument as saveFirestoreDocument,
   updateDocument,
-  deleteDocument,
+  deleteDocument as deleteFirestoreDocument,
   resetDatabaseToClean,
   seedDemoDataToFirestore
 } from '../services/firestoreService';
@@ -63,6 +63,7 @@ import {
   SUPABASE_TABLES,
   SupabaseTableName,
   saveRecord as saveSupabaseRecord,
+  deleteRecord as deleteSupabaseRecord,
   subscribeToSupabaseTable,
   ensureDemoAccountsExistInSupabase,
   seedDemoDataToSupabase,
@@ -89,6 +90,7 @@ const COLLECTION_TO_SUPABASE: Record<string, SupabaseTableName> = {
   [COLLECTIONS.JOB_SUBSCRIPTIONS]: SUPABASE_TABLES.JOB_SUBSCRIPTIONS,
   [COLLECTIONS.REFERRAL_SLIPS]: SUPABASE_TABLES.REFERRAL_SLIPS,
   [COLLECTIONS.LRA_EVENTS]: SUPABASE_TABLES.LRA_EVENTS,
+  [COLLECTIONS.CANDIDATE_MATCHES]: SUPABASE_TABLES.CANDIDATE_MATCHES,
 };
 
 // Dual-persistence wrapper: automatically saves to Supabase (when configured) and Firestore
@@ -102,6 +104,19 @@ const saveDocument = <T extends { id: string }>(collectionName: string, item: T)
     }
   }
   saveFirestoreDocument(collectionName, item);
+};
+
+// Dual-persistence wrapper: automatically deletes from Supabase (when configured) and Firestore
+const deleteDocument = (collectionName: string, id: string) => {
+  if (isSupabaseConfigured()) {
+    const sbTable = COLLECTION_TO_SUPABASE[collectionName];
+    if (sbTable) {
+      deleteSupabaseRecord(sbTable, id).catch((err) => {
+        console.warn(`[Supabase] Dual-persistence delete warning for ${sbTable}:`, err);
+      });
+    }
+  }
+  deleteFirestoreDocument(collectionName, id);
 };
 
 interface AppContextType {
@@ -136,7 +151,7 @@ interface AppContextType {
   recoverPassword: (identifier: string, code: string, newPassword: string) => { success: boolean; error?: string };
   verifyEmployer: (employerId: string, status: EmployerStatus, notes?: string) => void;
   createJobPost: (jobData: Omit<JobPost, 'id' | 'postedDate' | 'status' | 'companyVerified'>) => JobPost;
-  reviewJobVacancy: (jobId: string, status: 'active' | 'for_compliance' | 'rejected', remarks?: string) => void;
+  reviewJobVacancy: (jobId: string, status: 'active' | 'for_compliance' | 'rejected' | 'closed', remarks?: string) => void;
   updateJobVacancyStatus: (jobId: string, status: JobStatus) => void;
   updateJobPost: (jobId: string, updates: Partial<JobPost>) => void;
   deleteJobPost: (jobId: string) => void;
@@ -1281,12 +1296,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Review Job Vacancy (PESO-LGU Admin Action)
-  const reviewJobVacancy = (jobId: string, status: 'active' | 'for_compliance' | 'rejected', remarks?: string) => {
+  const reviewJobVacancy = (jobId: string, status: 'active' | 'for_compliance' | 'rejected' | 'closed', remarks?: string) => {
     const job = jobPosts.find(j => j.id === jobId);
     if (job) {
       const updated: JobPost = {
         ...job,
-        status,
+        status: status as JobStatus,
         reviewNotes: remarks || job.reviewNotes,
         complianceRemarks: status === 'for_compliance' ? remarks : job.complianceRemarks,
       };
@@ -1302,9 +1317,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           ? 'Job Vacancy Approved & Published!' 
           : status === 'for_compliance' 
           ? 'Job Vacancy Returned for Compliance' 
+          : status === 'closed'
+          ? 'Job Vacancy Closed'
           : 'Job Vacancy Review: Not Approved',
         message: status === 'active'
           ? `Your job vacancy "${job.title}" has been approved by PESO-LGU and is now published and open for applicant matching.`
+          : status === 'closed'
+          ? `Your job vacancy "${job.title}" has been marked as closed.`
           : `PESO-LGU reviewed "${job.title}": ${remarks || status}`,
         type: status === 'active' ? 'success' : status === 'for_compliance' ? 'warning' : 'action',
         read: false,
@@ -1316,10 +1335,72 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (status === 'active') {
         checkJobSubscriptionsAndNotify(updated);
+        notifyAndCacheCandidateMatches(updated);
       }
 
       logAudit('JOB_REVIEWED', 'JobPost', jobId, `PESO-LGU reviewed vacancy. Status: ${status}. Remarks: ${remarks || 'None'}`);
     }
+  };
+
+  // Automatically evaluate and notify matching job seekers when a job vacancy is approved & published
+  const notifyAndCacheCandidateMatches = (job: JobPost) => {
+    jobSeekers.forEach(seeker => {
+      const matchResult = calculateDecisionTreeMatch(seeker, job);
+
+      // Cache candidate match in Supabase
+      if (isSupabaseConfigured()) {
+        const candidateMatchRecord = {
+          id: `match-${job.id}-${seeker.id}`,
+          jobId: job.id,
+          jobSeekerId: seeker.id,
+          overallMatch: matchResult.overallMatch,
+          outcome: matchResult.outcome,
+          educationMatchScore: matchResult.educationMatchScore,
+          degreeAlignmentScore: matchResult.degreeAlignmentScore,
+          skillsMatchScore: matchResult.skillsMatchScore,
+          experienceMatchScore: matchResult.experienceMatchScore,
+          certificationsMatchScore: matchResult.certificationsMatchScore,
+          matchedReasons: matchResult.matchedReasons,
+          missingQualifications: matchResult.missingQualifications,
+          decisionReason: matchResult.matchedReasons.slice(0, 3).join('; ') || 'Decision Tree evaluation',
+          calculatedAt: new Date().toISOString(),
+        };
+        saveSupabaseRecord(SUPABASE_TABLES.CANDIDATE_MATCHES, candidateMatchRecord).catch(err => {
+          console.warn('[Supabase] Candidate match cache warning:', err);
+        });
+      }
+
+      // If qualification threshold >= 70%, dispatch real-time Match Alert notification
+      if (matchResult.overallMatch >= 70) {
+        const matchNotif: NotificationItem = {
+          id: `notif-match-${Date.now()}-${seeker.id}`,
+          recipientId: seeker.userId,
+          recipientRole: 'job_seeker',
+          title: `Job Match Found: ${job.title} (${Math.round(matchResult.overallMatch)}%)`,
+          message: `${job.companyName} has published "${job.title}" in ${job.municipality}, which aligns with your qualifications (${Math.round(matchResult.overallMatch)}% Decision Tree compatibility)!`,
+          type: 'success',
+          read: false,
+          createdAt: new Date().toISOString(),
+          link: '/seeker/dashboard',
+        };
+        setNotifications(prev => [matchNotif, ...prev]);
+        saveDocument(COLLECTIONS.NOTIFICATIONS, matchNotif);
+
+        // If this seeker is the currently active user, show toast notification immediately
+        if (currentUser?.id === seeker.userId) {
+          setActiveToast({
+            id: `toast-${Date.now()}`,
+            title: `High Match Vacancy Available!`,
+            message: `${job.companyName} posted "${job.title}" (${Math.round(matchResult.overallMatch)}% Match). Apply now!`,
+            jobId: job.id,
+            companyName: job.companyName,
+            municipality: job.municipality,
+            category: job.category,
+            createdAt: new Date().toISOString(),
+          });
+        }
+      }
+    });
   };
 
   // Update Job Vacancy Status (Employer Action: Close / Reopen)
@@ -1365,7 +1446,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Apply for Job (Job Seeker Action)
-  const applyForJob = (jobId: string, seekerId: string, resumeId: string) => {
+  const applyForJob = (jobId: string, seekerId: string, resumeId: string, coverNote?: string) => {
     const job = jobPosts.find(j => j.id === jobId);
     const seeker = jobSeekers.find(s => s.id === seekerId);
 
@@ -1406,7 +1487,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         status: 'submitted',
         updatedAt: new Date().toISOString(),
         updatedBy: `${seeker.firstName} ${seeker.lastName}`,
-        notes: 'Application submitted via eHANAP platform.',
+        notes: coverNote
+          ? `Application submitted with note: "${coverNote.slice(0, 100)}${coverNote.length > 100 ? '...' : ''}"`
+          : 'Application submitted via eHANAP platform.',
       }
     ];
 
@@ -1427,6 +1510,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       employerId: job.employerId,
       appliedDate: new Date().toISOString(),
       resumeId,
+      coverNote: coverNote?.trim() || undefined,
       currentStatus: atsResult.score >= 60 ? 'ats_screened' : 'submitted',
       matchResult,
       matchScore: matchResult.overallMatch,

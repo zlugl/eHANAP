@@ -87,7 +87,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
   // 3. Verifications & Vacancies
   const pendingEmployerVerifications = employers.filter(e => e.status === 'pending');
-  const pendingJobVacancies = jobPosts.filter(j => j.status === 'pending' || j.approvalStatus === 'pending');
+  const pendingJobVacancies = jobPosts.filter(j => j.status === 'pending_approval' || (j as any).status === 'pending' || (j as any).approvalStatus === 'pending');
   const activeJobVacancies = jobPosts.filter(j => j.status === 'active');
 
   // 4. Applications and Referral Slips

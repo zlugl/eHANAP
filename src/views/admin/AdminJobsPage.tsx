@@ -50,6 +50,13 @@ export const AdminJobsPage: React.FC<AdminJobsPageProps> = ({ onNavigate }) => {
   const handleReviewAction = (status: 'active' | 'for_compliance' | 'rejected' | 'closed') => {
     if (!selectedJob) return;
     reviewJobVacancy(selectedJob.id, status, reviewRemarks);
+    showToast({
+      title: status === 'active' ? 'Job Approved & Published' :
+             status === 'for_compliance' ? 'Job Returned for Compliance' :
+             status === 'closed' ? 'Job Vacancy Closed' : 'Job Vacancy Rejected',
+      message: `"${selectedJob.title}" status updated to ${status.replace(/_/g, ' ')}.`,
+      type: status === 'active' ? 'success' : 'status'
+    });
     setReviewRemarks('');
   };
 
