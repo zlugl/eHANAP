@@ -1,5 +1,20 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
+// Polyfill WebSocket constructor in Node.js environments lacking native WebSocket (Node < 22)
+if (typeof globalThis !== 'undefined' && typeof (globalThis as any).WebSocket === 'undefined') {
+  class WebSocketPolyfill {
+    static readonly CONNECTING = 0;
+    static readonly OPEN = 1;
+    static readonly CLOSING = 2;
+    static readonly CLOSED = 3;
+    addEventListener() {}
+    removeEventListener() {}
+    close() {}
+    send() {}
+  }
+  (globalThis as any).WebSocket = WebSocketPolyfill;
+}
+
 // Retrieve environment variables with fallback support for both Vite and Node environments
 const envUrl = (typeof import.meta !== 'undefined' && import.meta.env?.VITE_SUPABASE_URL) 
   || (typeof process !== 'undefined' && process.env?.VITE_SUPABASE_URL) 
