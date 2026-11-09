@@ -53,14 +53,52 @@ import {
   ensureAdminAccountExists,
   initializeCleanDatabase,
   subscribeToCollection,
-  saveDocument,
+  saveDocument as saveFirestoreDocument,
   updateDocument,
   deleteDocument,
   resetDatabaseToClean,
   seedDemoDataToFirestore
 } from '../services/firestoreService';
+import {
+  SUPABASE_TABLES,
+  SupabaseTableName,
+  saveRecord as saveSupabaseRecord,
+  subscribeToSupabaseTable,
+  ensureDemoAccountsExistInSupabase,
+  seedDemoDataToSupabase,
+  testSupabaseConnection,
+} from '../services/supabaseService';
+import { isSupabaseConfigured } from '../lib/supabase';
 import { auth } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+
+const COLLECTION_TO_SUPABASE: Record<string, SupabaseTableName> = {
+  [COLLECTIONS.USERS]: SUPABASE_TABLES.USERS,
+  [COLLECTIONS.EMPLOYERS]: SUPABASE_TABLES.EMPLOYERS,
+  [COLLECTIONS.JOB_SEEKERS]: SUPABASE_TABLES.JOB_SEEKERS,
+  [COLLECTIONS.JOB_POSTS]: SUPABASE_TABLES.JOB_POSTS,
+  [COLLECTIONS.APPLICATIONS]: SUPABASE_TABLES.APPLICATIONS,
+  [COLLECTIONS.INTERVIEWS]: SUPABASE_TABLES.INTERVIEWS,
+  [COLLECTIONS.NOTIFICATIONS]: SUPABASE_TABLES.NOTIFICATIONS,
+  [COLLECTIONS.AUDIT_LOGS]: SUPABASE_TABLES.AUDIT_LOGS,
+  [COLLECTIONS.ANNOUNCEMENTS]: SUPABASE_TABLES.ANNOUNCEMENTS,
+  [COLLECTIONS.JOB_SUBSCRIPTIONS]: SUPABASE_TABLES.JOB_SUBSCRIPTIONS,
+  [COLLECTIONS.REFERRAL_SLIPS]: SUPABASE_TABLES.REFERRAL_SLIPS,
+  [COLLECTIONS.LRA_EVENTS]: SUPABASE_TABLES.LRA_EVENTS,
+};
+
+// Dual-persistence wrapper: automatically saves to Supabase (when configured) and Firestore
+const saveDocument = <T extends { id: string }>(collectionName: string, item: T) => {
+  if (isSupabaseConfigured()) {
+    const sbTable = COLLECTION_TO_SUPABASE[collectionName];
+    if (sbTable) {
+      saveSupabaseRecord(sbTable, item).catch((err) => {
+        console.warn(`[Supabase] Dual-persistence sync warning for ${sbTable}:`, err);
+      });
+    }
+  }
+  saveFirestoreDocument(collectionName, item);
+};
 
 interface AppContextType {
   currentUser: User | null;
@@ -80,6 +118,7 @@ interface AppContextType {
   localRecruitmentActivities: LocalRecruitmentActivity[];
   activeToast: ToastNotification | null;
   isFirestoreConnected: boolean;
+  isSupabaseConnected: boolean;
   isSyncing: boolean;
   
   // Actions
@@ -206,6 +245,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [localRecruitmentActivities, setLocalRecruitmentActivities] = useState<LocalRecruitmentActivity[]>(INITIAL_LRA_EVENTS);
   const [activeToast, setActiveToast] = useState<ToastNotification | null>(null);
   const [isFirestoreConnected, setIsFirestoreConnected] = useState<boolean>(false);
+  const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
   // Color UI State
@@ -252,12 +292,160 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const isInitialMount = useRef(true);
 
-  // Initialize Firestore listeners and seed initial data
+  // Initialize Supabase & Firestore listeners and seed initial data
   useEffect(() => {
     let unsubs: Array<() => void> = [];
 
-    async function initFirestore() {
+    async function initDatabases() {
       setIsSyncing(true);
+
+      // 1. Initialize Supabase if configured with credentials
+      if (isSupabaseConfigured()) {
+        try {
+          const conn = await testSupabaseConnection();
+          if (conn.connected) {
+            console.log(`[Supabase] Connected to Roxas PostgreSQL database (${conn.latencyMs}ms). Initializing real-time listeners...`);
+            setIsSupabaseConnected(true);
+            await ensureDemoAccountsExistInSupabase();
+
+            unsubs.push(
+              subscribeToSupabaseTable<User>(SUPABASE_TABLES.USERS, (data) => {
+                if (data && data.length > 0) {
+                  setUsers(prev => {
+                    const map = new Map<string, User>();
+                    prev.forEach(u => map.set(u.id, u));
+                    data.forEach(u => {
+                      if (u.role === 'admin' && u.id !== 'user-peso-admin-01' && u.email?.toLowerCase() !== 'peso.admin@roxas.gov.ph') {
+                        return;
+                      }
+                      const existing = map.get(u.id);
+                      const isCompleted = u.isProfileCompleted || existing?.isProfileCompleted || (
+                        typeof window !== 'undefined' && (
+                          localStorage.getItem(`ehanap_profile_completed_${u.id}`) === 'true' ||
+                          (u.email && localStorage.getItem(`ehanap_profile_completed_${u.email.toLowerCase()}`) === 'true')
+                        )
+                      );
+                      map.set(u.id, { ...u, isProfileCompleted: Boolean(isCompleted) });
+                    });
+                    return Array.from(map.values());
+                  });
+                  setCurrentUser(prev => {
+                    if (!prev) return null;
+                    const match = data.find(u => u.id === prev.id);
+                    if (!match) return prev;
+                    const completed = prev.isProfileCompleted || match.isProfileCompleted || (
+                      typeof window !== 'undefined' && (
+                        localStorage.getItem(`ehanap_profile_completed_${prev.id}`) === 'true' ||
+                        (prev.email && localStorage.getItem(`ehanap_profile_completed_${prev.email.toLowerCase()}`) === 'true')
+                      )
+                    );
+                    return { ...match, isProfileCompleted: Boolean(completed) };
+                  });
+                }
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<EmployerProfile>(SUPABASE_TABLES.EMPLOYERS, (data) => {
+                if (data && data.length > 0) {
+                  setEmployers(prev => {
+                    const map = new Map<string, EmployerProfile>();
+                    prev.forEach(e => map.set(e.id, e));
+                    data.forEach(e => map.set(e.id, e));
+                    return Array.from(map.values());
+                  });
+                }
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<JobSeekerProfile>(SUPABASE_TABLES.JOB_SEEKERS, (data) => {
+                if (data && data.length > 0) {
+                  setJobSeekers(prev => {
+                    const map = new Map<string, JobSeekerProfile>();
+                    prev.forEach(s => map.set(s.id, s));
+                    data.forEach(s => {
+                      const existing = map.get(s.id);
+                      const isCompleted = Boolean(
+                        s.isProfileCompleted || 
+                        existing?.isProfileCompleted || 
+                        (typeof window !== 'undefined' && (
+                          localStorage.getItem(`ehanap_profile_completed_${s.id}`) === 'true' ||
+                          (s.userId && localStorage.getItem(`ehanap_profile_completed_${s.userId}`) === 'true') ||
+                          (s.email && localStorage.getItem(`ehanap_profile_completed_${s.email.toLowerCase()}`) === 'true')
+                        ))
+                      );
+                      map.set(s.id, { ...s, isProfileCompleted: isCompleted });
+                    });
+                    return Array.from(map.values());
+                  });
+                }
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<JobPost>(SUPABASE_TABLES.JOB_POSTS, (data) => {
+                if (data && data.length > 0) setJobPosts(data);
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<Application>(SUPABASE_TABLES.APPLICATIONS, (data) => {
+                if (data && data.length > 0) setApplications(data);
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<Interview>(SUPABASE_TABLES.INTERVIEWS, (data) => {
+                if (data && data.length > 0) setInterviews(data);
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<NotificationItem>(SUPABASE_TABLES.NOTIFICATIONS, (data) => {
+                if (data && data.length > 0) setNotifications(data);
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<AuditLog>(SUPABASE_TABLES.AUDIT_LOGS, (data) => {
+                if (data && data.length > 0) {
+                  const sorted = [...data].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+                  setAuditLogs(sorted);
+                }
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<SystemAnnouncement>(SUPABASE_TABLES.ANNOUNCEMENTS, (data) => {
+                if (data && data.length > 0) setAnnouncements(data);
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<JobAlertSubscription>(SUPABASE_TABLES.JOB_SUBSCRIPTIONS, (data) => {
+                if (data && data.length > 0) setJobSubscriptions(data);
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<PesoReferralSlip>(SUPABASE_TABLES.REFERRAL_SLIPS, (data) => {
+                if (data && data.length > 0) setReferralSlips(data);
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<LocalRecruitmentActivity>(SUPABASE_TABLES.LRA_EVENTS, (data) => {
+                if (data && data.length > 0) setLocalRecruitmentActivities(data);
+              })
+            );
+          }
+        } catch (sbErr) {
+          console.warn('[Supabase] Initialization warning, continuing with fallback store:', sbErr);
+        }
+      }
+
+      // 2. Initialize Firestore / offline fallback
       try {
         await ensureAdminAccountExists();
         setIsFirestoreConnected(true);
@@ -402,7 +590,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    initFirestore();
+    initDatabases();
 
     return () => {
       unsubs.forEach(unsub => unsub());
@@ -2284,6 +2472,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Reset database to complete demo state with active employers & PESO admin
   const resetToDemoData = async () => {
+    if (isSupabaseConfigured()) {
+      await seedDemoDataToSupabase().catch((err) => {
+        console.warn('[Supabase] Warning during demo reset:', err);
+      });
+    }
     await seedDemoDataToFirestore();
     setUsers(INITIAL_USERS);
     setCurrentUser(null);
@@ -2429,6 +2622,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         localRecruitmentActivities,
         activeToast,
         isFirestoreConnected,
+        isSupabaseConnected,
         isSyncing,
         switchUserRole,
         loginAs,

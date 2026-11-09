@@ -11,7 +11,7 @@ Project tracking across database migration to Supabase, candidate ranking automa
 | Milestone / Phase | Description | Status | Target Branch | Verification |
 | :---------------: | ----------- | :----: | :-----------: | :----------: |
 | **00 / Baseline** | **Existing Application Baseline & Codebase Analysis** | **COMPLETED** | `main` | `tsc --noEmit` passing (0 errors) |
-| **01 / Phase 1** | **Supabase Database Architecture, Relational Schema & Client Layer** | **PLANNED** | `milestone/01-supabase-schema` | Schema executes; Supabase client integrated |
+| **01 / Phase 1** | **Supabase Database Architecture, Relational Schema & Client Layer** | **COMPLETED** | `milestone/01-supabase-schema` | 11 tables migrated; Supabase client layer & dual persistence verified |
 | **02 / Phase 2** | **Multi-Role Authentication, Authorization & Session Management** | **PLANNED** | `milestone/02-auth-roles` | Seeker, Employer & Admin session hydration |
 | **03 / Phase 3** | **End-to-End Data Pipeline & Bidirectional Sync ("Pagbato ng Data")** | **PLANNED** | `milestone/03-data-flow-sync` | Unbroken data transitions across 3 roles |
 | **04 / Phase 4** | **Automated Candidate Ranking & Two-Way Compatibility Matching Engine** | **PLANNED** | `milestone/04-candidate-ranking` | Deterministic ranking on Employer & Seeker views |
@@ -52,29 +52,35 @@ Project tracking across database migration to Supabase, candidate ranking automa
 ---
 
 ### Milestone 01: Supabase Database Architecture, Relational Schema & Client Layer
-- **Status**: Planned
+- **Status**: Completed
+- **Completed On**: 2026-11-09
 - **Target Branch**: `milestone/01-supabase-schema`
+- **Verification**: `npx tsx scripts/verify-phase1-supabase.ts` (44/44 tests passed), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
 
 #### Deliverables & Implementation:
 1. **PostgreSQL Relational Schema**:
-   - Write SQL migration file `supabase/migrations/20261109000001_initial_ehanap_schema.sql` defining 11 tables:
+   - Written SQL migration file `supabase/migrations/20261109000001_initial_ehanap_schema.sql` defining 11 core tables (+ 2 auxiliary tables):
      - `users`, `employer_profiles`, `seeker_profiles`, `job_posts`, `applications`
      - `candidate_matches`, `interviews`, `lra_events`, `peso_referral_slips`, `notifications`, `audit_logs`
-   - Include foreign keys, indexes, and CHECK constraints.
+     - `system_announcements`, `job_alert_subscriptions`
+   - Included foreign keys, cascading deletions, B-tree and GIN indexes, CHECK constraints, and automatic `updated_at` trigger functions.
+   - Configured Row Level Security (RLS) policies and enabled Supabase Realtime publication broadcast on primary operational tables.
 2. **Supabase Client Layer**:
-   - Install `@supabase/supabase-js`.
-   - Implement `src/lib/supabase.ts` with connection and credential safety guards.
-   - Implement `src/services/supabaseService.ts` providing typed CRUD operations for all entities.
+   - Installed `@supabase/supabase-js` (`^2.119.0`).
+   - Implemented `src/lib/supabase.ts` with credential safety guards and offline demonstration fallback.
+   - Implemented `src/services/supabaseService.ts` providing typed CRUD operations, bidirectional snake_case/camelCase data transformers, realtime subscription listener, and health check.
 3. **Database Seed & Fallback**:
-   - Provide SQL seed script replicating all initial Roxas employers, job seekers, and PESO LRA records.
-   - Maintain offline mock fallback support in `AppContext` for reliable thesis defense execution.
+   - Created SQL seed script `supabase/seed.sql` replicating initial Roxas accounts (PESO Admin, Puregold, Mindoro Tech, Agro-Farms, Boutique, and Job Seekers).
+   - Integrated dual-persistence and realtime sync in `AppContext.tsx` with resilient zero-data/localStorage fallback for demonstration stability.
+   - Provided `.env.example` and local `.env` configuration.
+   - Created automated verification test suite `scripts/verify-phase1-supabase.ts` (44/44 passed).
 
 #### Definition of Done Checklist:
-- [ ] Supabase SQL migration script created and validated.
-- [ ] Supabase client initialized and configured via `.env` variables.
-- [ ] Database service layer (`supabaseService.ts`) implemented with TypeScript types.
-- [ ] Offline fallback mechanism in place for demonstration stability.
-- [ ] `npm run lint` passes with 0 errors.
+- [x] Supabase SQL migration script created and validated.
+- [x] Supabase client initialized and configured via `.env` variables.
+- [x] Database service layer (`supabaseService.ts`) implemented with TypeScript types.
+- [x] Offline fallback mechanism in place for demonstration stability.
+- [x] `npm run lint` passes with 0 errors.
 
 ---
 
