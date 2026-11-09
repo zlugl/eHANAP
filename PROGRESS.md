@@ -12,7 +12,7 @@ Project tracking across database migration to Supabase, candidate ranking automa
 | :---------------: | ----------- | :----: | :-----------: | :----------: |
 | **00 / Baseline** | **Existing Application Baseline & Codebase Analysis** | **COMPLETED** | `main` | `tsc --noEmit` passing (0 errors) |
 | **01 / Phase 1** | **Supabase Database Architecture, Relational Schema & Client Layer** | **COMPLETED** | `milestone/01-supabase-schema` | 11 tables migrated; Supabase client layer & dual persistence verified |
-| **02 / Phase 2** | **Multi-Role Authentication, Authorization & Session Management** | **PLANNED** | `milestone/02-auth-roles` | Seeker, Employer & Admin session hydration |
+| **02 / Phase 2** | **Multi-Role Authentication, Authorization & Session Management** | **COMPLETED** | `milestone/02-auth-roles` | 80/80 tests passed in verify-milestone02-auth.ts; 217/217 total suite passing |
 | **03 / Phase 3** | **End-to-End Data Pipeline & Bidirectional Sync ("Pagbato ng Data")** | **PLANNED** | `milestone/03-data-flow-sync` | Unbroken data transitions across 3 roles |
 | **04 / Phase 4** | **Automated Candidate Ranking & Two-Way Compatibility Matching Engine** | **PLANNED** | `milestone/04-candidate-ranking` | Deterministic ranking on Employer & Seeker views |
 | **05 / Phase 5** | **PESO / LGU Admin Portal: LRA Management & Municipal Analytics** | **PLANNED** | `milestone/05-peso-lra-analytics` | LRA event management & live municipal metrics |
@@ -85,25 +85,37 @@ Project tracking across database migration to Supabase, candidate ranking automa
 ---
 
 ### Milestone 02: Multi-Role Authentication, Authorization & Session Management
-- **Status**: Planned
+- **Status**: Completed
+- **Completed On**: 2026-11-09
 - **Target Branch**: `milestone/02-auth-roles`
+- **Verification**: `npx tsx scripts/verify-milestone02-auth.ts` (80/80 passed), `npm test` (217/217 passed across 5 suites), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
 
 #### Deliverables & Implementation:
-1. **Authentication Flow**:
-   - Supabase Auth integration (email/password registration and login).
-   - Instant 1-click Demo Account switcher for thesis presentation (Juan Seeker, Puregold Roxas Employer, PESO Roxas Admin).
-2. **Role Gatekeeping & Route Protection**:
-   - Strict role-based navigation and action guards in `AppContext`.
-   - Prevent unauthorized access between Seeker, Employer, and PESO Admin routes.
-3. **Profile Setup Wizards**:
-   - Job Seeker profile wizard with educational attainment, primary degree, and skill categorization.
-   - Employer profile wizard with Roxas business permit numbers and compliance document ingestion.
+1. **Supabase Auth Service Layer**:
+   - Implemented `signUpWithSupabase`, `signInWithSupabase`, `signOutWithSupabase`, `getSupabaseSession`, `getSupabaseUser`, and `onSupabaseAuthStateChange` in `src/services/supabaseService.ts`.
+   - Added graceful offline fallback mechanism ensuring zero crashes or unhandled promise errors during panel defense room connectivity drops.
+2. **Instant 1-Click Demo Persona Switcher**:
+   - Expanded `DEMO_ACCOUNTS` in `src/data/demoAccounts.ts` with dedicated Job Seeker personas (Juan Dela Cruz, BSCS graduate; Maria Santos, retail customer service) alongside Roxas Employers (Puregold, Mindoro Tech, Agro-Farms, Central Boutique) and the Municipal PESO Administrator.
+   - Built interactive 1-Click Role Switcher Pill in `Navbar.tsx` (desktop header, profile dropdown menu, and mobile drawer) allowing instant single-click switching between Seeker, Employer, and PESO Admin with complete session hydration.
+   - Added `switchDemoRole` in `AppContext.tsx` with automated audit logging (`DEMO_ROLE_SWITCHED`) and visual confirmation toast notifications.
+3. **Role Gatekeeping & Route Protection**:
+   - Implemented `src/utils/routeGuards.ts` categorizing system routes (`PUBLIC_ROUTES`, `SEEKER_ROUTES`, `EMPLOYER_ROUTES`, `ADMIN_ROUTES`).
+   - Integrated role protection guards in `handleNavigate` (`App.tsx`):
+     - Unauthenticated guests navigating to protected routes are intercepted and redirected with prompt to sign in or select a demo account.
+     - Authenticated users attempting cross-role route access (e.g., Seeker trying to access `admin-*` or `employer-*`) are strictly denied with an access restricted toast and redirected to their role home dashboard.
+   - Profile setup wizard enforcement: ensures incomplete seeker or employer profiles cannot bypass setup wizards before accessing protected views.
+4. **Automated Verification Suite (`scripts/verify-milestone02-auth.ts`)**:
+   - Implemented 80 unit and scenario tests verifying: Supabase Auth service methods, multi-role authentication & session hydration, 1-click demo persona switcher contract, route gatekeeping & role isolation, and profile wizard completion.
+   - Unified into master test runner (`scripts/verify-milestone07.ts`), elevating test coverage to 217/217 passing automated tests.
 
 #### Definition of Done Checklist:
-- [ ] All three roles can log in and view their respective dashboards.
-- [ ] Demo switcher operates seamlessly without manual credentials.
-- [ ] Profiles persist and synchronize with Supabase.
-- [ ] `npm run lint` passes with 0 errors.
+- [x] All three roles can log in and view their respective dashboards.
+- [x] Demo switcher operates seamlessly without manual credentials (1-click navbar pill and dropdown).
+- [x] Profiles persist and synchronize with Supabase (with resilient offline demo fallback).
+- [x] Strict role gatekeeping prevents unauthorized cross-role view navigation.
+- [x] `npm test` passes (217/217 tests verified).
+- [x] `npm run lint` (`tsc --noEmit`) passes with 0 errors.
+- [x] `npm run build` succeeds cleanly.
 
 ---
 

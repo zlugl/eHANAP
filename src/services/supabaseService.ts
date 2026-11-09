@@ -447,3 +447,149 @@ export async function resetSupabaseDatabase(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Supabase Auth: Register new user with email and password
+ */
+export async function signUpWithSupabase(
+  email: string,
+  password?: string,
+  metadata?: Record<string, any>
+): Promise<{ success: boolean; user?: any; session?: any; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return {
+      success: true,
+      user: { id: `offline-${Date.now()}`, email, user_metadata: metadata },
+      session: null,
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: password || 'eHANAP@2026',
+      options: {
+        data: metadata || {},
+      },
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      user: data.user,
+      session: data.session,
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Supabase authentication failed.' };
+  }
+}
+
+/**
+ * Supabase Auth: Sign in user with email and password
+ */
+export async function signInWithSupabase(
+  email: string,
+  password?: string
+): Promise<{ success: boolean; user?: any; session?: any; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return {
+      success: true,
+      user: { id: `offline-${Date.now()}`, email },
+      session: null,
+    };
+  }
+
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: password || 'eHANAP@2026',
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return {
+      success: true,
+      user: data.user,
+      session: data.session,
+    };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Supabase login failed.' };
+  }
+}
+
+/**
+ * Supabase Auth: Sign out active user
+ */
+export async function signOutWithSupabase(): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true };
+  }
+
+  try {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Supabase logout failed.' };
+  }
+}
+
+/**
+ * Supabase Auth: Retrieve active session
+ */
+export async function getSupabaseSession(): Promise<any | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase.auth.getSession();
+    if (error || !data.session) return null;
+    return data.session;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Supabase Auth: Retrieve active user
+ */
+export async function getSupabaseUser(): Promise<any | null> {
+  if (!isSupabaseConfigured()) return null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) return null;
+    return data.user;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Supabase Auth: Subscribe to auth state changes
+ */
+export function onSupabaseAuthStateChange(
+  callback: (event: string, session: any | null) => void
+): { unsubscribe: () => void } {
+  if (!isSupabaseConfigured()) {
+    return { unsubscribe: () => {} };
+  }
+
+  try {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      callback(event, session);
+    });
+    return {
+      unsubscribe: () => {
+        data.subscription.unsubscribe();
+      },
+    };
+  } catch {
+    return { unsubscribe: () => {} };
+  }
+}
+

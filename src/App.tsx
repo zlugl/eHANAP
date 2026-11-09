@@ -38,6 +38,7 @@ import { AdminReportsPage } from './views/admin/AdminReportsPage';
 import { AdminAuditLogsPage } from './views/admin/AdminAuditLogsPage';
 import { AdminJobMatchingPage } from './views/admin/AdminJobMatchingPage';
 import { AdminLraPage } from './views/admin/AdminLraPage';
+import { isRouteAllowedForRole, getRequiredRoleForRoute, getRoleDefaultView } from './utils/routeGuards';
 
 import { ShieldAlert, LogIn, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -47,7 +48,7 @@ import { MobileDeviceShell } from './components/MobileDeviceShell';
 import { SeekerBookmarksModal } from './components/SeekerBookmarksModal';
 
 function AppContent() {
-  const { currentUser, currentSeekerProfile, currentEmployerProfile, jobSeekers, employers } = useApp();
+  const { currentUser, currentSeekerProfile, currentEmployerProfile, jobSeekers, employers, showToast } = useApp();
   const [currentView, setCurrentView] = useState<string>('landing');
   const [viewParams, setViewParams] = useState<any>({});
   
@@ -94,6 +95,34 @@ function AppContent() {
     };
     if (routeAliases[cleanView]) {
       cleanView = routeAliases[cleanView];
+    }
+
+    // MANDATORY ROLE GATEKEEPING & ROUTE PROTECTION:
+    if (!isRouteAllowedForRole(cleanView, currentUser?.role)) {
+      if (!currentUser) {
+        // Unauthenticated guest attempted to access a protected portal
+        const requiredRole = getRequiredRoleForRoute(cleanView);
+        setAuthRole(requiredRole || 'job_seeker');
+        setAuthMode('login');
+        setAuthModalOpen(true);
+        showToast({
+          title: 'Sign In Required',
+          message: `Please sign in or select a demo account to access the ${requiredRole ? requiredRole.replace('_', ' ') : 'protected'} portal.`,
+          type: 'info',
+        });
+        return;
+      }
+
+      // Authenticated user attempted cross-role portal access
+      showToast({
+        title: 'Access Restricted',
+        message: `Your account role (${currentUser.role}) does not have permission to access "${cleanView}". Redirecting to your dashboard.`,
+        type: 'error',
+      });
+      const homeView = getRoleDefaultView(currentUser.role);
+      setCurrentView(homeView);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
     }
     // MANDATORY PROFILE SETUP GATE:
     // If a job seeker hasn't completed their profile setup, they must complete it

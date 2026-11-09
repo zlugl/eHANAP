@@ -59,6 +59,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { 
     currentUser, 
     logout, 
+    switchDemoRole,
     notifications, 
     applications,
     interviews,
@@ -116,6 +117,16 @@ export const Navbar: React.FC<NavbarProps> = ({
     setIsProfileMenuOpen(false);
     setIsMobileMenuOpen(false);
     onNavigate('landing');
+  };
+
+  const handleQuickRoleSwitch = (role: 'job_seeker' | 'employer' | 'admin') => {
+    const res = switchDemoRole(role);
+    if (res.success && res.role) {
+      setIsProfileMenuOpen(false);
+      setIsMobileMenuOpen(false);
+      const targetView = res.role === 'admin' ? 'admin-dashboard' : res.role === 'employer' ? 'employer-dashboard' : 'seeker-dashboard';
+      onNavigate(targetView);
+    }
   };
 
   // Dynamically resolve displayed user name depending on resume name or registered profile name
@@ -578,6 +589,47 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
 
+            {/* 1-Click Role Switcher Pill for Thesis Defense */}
+            <div className="hidden lg:flex items-center gap-1 bg-[var(--color-paper-2)] border border-[var(--color-rule)] rounded-full px-2 py-1 text-xs" aria-label="Quick Demo Persona Switcher">
+              <span className="text-[10px] font-semibold text-[var(--color-muted)] px-1 uppercase tracking-wider">Demo:</span>
+              <button
+                type="button"
+                onClick={() => handleQuickRoleSwitch('job_seeker')}
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
+                  currentUser?.role === 'job_seeker'
+                    ? 'bg-blue-600 text-white shadow-xs font-semibold'
+                    : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
+                }`}
+                title="1-Click switch to Job Seeker (Juan Dela Cruz)"
+              >
+                Seeker
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickRoleSwitch('employer')}
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
+                  currentUser?.role === 'employer'
+                    ? 'bg-emerald-600 text-white shadow-xs font-semibold'
+                    : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
+                }`}
+                title="1-Click switch to Roxas Employer (Puregold Price Club)"
+              >
+                Employer
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickRoleSwitch('admin')}
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-medium transition-all cursor-pointer ${
+                  currentUser?.role === 'admin'
+                    ? 'bg-amber-600 text-white shadow-xs font-semibold'
+                    : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
+                }`}
+                title="1-Click switch to Municipal PESO Admin"
+              >
+                PESO
+              </button>
+            </div>
+
             {/* Authenticated User Profile Dropdown */}
             {currentUser ? (
               <div className="relative">
@@ -724,6 +776,58 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </button>
                       </>
                     )}
+
+                    <div className="border-t border-[var(--color-rule)] my-1"></div>
+
+                    {/* Instant 1-Click Demo Persona Switcher */}
+                    <div className="px-4 py-1 text-[10px] uppercase font-bold tracking-wider text-[var(--color-muted)]">
+                      1-Click Demo Switcher
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickRoleSwitch('job_seeker')}
+                      className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between hover:bg-[var(--color-paper-3)] transition-colors ${
+                        currentUser.role === 'job_seeker' ? 'text-blue-700 font-semibold bg-blue-50/50' : 'text-[var(--color-ink)]'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <User className="w-3.5 h-3.5 text-blue-600" aria-hidden="true" />
+                        <span>Job Seeker (Juan)</span>
+                      </span>
+                      {currentUser.role === 'job_seeker' && (
+                        <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-sm font-semibold">Active</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickRoleSwitch('employer')}
+                      className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between hover:bg-[var(--color-paper-3)] transition-colors ${
+                        currentUser.role === 'employer' ? 'text-emerald-700 font-semibold bg-emerald-50/50' : 'text-[var(--color-ink)]'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Building2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
+                        <span>Employer (Puregold)</span>
+                      </span>
+                      {currentUser.role === 'employer' && (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm font-semibold">Active</span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleQuickRoleSwitch('admin')}
+                      className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between hover:bg-[var(--color-paper-3)] transition-colors ${
+                        currentUser.role === 'admin' ? 'text-amber-700 font-semibold bg-amber-50/50' : 'text-[var(--color-ink)]'
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <ShieldCheck className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
+                        <span>PESO Admin (LGU)</span>
+                      </span>
+                      {currentUser.role === 'admin' && (
+                        <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-semibold">Active</span>
+                      )}
+                    </button>
 
                     <div className="border-t border-[var(--color-rule)] my-1"></div>
 
@@ -988,6 +1092,48 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
         <div className="lg:hidden bg-[var(--color-paper-2)] border-b border-[var(--color-rule)] px-4 pt-3 pb-5 space-y-3 shadow-[var(--shadow-lift)] max-h-[calc(100vh-4rem)] overflow-y-auto">
+          {/* Mobile 1-Click Demo Persona Switcher */}
+          <div className="bg-[var(--color-paper-3)] border border-[var(--color-rule)] rounded-md p-2.5 mb-2">
+            <p className="text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider mb-1.5">
+              Thesis 1-Click Persona Switcher:
+            </p>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                onClick={() => handleQuickRoleSwitch('job_seeker')}
+                className={`py-1.5 px-2 rounded text-[11px] font-semibold text-center transition-all cursor-pointer ${
+                  currentUser?.role === 'job_seeker'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-[var(--color-paper-1)] text-[var(--color-ink)] hover:bg-[var(--color-paper-2)] border border-[var(--color-rule)]'
+                }`}
+              >
+                Seeker
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickRoleSwitch('employer')}
+                className={`py-1.5 px-2 rounded text-[11px] font-semibold text-center transition-all cursor-pointer ${
+                  currentUser?.role === 'employer'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-[var(--color-paper-1)] text-[var(--color-ink)] hover:bg-[var(--color-paper-2)] border border-[var(--color-rule)]'
+                }`}
+              >
+                Employer
+              </button>
+              <button
+                type="button"
+                onClick={() => handleQuickRoleSwitch('admin')}
+                className={`py-1.5 px-2 rounded text-[11px] font-semibold text-center transition-all cursor-pointer ${
+                  currentUser?.role === 'admin'
+                    ? 'bg-amber-600 text-white shadow-xs'
+                    : 'bg-[var(--color-paper-1)] text-[var(--color-ink)] hover:bg-[var(--color-paper-2)] border border-[var(--color-rule)]'
+                }`}
+              >
+                PESO
+              </button>
+            </div>
+          </div>
+
           {/* Detailed Navigation Item Rows with Icons */}
           <div className="space-y-1">
             {!currentUser ? (

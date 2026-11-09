@@ -45,7 +45,7 @@ import {
   INITIAL_REFERRAL_SLIPS, 
   INITIAL_LRA_EVENTS 
 } from '../data/pesoLguData';
-import { DEMO_ACCOUNTS, DemoAccountMeta, getDemoAccountByEmail } from '../data/demoAccounts';
+import { DEMO_ACCOUNTS, DemoAccountMeta, getDemoAccountByEmail, PRIMARY_DEMO_ACCOUNTS } from '../data/demoAccounts';
 import { calculateDecisionTreeMatch } from '../utils/decisionTree';
 import { evaluateResumeForAts } from '../utils/atsEngine';
 import { 
@@ -67,6 +67,10 @@ import {
   ensureDemoAccountsExistInSupabase,
   seedDemoDataToSupabase,
   testSupabaseConnection,
+  signInWithSupabase,
+  signUpWithSupabase,
+  signOutWithSupabase,
+  onSupabaseAuthStateChange,
 } from '../services/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { auth } from '../lib/firebase';
@@ -123,6 +127,7 @@ interface AppContextType {
   
   // Actions
   switchUserRole: (userId: string | null) => void;
+  switchDemoRole: (target: 'job_seeker' | 'employer' | 'admin' | string) => { success: boolean; user?: User; role?: UserRole; error?: string };
   loginAs: (email: string, password?: string) => { success: boolean; user?: User; isProfileCompleted?: boolean; seekerProfile?: JobSeekerProfile | null; error?: string };
   continueWithGoogle: (intendedRole?: UserRole) => Promise<{ success: boolean; isNewUser?: boolean; user?: User; seekerProfile?: JobSeekerProfile; employerProfile?: EmployerProfile; error?: string }>;
   logout: () => void;
@@ -307,6 +312,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.log(`[Supabase] Connected to Roxas PostgreSQL database (${conn.latencyMs}ms). Initializing real-time listeners...`);
             setIsSupabaseConnected(true);
             await ensureDemoAccountsExistInSupabase();
+
+            // Listen to Supabase Auth state changes
+            const authSub = onSupabaseAuthStateChange((event, session) => {
+              if (session?.user?.email) {
+                const sessionEmail = session.user.email.toLowerCase();
+                setUsers((latestUsers) => {
+                  const match = latestUsers.find((u) => u.email.toLowerCase() === sessionEmail);
+                  if (match) {
+                    setCurrentUser(match);
+                  }
+                  return latestUsers;
+                });
+              }
+            });
+            unsubs.push(authSub.unsubscribe);
 
             unsubs.push(
               subscribeToSupabaseTable<User>(SUPABASE_TABLES.USERS, (data) => {
@@ -829,6 +849,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setCurrentUser(found);
     logAudit('LOGIN_SUCCESS', 'User', found.id, `User signed in as ${found.email} (${found.role})`);
+
+    // Dual-persistence session synchronization with Supabase Auth
+    if (isSupabaseConfigured()) {
+      signInWithSupabase(cleanEmail, password).catch(() => {});
+    }
+
     return { 
       success: true, 
       user: found, 
@@ -838,6 +864,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       seekerProfile: matchingSeeker,
       employerProfile: matchingEmployer
     };
+  };
+
+  // Instant 1-Click Demo Account Switcher for Thesis Defense
+  const switchDemoRole = (target: 'job_seeker' | 'employer' | 'admin' | string) => {
+    let email = '';
+    const cleanTarget = (target || '').trim().toLowerCase();
+
+    if (cleanTarget === 'job_seeker' || cleanTarget === 'seeker') {
+      email = 'juan.delacruz@jobseeker.ph';
+    } else if (cleanTarget === 'employer') {
+      email = 'puregold.roxas@employer.ph';
+    } else if (cleanTarget === 'admin') {
+      email = 'peso.admin@roxas.gov.ph';
+    } else {
+      const demo = DEMO_ACCOUNTS.find(
+        (a) => a.id.toLowerCase() === cleanTarget || a.email.toLowerCase() === cleanTarget || a.userId.toLowerCase() === cleanTarget
+      );
+      if (demo) {
+        email = demo.email;
+      } else {
+        email = target;
+      }
+    }
+
+    const res = loginAs(email, 'password123');
+    if (res.success && res.user) {
+      logAudit('DEMO_ROLE_SWITCH', 'User', res.user.id, `1-Click switched active persona to ${res.user.name} (${res.user.role})`);
+      showToast({
+        title: `Persona: ${res.user.role === 'admin' ? 'PESO Admin' : res.user.role === 'employer' ? 'Employer' : 'Job Seeker'}`,
+        message: `Switched to ${res.user.name} (${res.user.email}).`,
+        type: 'status',
+      });
+      return { success: true, user: res.user, role: res.user.role };
+    }
+
+    return { success: false, error: res.error || 'Failed to switch demo account.' };
   };
 
   // Google OAuth Authentication
@@ -1035,6 +1097,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Logout
   const logout = () => {
+    if (isSupabaseConfigured()) {
+      signOutWithSupabase().catch(() => {});
+    }
     setCurrentUser(null);
   };
 
@@ -2625,6 +2690,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isSupabaseConnected,
         isSyncing,
         switchUserRole,
+        switchDemoRole,
         loginAs,
         continueWithGoogle,
         logout,

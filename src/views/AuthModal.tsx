@@ -915,7 +915,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-[var(--color-ink-muted)] leading-normal">
-                Select an employer field or the PESO admin to auto-fill credentials and test role features:
+                Select a job seeker, local Roxas employer, or the PESO municipal admin to auto-fill credentials and test role features:
               </p>
 
               {/* 1-Column List of Demo Accounts */}

@@ -173,10 +173,79 @@ export const DEMO_ACCOUNTS: DemoAccountMeta[] = [
       'Organize quick in-person walk-in interviews at the boutique',
       'Endorse candidate selections to PESO for official placement documentation'
     ]
+  },
+
+  // 6. JOB SEEKER DEMO ACCOUNT: JUAN DELA CRUZ (BS Computer Science / Software Specialist)
+  {
+    id: 'demo-seeker-juan',
+    userId: 'user-seeker-juan-01',
+    role: 'job_seeker',
+    name: 'Juan Dela Cruz',
+    email: 'juan.delacruz@jobseeker.ph',
+    password: 'password123',
+    roleLabel: 'Job Seeker: IT & Web Development',
+    badge: 'Juan Dela Cruz (BSCS)',
+    badgeColor: 'blue',
+    subtitle: 'BS Computer Science Graduate — Paclasan, Roxas',
+    description: 'Fresh graduate from Mindoro State University with proficiency in React, TypeScript, and modern web application development, seeking full-stack opportunities.',
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=200&auto=format&fit=crop&q=80',
+    industryCategory: 'Information Technology & Software',
+    highlights: [
+      'Degree: BS in Computer Science (Mindoro State University)',
+      'Core Skills: React, TypeScript, Node.js, REST APIs, Git',
+      'ATS Resume Evaluated: 87% Readability & Keyword Score',
+      'Matches Mindoro Tech Web Developer vacancy at 88%'
+    ],
+    flowSteps: [
+      'View algorithmic Decision Tree match compatibility for IT vacancies',
+      'Submit 1-click application with verified ATS-screened credentials',
+      'Track real-time hiring progress across under_review and interview stages',
+      'Accept digital interview invitations and download PESO Referral Slips'
+    ]
+  },
+
+  // 7. JOB SEEKER DEMO ACCOUNT: MARIA SANTOS (Customer Service & Retail Saleslady)
+  {
+    id: 'demo-seeker-maria',
+    userId: 'user-seeker-maria-02',
+    role: 'job_seeker',
+    name: 'Maria Santos',
+    email: 'maria.santos@jobseeker.ph',
+    password: 'password123',
+    roleLabel: 'Job Seeker: Retail & Customer Support',
+    badge: 'Maria Santos (Retail)',
+    badgeColor: 'emerald',
+    subtitle: 'Vocational Retail & Customer Service — San Mariano, Roxas',
+    description: 'Experienced frontline retail professional and TESDA National Certificate holder seeking supermarket cashier or boutique sales associate positions.',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&auto=format&fit=crop&q=80',
+    industryCategory: 'Customer Service & Retail',
+    highlights: [
+      'Attainment: TVET / Vocational & TESDA NC II in Customer Service',
+      'Core Skills: POS Cash Handling, Inventory, Customer Relations',
+      'High compatibility score with Puregold Cashier vacancy (92%)',
+      'Verified bio-data on record with Municipal PESO'
+    ],
+    flowSteps: [
+      'Browse local retail openings matching vocational credentials',
+      'Review explainable Decision Tree score breakdown for Puregold',
+      'Submit application and receive live status updates',
+      'Attend in-person interview scheduled via eHANAP'
+    ]
   }
 ];
+
+export const PRIMARY_DEMO_ACCOUNTS = {
+  admin: DEMO_ACCOUNTS.find(a => a.id === 'demo-peso-admin')!,
+  employer: DEMO_ACCOUNTS.find(a => a.id === 'demo-emp-puregold')!,
+  seeker: DEMO_ACCOUNTS.find(a => a.id === 'demo-seeker-juan')!
+};
 
 export function getDemoAccountByEmail(email: string): DemoAccountMeta | undefined {
   return DEMO_ACCOUNTS.find(a => a.email.toLowerCase() === email.toLowerCase().trim());
 }
+
+export function getDemoAccountsByRole(role: UserRole): DemoAccountMeta[] {
+  return DEMO_ACCOUNTS.filter(a => a.role === role);
+}
+
 

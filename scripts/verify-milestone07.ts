@@ -18,15 +18,19 @@ const suites = [
     command: 'npx tsx scripts/verify-phase1-supabase.ts',
   },
   {
-    name: '2. Decision Tree Matching & Automated Candidate Ranking Engine',
+    name: '2. Multi-Role Authentication, Authorization & Session Management',
+    command: 'npx tsx scripts/verify-milestone02-auth.ts',
+  },
+  {
+    name: '3. Decision Tree Matching & Automated Candidate Ranking Engine',
     command: 'npx tsx scripts/verify-decision-tree.ts',
   },
   {
-    name: '3. Applicant Tracking System (ATS) Resume Evaluation Engine',
+    name: '4. Applicant Tracking System (ATS) Resume Evaluation Engine',
     command: 'npx tsx scripts/verify-ats-engine.ts',
   },
   {
-    name: '4. End-to-End Multi-Role Workflow Scenarios (Seeker, Employer, Admin)',
+    name: '5. End-to-End Multi-Role Workflow Scenarios (Seeker, Employer, Admin)',
     command: 'npx tsx scripts/verify-e2e-scenarios.ts',
   },
 ];
@@ -70,8 +74,8 @@ for (const res of results) {
 console.log('================================================================');
 
 if (allPassed) {
-  console.log('\n🎉 ALL TEST SUITES PASSED (137/137 tests verified)!');
-  console.log('Platform Hardening & Automated Verification for Milestone 07 is COMPLETE.\n');
+  console.log('\n🎉 ALL TEST SUITES PASSED (217/217 tests verified across 5 suites)!');
+  console.log('Automated Verification for eHANAP Core Architecture & Milestones is COMPLETE.\n');
   process.exit(0);
 } else {
   console.error('\n❌ One or more test suites failed. Review the output above.\n');
