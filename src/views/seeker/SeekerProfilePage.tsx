@@ -69,7 +69,8 @@ import {
   Home,
   Share2,
   Copy,
-  LogOut
+  LogOut,
+  Shield
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -741,7 +742,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
   );
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-slate-900 font-sans pb-28 md:pb-12 select-none">
+    <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] font-body pb-28 md:pb-12 select-none">
       
       {/* Centered App Container */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4 sm:pt-6 pb-28 md:pb-12 space-y-6">
@@ -750,7 +751,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
         <div className="flex items-center justify-between py-1">
           <button
             onClick={() => onNavigate ? onNavigate('seeker-dashboard') : undefined}
-            className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95"
+            className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
             title="Back to Dashboard"
             aria-label="Back"
           >
@@ -763,7 +764,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
           <button
             onClick={() => setActiveSectionModal('personal')}
-            className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95"
+            className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50"
             title="Edit Profile"
           >
             <Edit2 className="w-4 h-4 text-slate-700" />
@@ -804,9 +805,9 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
                 ) : (
                   <div 
                     onClick={() => avatarFileInputRef.current?.click()}
-                    className="w-full h-full border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/20 transition-all group/box"
+                    className="w-full h-full border-2 border-dashed border-slate-300 rounded-2xl flex flex-col items-center justify-center p-6 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50/20 transition-colors group/box"
                   >
-                    <div className="w-14 h-14 rounded-full bg-slate-100 group-hover/box:bg-blue-50 flex items-center justify-center text-slate-400 group-hover/box:text-blue-600 transition-all mb-3 shadow-inner">
+                    <div className="w-14 h-14 rounded-full bg-slate-100 group-hover/box:bg-blue-50 flex items-center justify-center text-slate-400 group-hover/box:text-blue-600 transition-colors mb-3 shadow-inner">
                       <Camera className="w-7 h-7" />
                     </div>
                     <p className="text-xs font-bold text-slate-700 group-hover/box:text-blue-600">No Profile Picture</p>
@@ -821,7 +822,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
                   <button
                     type="button"
                     onClick={() => avatarFileInputRef.current?.click()}
-                    className="w-full py-2 px-3 bg-white hover:bg-slate-50 active:scale-98 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300 shadow-2xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    className="w-full py-2 px-3 bg-white hover:bg-slate-50 active:scale-98 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300 shadow-2xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <Camera className="w-4 h-4 text-slate-500" />
                     <span>Change Profile Picture</span>
@@ -842,7 +843,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
                   <button
                     type="button"
                     onClick={() => avatarFileInputRef.current?.click()}
-                    className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    className="w-full py-2.5 px-3 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white text-xs font-semibold rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors cursor-pointer disabled:opacity-50"
                   >
                     <Camera className="w-4 h-4 text-white" />
                     <span>Add Profile Picture</span>
@@ -853,25 +854,25 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
             {/* Right Column: Personal Information (Matches image_e89698ca.png) */}
             <div className="flex-1 min-w-0 w-full text-left">
-              {/* Category / Profession Label */}
-              <p className="text-xs sm:text-sm font-black tracking-wider uppercase text-slate-700 mb-1">
-                {categoryHeadline}
-              </p>
-
               {/* Full Name */}
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-3">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight mb-1">
                 {fullName}
               </h2>
+
+              {/* Category / Profession Label */}
+              <p className="text-sm font-medium text-slate-600 mb-3">
+                {categoryHeadline}
+              </p>
 
               {/* Social Icons & Edit Info Button */}
               <div className="flex items-center gap-2.5 mb-4">
                 <button
                   type="button"
                   onClick={() => {}}
-                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center transition-colors cursor-pointer"
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-800 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-50"
                   title="X (Twitter)"
                 >
-                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
                   </svg>
                 </button>
@@ -924,7 +925,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
               {/* Supporting narrative statement */}
               <p className="mt-4 text-sm text-slate-600 leading-relaxed">
-                Through personalized coaching sessions, structured workshops, and continuous guidance, {displayFirstName} empowers clients to overcome organizational bottlenecks, secure funding, and drive sustainable growth.
+                Through personalized coaching sessions, structured workshops, and continuous guidance, {displayFirstName} guides clients to overcome organizational bottlenecks, secure funding, and drive sustainable growth.
               </p>
 
               {/* Contact Information */}
@@ -950,12 +951,12 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
         <div className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs p-5">
           <div className="flex items-center justify-between mb-3.5">
             <div>
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider">
+              <h3 className="text-sm font-bold text-slate-900">
                 Profile Tools & Document Actions
               </h3>
               <p className="text-[11px] text-slate-500">Quick actions to customize, manage, and download your profile</p>
             </div>
-            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
+            <span className="text-[11px] font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 tabular-nums">
               {profileCompleteness}% Complete
             </span>
           </div>
@@ -964,9 +965,9 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
             <button
               type="button"
               onClick={() => setIsResumeBuilderOpen(true)}
-              className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/80 text-left transition-all cursor-pointer group hover:shadow-2xs"
+              className="flex items-center gap-3 p-3 rounded-xl bg-amber-50/70 hover:bg-amber-100/70 border border-amber-200/80 text-left transition-colors cursor-pointer group hover:shadow-2xs active:scale-95 disabled:opacity-50"
             >
-              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
                 <Sparkles className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
@@ -978,9 +979,9 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
             <button
               type="button"
               onClick={() => setIsUploadModalOpen(true)}
-              className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200/80 text-left transition-all cursor-pointer group hover:shadow-2xs"
+              className="flex items-center gap-3 p-3 rounded-xl bg-emerald-50/70 hover:bg-emerald-100/70 border border-emerald-200/80 text-left transition-colors cursor-pointer group hover:shadow-2xs active:scale-95 disabled:opacity-50"
             >
-              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0">
                 <Upload className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
@@ -992,9 +993,9 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
             <button
               type="button"
               onClick={() => setIsPDFModalOpen(true)}
-              className="flex items-center gap-3 p-3 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 border border-blue-200/80 text-left transition-all cursor-pointer group hover:shadow-2xs"
+              className="flex items-center gap-3 p-3 rounded-xl bg-blue-50/70 hover:bg-blue-100/70 border border-blue-200/80 text-left transition-colors cursor-pointer group hover:shadow-2xs active:scale-95 disabled:opacity-50"
             >
-              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
                 <Printer className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
@@ -1006,9 +1007,9 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
             <button
               type="button"
               onClick={() => setActiveSectionModal('settings')}
-              className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-all cursor-pointer group hover:shadow-2xs"
+              className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-left transition-colors cursor-pointer group hover:shadow-2xs active:scale-95 disabled:opacity-50"
             >
-              <div className="w-9 h-9 rounded-xl bg-slate-700 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-slate-700 text-white flex items-center justify-center shrink-0">
                 <Settings className="w-4.5 h-4.5" />
               </div>
               <div className="min-w-0">
@@ -1112,7 +1113,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
       {/* MODAL 1: PERSONAL INFORMATION & PORTFOLIO */}
       {activeSectionModal === 'personal' && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 motion-safe:animate-in motion-safe:fade-in">
           <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl border border-slate-200 max-h-[92vh] flex flex-col overflow-hidden">
             
             {/* Modal Header */}
@@ -1138,7 +1139,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
             <div className="px-4 pt-3 bg-slate-50 border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0 text-xs font-bold">
               <button
                 onClick={() => setPersonalTab('personal')}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 disabled:opacity-50 ${
                   personalTab === 'personal' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
@@ -1147,7 +1148,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               </button>
               <button
                 onClick={() => setPersonalTab('education')}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 disabled:opacity-50 ${
                   personalTab === 'education' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
@@ -1156,7 +1157,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               </button>
               <button
                 onClick={() => setPersonalTab('experience')}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 disabled:opacity-50 ${
                   personalTab === 'experience' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
@@ -1165,7 +1166,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               </button>
               <button
                 onClick={() => setPersonalTab('skills')}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 disabled:opacity-50 ${
                   personalTab === 'skills' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
@@ -1174,7 +1175,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               </button>
               <button
                 onClick={() => setPersonalTab('certifications')}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 disabled:opacity-50 ${
                   personalTab === 'certifications' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
@@ -1183,7 +1184,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               </button>
               <button
                 onClick={() => setPersonalTab('resumes')}
-                className={`px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer whitespace-nowrap active:scale-95 disabled:opacity-50 ${
                   personalTab === 'resumes' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-200/70'
                 }`}
               >
@@ -1263,7 +1264,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
                     {/* Quick Avatar Presets */}
                     <div className="mt-3 pt-3 border-t border-slate-200/80">
-                      <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Or Choose a Professional Avatar Template:</p>
+                      <p className="text-xs font-semibold text-slate-500 mb-2">Or choose a professional avatar template:</p>
                       <div className="flex flex-wrap gap-2">
                         {[
                           { label: 'Corporate A', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
@@ -1280,7 +1281,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
                                 updateJobSeekerProfile(currentSeekerProfile.id, { profilePicture: preset.url });
                               }
                             }}
-                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-semibold transition-colors cursor-pointer active:scale-95 disabled:opacity-50 ${
                               profilePicture === preset.url 
                                 ? 'bg-indigo-50 border-indigo-400 text-indigo-700 ring-2 ring-indigo-500/20' 
                                 : 'bg-white border-slate-200 hover:border-indigo-300 text-slate-600'
@@ -1741,7 +1742,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
                               <div className="flex items-center gap-2">
                                 <p className="text-xs font-bold text-slate-900">{res.fileName}</p>
                                 {res.id === currentSeekerProfile.activeResumeId && (
-                                  <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                                  <span className="text-[10px] font-semibold bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
                                     Active
                                   </span>
                                 )}
@@ -1792,7 +1793,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
       {/* MODAL 2: ANALYTICS & DECISION TREE MATCH READINESS */}
       {activeSectionModal === 'analytics' && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 motion-safe:animate-in motion-safe:fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1808,11 +1809,11 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* Score Indicator */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-bold text-slate-600 uppercase tracking-wider">Profile Completeness</p>
-                  <p className="text-2xl font-black text-slate-900 mt-0.5">{profileCompleteness}%</p>
+                  <p className="text-xs font-semibold text-slate-600">Profile Completeness</p>
+                  <p className="text-2xl font-black text-slate-900 mt-0.5 tabular-nums">{profileCompleteness}%</p>
                   <p className="text-[11px] text-slate-500 mt-1">High completeness boosts your Decision Tree Match ranking.</p>
                 </div>
-                <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 font-black text-lg flex items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-100 text-emerald-800 font-black text-lg flex items-center justify-center tabular-nums">
                   {profileCompleteness}%
                 </div>
               </div>
@@ -1860,7 +1861,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
       {/* MODAL 3: JOB SEEKING STATUS & PREFERENCES */}
       {activeSectionModal === 'seekingStatus' && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 motion-safe:animate-in motion-safe:fade-in">
           <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -1886,7 +1887,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
                       key={status.id}
                       type="button"
                       onClick={() => setSeekingAvailability(status.id as any)}
-                      className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer font-bold ${
+                      className={`p-2.5 rounded-xl border text-center transition-colors cursor-pointer font-bold active:scale-95 disabled:opacity-50 ${
                         seekingAvailability === status.id
                           ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                           : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -1909,7 +1910,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
                       onClick={() => {
                         setPrefCategories(prev => prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]);
                       }}
-                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors cursor-pointer active:scale-95 disabled:opacity-50 ${
                         prefCategories.includes(cat)
                           ? 'bg-indigo-600 text-white'
                           : 'bg-white text-slate-700 border border-slate-200'
@@ -1975,7 +1976,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
       {/* MODAL 5: LANGUAGE */}
       {activeSectionModal === 'language' && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 motion-safe:animate-in motion-safe:fade-in">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -2024,7 +2025,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
       {/* MODAL 6: HELP CENTER */}
       {activeSectionModal === 'help' && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 motion-safe:animate-in motion-safe:fade-in">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -2040,7 +2041,10 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               <div className="p-3.5 bg-indigo-50 rounded-2xl border border-indigo-200">
                 <p className="font-bold text-indigo-950">PESO Roxas Municipal Office</p>
                 <p className="text-indigo-800 text-[11px] mt-0.5">Municipal Hall Compound, Roxas, Oriental Mindoro</p>
-                <p className="text-indigo-700 text-[11px] mt-1 font-semibold">📞 Hotline: (043) 289-5022 • peso.roxas@orientalmindoro.gov.ph</p>
+                <p className="text-indigo-700 text-[11px] mt-1 font-semibold flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 inline shrink-0" />
+                  <span>Hotline: (043) 289-5022 • peso.roxas@orientalmindoro.gov.ph</span>
+                </p>
               </div>
 
               <div>
@@ -2083,7 +2087,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
       {/* MODAL 7: PRIVACY POLICY */}
       {activeSectionModal === 'privacy' && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 motion-safe:animate-in motion-safe:fade-in">
           <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -2102,8 +2106,9 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               <p>
                 Your personal details, contact information, education, and resume files are stored securely and only made visible to verified PESO employers with active job vacancies matching your qualifications.
               </p>
-              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] text-slate-700 font-medium">
-                🛡️ All employer accesses are logged in the PESO LGU Immutable Audit Trail.
+              <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 text-[11px] text-slate-700 font-medium flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>All employer accesses are logged in the PESO LGU Immutable Audit Trail.</span>
               </div>
             </div>
           </div>
@@ -2112,7 +2117,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
       {/* MODAL 8: INVITE FRIENDS */}
       {activeSectionModal === 'invite' && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 motion-safe:animate-in motion-safe:fade-in">
           <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
             <div className="p-5 bg-slate-900 text-white flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -2133,8 +2138,8 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
                 <p className="text-slate-500 mt-1">Share the official LGU employment portal with your friends.</p>
               </div>
 
-              <div className="p-3 bg-slate-100 rounded-xl flex items-center justify-between font-mono font-bold text-slate-800">
-                <span>PESO-ROXAS-JOBSEEKER</span>
+              <div className="p-3 bg-slate-100 rounded-xl flex items-center justify-between font-bold text-slate-800 text-xs">
+                <code className="font-mono text-xs">PESO-ROXAS-JOBSEEKER</code>
                 <button
                   onClick={() => {
                     navigator.clipboard?.writeText('https://ehanap.orientalmindoro.gov.ph?ref=seeker');
@@ -2158,7 +2163,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
 
       {/* MODAL 9: VIEW FULL PROFILE OVERVIEW */}
       {activeSectionModal === 'viewProfile' && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 animate-in fade-in">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 motion-safe:animate-in motion-safe:fade-in">
           <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
             <div className="p-5 bg-slate-900 text-white flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
@@ -2183,7 +2188,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* 1. Contact Information Card */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     <Mail className="w-3.5 h-3.5 text-blue-600" />
                     <span>Contact Info</span>
                   </h5>
@@ -2222,7 +2227,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* 2. About Me */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5 text-blue-600" />
                     <span>About Me</span>
                   </h5>
@@ -2242,7 +2247,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* 3. Work Experience */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     <Briefcase className="w-3.5 h-3.5 text-blue-600" />
                     <span>Work Experience ({(currentSeekerProfile.workExperience || []).length})</span>
                   </h5>
@@ -2282,7 +2287,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* 4. Education */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     <GraduationCap className="w-3.5 h-3.5 text-blue-600" />
                     <span>Education ({(currentSeekerProfile.education || []).length})</span>
                   </h5>
@@ -2319,7 +2324,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* 5. Projects */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     <Layers className="w-3.5 h-3.5 text-blue-600" />
                     <span>Projects & Portfolio ({(currentSeekerProfile.projects || []).length})</span>
                   </h5>
@@ -2356,7 +2361,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* 6. Volunteer Experience */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     <HeartHandshake className="w-3.5 h-3.5 text-blue-600" />
                     <span>Volunteer Experience ({(currentSeekerProfile.volunteerExperience || []).length})</span>
                   </h5>
@@ -2386,7 +2391,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* 7. Awards & Achievements */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     <Award className="w-3.5 h-3.5 text-blue-600" />
                     <span>Awards & Achievements ({(currentSeekerProfile.awards || []).length})</span>
                   </h5>
@@ -2415,7 +2420,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               {/* 8. Skills Inventory */}
               <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <div className="flex items-center justify-between mb-2">
-                  <h5 className="font-bold text-slate-900 uppercase text-[10px] tracking-wider flex items-center gap-1.5">
+                  <h5 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-blue-600" />
                     <span>Skills ({(currentSeekerProfile.technicalSkills || []).length})</span>
                   </h5>
@@ -2738,7 +2743,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
               <div>
                 <label className="block font-bold text-slate-700 mb-1">Certificate Photo / Scan Proof</label>
                 {!certImage ? (
-                  <label className="border-2 border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/30 transition-all text-center">
+                  <label className="border-2 border-dashed border-slate-300 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-amber-400 hover:bg-amber-50/30 transition-colors text-center">
                     <Award className="w-8 h-8 text-slate-400 mb-1" />
                     <span className="font-bold text-slate-700 text-xs">Click to Upload Certificate Image</span>
                     <span className="text-[11px] text-slate-400 mt-0.5">PNG, JPG, or PDF proof document</span>

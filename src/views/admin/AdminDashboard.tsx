@@ -190,7 +190,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-sans">
       
       {/* Hero: "Monitor and Manage Local Employment in Roxas" */}
-      <div className="bg-gradient-to-r from-slate-900 via-amber-950/80 to-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-amber-900/30 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
+      <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div className="space-y-1.5">
           <div className="flex items-center gap-2">
             <span className="text-[10px] font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
@@ -209,15 +209,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
           <button
             onClick={() => onNavigate('admin-job-matching')}
-            className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
           >
-            <GitPullRequest className="w-4 h-4 text-amber-950" />
+            <GitPullRequest className="w-4 h-4 text-slate-950" />
             <span>Job Matching & Referrals</span>
           </button>
 
           <button
             onClick={() => onNavigate('admin-reports')}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-400/30 transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-400/30 transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer"
           >
             <BarChart3 className="w-4 h-4 text-amber-400" />
             <span>Reports & Analytics</span>
@@ -225,15 +225,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
           <button
             onClick={() => onNavigate('admin-lra')}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-400/30 transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold text-xs rounded-xl border border-amber-400/30 transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400 cursor-pointer"
           >
             <Flame className="w-4 h-4 text-amber-400" />
-            <span>LRA & HOTS ({hotsCount})</span>
+            <span>LRA & HOTS (<span className="tabular-nums">{hotsCount}</span>)</span>
           </button>
 
           <button
             onClick={() => onNavigate('admin-users')}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5"
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer"
           >
             <UserPlus className="w-4 h-4 text-amber-400" />
             <span>Encode Walk-In</span>
@@ -241,15 +241,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         </div>
       </div>
 
-      {/* PESO Executive Compact Dashboard Metric Cards (Active Vacancies, Total Applicants, Highly Qualified Candidates) */}
+      {/* PESO Executive Compact Dashboard Metric Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
         <div 
           onClick={() => onNavigate('admin-jobs')}
-          className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex items-center justify-between"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-jobs'); } }}
+          className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Vacancies</span>
-            <p className="text-2xl font-black text-slate-900 mt-1">{activeJobVacancies.length}</p>
+            <p className="text-2xl font-black text-slate-900 mt-1 tabular-nums">{activeJobVacancies.length}</p>
             <p className="text-[11px] text-slate-400 mt-0.5">Municipal employment openings</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
@@ -259,25 +261,29 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
         <div 
           onClick={() => onNavigate('admin-job-matching')}
-          className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex items-center justify-between"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-job-matching'); } }}
+          className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Applicants</span>
-            <p className="text-2xl font-black text-blue-600 mt-1">{totalApplications}</p>
+            <p className="text-2xl font-black text-indigo-600 mt-1 tabular-nums">{totalApplications}</p>
             <p className="text-[11px] text-slate-400 mt-0.5">Digitized + Walk-in candidate submissions</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 flex items-center justify-center text-blue-600 shrink-0">
+          <div className="w-12 h-12 rounded-2xl bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600 shrink-0">
             <Users className="w-6 h-6" />
           </div>
         </div>
 
         <div 
           onClick={() => onNavigate('admin-job-matching')}
-          className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex items-center justify-between"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-job-matching'); } }}
+          className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex items-center justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <div>
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Highly Qualified Candidates</span>
-            <p className="text-2xl font-black text-emerald-600 mt-1">{highlyQualifiedCandidatesCount}</p>
+            <p className="text-2xl font-black text-emerald-600 mt-1 tabular-nums">{highlyQualifiedCandidatesCount}</p>
             <p className="text-[11px] text-emerald-700 font-bold mt-0.5">Decision Tree score &ge;75% matched</p>
           </div>
           <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shrink-0">
@@ -292,45 +298,51 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         {/* 1. Job Seekers & Demographics */}
         <div 
           onClick={() => onNavigate('admin-users')}
-          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-users'); } }}
+          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Seekers</span>
               <Users className="w-4 h-4 text-amber-600" />
             </div>
-            <p className="text-2xl font-black text-slate-900 mt-1">{totalJobSeekers}</p>
+            <p className="text-2xl font-black text-slate-900 mt-1 tabular-nums">{totalJobSeekers}</p>
           </div>
           <div className="pt-2 text-[10px] text-slate-500 space-y-0.5 border-t border-slate-100 mt-2">
-            <p className="truncate">🎓 College: <strong>{collegeGraduates}</strong></p>
-            <p className="truncate">🏫 HS/K-12: <strong>{highSchoolGraduates}</strong></p>
-            <p className="truncate text-amber-700">🌱 OSY: <strong>{outOfSchoolYouth}</strong></p>
+            <p className="truncate">🎓 College: <strong className="tabular-nums">{collegeGraduates}</strong></p>
+            <p className="truncate">🏫 HS/K-12: <strong className="tabular-nums">{highSchoolGraduates}</strong></p>
+            <p className="truncate text-amber-700">🌱 OSY: <strong className="tabular-nums">{outOfSchoolYouth}</strong></p>
           </div>
         </div>
 
         {/* 2. Registered Employers */}
         <div 
           onClick={() => onNavigate('admin-users')}
-          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-users'); } }}
+          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Employers</span>
               <Building2 className="w-4 h-4 text-blue-600" />
             </div>
-            <p className="text-2xl font-black text-slate-900 mt-1">{totalEmployers}</p>
+            <p className="text-2xl font-black text-slate-900 mt-1 tabular-nums">{totalEmployers}</p>
           </div>
           <div className="pt-2 text-[10px] text-slate-500 space-y-0.5 border-t border-slate-100 mt-2">
-            <p className="truncate">🏪 Established: <strong>{establishedLocalEmployers}</strong></p>
-            <p className="truncate">🏢 New/External: <strong>{newOrExternalEmployers}</strong></p>
-            <p className="text-emerald-700 font-bold">11-Req Verified: {employers.filter(e => e.status === 'verified').length}</p>
+            <p className="truncate">🏪 Established: <strong className="tabular-nums">{establishedLocalEmployers}</strong></p>
+            <p className="truncate">🏢 New/External: <strong className="tabular-nums">{newOrExternalEmployers}</strong></p>
+            <p className="text-emerald-700 font-bold">11-Req Verified: <span className="tabular-nums">{employers.filter(e => e.status === 'verified').length}</span></p>
           </div>
         </div>
 
         {/* 3. Pending Verifications & Vacancies */}
         <div 
           onClick={() => onNavigate('admin-verifications')}
-          className={`p-4 rounded-2xl border shadow-2xs cursor-pointer transition-all flex flex-col justify-between ${
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-verifications'); } }}
+          className={`p-4 rounded-2xl border shadow-2xs cursor-pointer transition-all flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${
             pendingEmployerVerifications.length > 0 ? 'bg-amber-50/60 border-amber-300' : 'bg-white border-slate-200'
           }`}
         >
@@ -339,28 +351,30 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
               <span className="text-[10px] font-bold text-amber-900 uppercase tracking-wider">Pending Checks</span>
               <ShieldAlert className="w-4 h-4 text-amber-600" />
             </div>
-            <p className="text-2xl font-black text-amber-950 mt-1">{pendingEmployerVerifications.length}</p>
+            <p className="text-2xl font-black text-amber-950 mt-1 tabular-nums">{pendingEmployerVerifications.length}</p>
           </div>
           <div className="pt-2 text-[10px] text-slate-600 space-y-0.5 border-t border-amber-200/60 mt-2">
-            <p>Employers to verify: <strong>{pendingEmployerVerifications.length}</strong></p>
-            <p>Pending Vacancies: <strong>{pendingJobVacancies.length}</strong></p>
+            <p>Employers to verify: <strong className="tabular-nums">{pendingEmployerVerifications.length}</strong></p>
+            <p>Pending Vacancies: <strong className="tabular-nums">{pendingJobVacancies.length}</strong></p>
           </div>
         </div>
 
         {/* 4. Active Job Vacancies */}
         <div 
           onClick={() => onNavigate('admin-jobs')}
-          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-jobs'); } }}
+          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Active Vacancies</span>
               <Briefcase className="w-4 h-4 text-indigo-600" />
             </div>
-            <p className="text-2xl font-black text-indigo-700 mt-1">{activeJobVacancies.length}</p>
+            <p className="text-2xl font-black text-indigo-700 mt-1 tabular-nums">{activeJobVacancies.length}</p>
           </div>
           <div className="pt-2 text-[10px] text-slate-500 space-y-0.5 border-t border-slate-100 mt-2">
-            <p>Total openings: <strong>{activeJobVacancies.reduce((a, b) => a + (b.openingsCount || 1), 0)}</strong></p>
+            <p>Total openings: <strong className="tabular-nums">{activeJobVacancies.reduce((a, b) => a + (b.openingsCount || 1), 0)}</strong></p>
             <p className="text-indigo-600 font-semibold">Ready for matching</p>
           </div>
         </div>
@@ -368,35 +382,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         {/* 5. Referral Slips Issued */}
         <div 
           onClick={() => onNavigate('admin-job-matching')}
-          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-job-matching'); } }}
+          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Referral Slips</span>
               <FileCheck className="w-4 h-4 text-purple-600" />
             </div>
-            <p className="text-2xl font-black text-purple-700 mt-1">{issuedReferralSlips}</p>
+            <p className="text-2xl font-black text-purple-700 mt-1 tabular-nums">{issuedReferralSlips}</p>
           </div>
           <div className="pt-2 text-[10px] text-slate-500 space-y-0.5 border-t border-slate-100 mt-2">
             <p>Official endorsements</p>
-            <p className="text-purple-700 font-bold">Applications: {totalApplications}</p>
+            <p className="text-purple-700 font-bold">Applications: <span className="tabular-nums">{totalApplications}</span></p>
           </div>
         </div>
 
         {/* 6. Scheduled LRAs & HOTS */}
         <div 
           onClick={() => onNavigate('admin-lra')}
-          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onNavigate('admin-lra'); } }}
+          className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs hover:border-amber-400 cursor-pointer transition-all flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">LRA & HOTS</span>
               <Flame className="w-4 h-4 text-emerald-600" />
             </div>
-            <p className="text-2xl font-black text-emerald-700 mt-1">{hotsCount}</p>
+            <p className="text-2xl font-black text-emerald-700 mt-1 tabular-nums">{hotsCount}</p>
           </div>
           <div className="pt-2 text-[10px] text-slate-500 space-y-0.5 border-t border-slate-100 mt-2">
-            <p>Active LRAs: <strong>{scheduledLras.length}</strong></p>
+            <p>Active LRAs: <strong className="tabular-nums">{scheduledLras.length}</strong></p>
             <p className="text-emerald-700 font-bold">Hired-on-the-Spot Placements</p>
           </div>
         </div>
@@ -702,7 +720,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         <div className="lg:col-span-5 space-y-6">
           
           {/* Quick Decision Tree Link Card */}
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50/60 p-5 rounded-2xl border border-amber-200 shadow-2xs space-y-2.5">
+          <div className="bg-amber-50/80 p-5 rounded-2xl border border-amber-200/90 shadow-2xs space-y-2.5">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black uppercase text-amber-900 tracking-wider">
                 Automated Decision Tree
@@ -717,7 +735,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             </p>
             <button
               onClick={() => onNavigate('admin-job-matching')}
-              className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-black rounded-xl text-xs transition-colors shadow-xs"
+              className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
             >
               Open Decision Tree Matcher →
             </button>
@@ -739,7 +757,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                 <select
                   value={announcementAudience}
                   onChange={e => setAnnouncementAudience(e.target.value as any)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-semibold text-slate-800"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-semibold text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
                 >
                   <option value="all">All Roxas Participants (Seekers & Employers)</option>
                   <option value="job_seeker">Job Seekers in Roxas Only</option>
@@ -755,13 +773,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   placeholder="e.g. PESO Roxas LRA Job Fair on Friday at Roxas Municipal Gymnasium for Batangas Logistics..."
                   value={announcementText}
                   onChange={e => setAnnouncementText(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 text-slate-900"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 text-slate-900"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-amber-950 font-black rounded-xl transition-colors shadow-xs"
+                className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl transition-colors shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
               >
                 Publish Municipal Bulletin
               </button>

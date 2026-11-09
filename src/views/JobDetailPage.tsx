@@ -44,7 +44,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, onNavigate,
           <p className="text-xs text-slate-500 mt-2">The requested vacancy may have been removed or closed.</p>
           <button
             onClick={() => onNavigate(currentUser?.role === 'job_seeker' ? 'seeker-dashboard' : 'jobs')}
-            className="mt-4 px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition-all cursor-pointer"
+            className="mt-4 px-4 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl hover:bg-slate-800 transition-colors cursor-pointer focus-visible:ring-2 focus-visible:ring-slate-900"
           >
             Back to Vacancies
           </button>
@@ -64,7 +64,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, onNavigate,
     title: job.title,
     companyName: job.companyName,
     logoLetter: `${initial}.`,
-    logoBg: 'bg-[#43464b] text-white',
+    logoBg: 'bg-slate-800 text-white',
     logoUrl: job.companyLogo || employer?.logoUrl,
     location: job.workLocation || `${job.municipality || 'Roxas'}, Oriental Mindoro`,
     tags: [

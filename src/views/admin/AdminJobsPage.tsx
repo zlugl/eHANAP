@@ -76,7 +76,7 @@ export const AdminJobsPage: React.FC<AdminJobsPageProps> = ({ onNavigate }) => {
         <div className="flex items-center gap-3">
           <button
             onClick={() => onNavigate('admin-dashboard')}
-            className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+            className="px-4 py-2 text-xs font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             ← Back to Admin Center
           </button>
@@ -130,7 +130,7 @@ export const AdminJobsPage: React.FC<AdminJobsPageProps> = ({ onNavigate }) => {
           <select
             value={selectedStatus}
             onChange={e => setSelectedStatus(e.target.value as any)}
-            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:ring-2 focus:ring-amber-500 text-slate-800 font-bold"
+            className="w-full px-3 py-2 text-xs border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 font-bold cursor-pointer"
           >
             <option value="all">All Statuses ({jobPosts.length})</option>
             <option value="pending_approval">Pending Review ({jobPosts.filter(j => j.status === 'pending_approval').length})</option>
@@ -322,7 +322,7 @@ export const AdminJobsPage: React.FC<AdminJobsPageProps> = ({ onNavigate }) => {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => handleReviewAction('active')}
-                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-colors shadow-2xs"
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-colors shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
                   >
                     ✓ Approve & Publish
                   </button>
@@ -334,14 +334,14 @@ export const AdminJobsPage: React.FC<AdminJobsPageProps> = ({ onNavigate }) => {
                       }
                       handleReviewAction('for_compliance');
                     }}
-                    className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors"
+                    className="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500"
                   >
                     Return for Compliance
                   </button>
 
                   <button
                     onClick={() => handleReviewAction('rejected')}
-                    className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-colors"
+                    className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rose-600"
                   >
                     Reject Vacancy
                   </button>
@@ -349,7 +349,7 @@ export const AdminJobsPage: React.FC<AdminJobsPageProps> = ({ onNavigate }) => {
                   {selectedJob.status === 'active' && (
                     <button
                       onClick={() => handleReviewAction('closed')}
-                      className="px-3 py-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors"
+                      className="px-3.5 py-1.5 bg-slate-700 hover:bg-slate-800 text-white font-bold rounded-xl transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-700"
                     >
                       Close Vacancy
                     </button>

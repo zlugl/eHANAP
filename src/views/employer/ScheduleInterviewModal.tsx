@@ -134,11 +134,11 @@ END:VCALENDAR`;
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto font-sans">
-      <div className="bg-white w-full max-w-xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-auto flex flex-col max-h-[94vh] sm:max-h-[90vh]">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto font-sans">
+      <div className="bg-white w-full max-w-xl rounded-3xl shadow-xl border border-slate-200 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-200 my-auto flex flex-col max-h-[94vh] sm:max-h-[90vh]">
         
         {/* Header */}
-        <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 text-white flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-6 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-600/30 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
               <CalendarCheck className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -221,14 +221,14 @@ END:VCALENDAR`;
               {!isCustomSlot ? (
                 <div className="space-y-2">
                   <div className="space-y-1">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400">Morning Slots</span>
+                    <span className="text-[11px] font-semibold text-slate-500">Morning slots</span>
                     <div className="grid grid-cols-4 gap-2">
                       {morningSlots.map(slot => (
                         <button
                           key={slot}
                           type="button"
                           onClick={() => handleSelectPresetSlot(slot)}
-                          className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition-all ${
+                          className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition-colors ${
                             selectedSlot === slot && !isCustomSlot
                               ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
                               : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -241,14 +241,14 @@ END:VCALENDAR`;
                   </div>
 
                   <div className="space-y-1 pt-1">
-                    <span className="text-[10px] font-extrabold uppercase text-slate-400">Afternoon Slots</span>
+                    <span className="text-[11px] font-semibold text-slate-500">Afternoon slots</span>
                     <div className="grid grid-cols-4 gap-2">
                       {afternoonSlots.map(slot => (
                         <button
                           key={slot}
                           type="button"
                           onClick={() => handleSelectPresetSlot(slot)}
-                          className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition-all ${
+                          className={`py-2 px-1 text-center rounded-xl border text-xs font-semibold transition-colors ${
                             selectedSlot === slot && !isCustomSlot
                               ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
                               : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
@@ -283,7 +283,7 @@ END:VCALENDAR`;
                     setMode('video');
                     setLocationOrLink('https://meet.google.com/peso-ormin-interview');
                   }}
-                  className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-semibold transition-all ${
+                  className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-semibold transition-colors ${
                     mode === 'video' ? 'bg-indigo-50 border-indigo-500 text-indigo-900 ring-2 ring-indigo-500/20' : 'bg-slate-50 border-slate-200 text-slate-600'
                   }`}
                 >
@@ -297,7 +297,7 @@ END:VCALENDAR`;
                     setMode('face_to_face');
                     setLocationOrLink('PESO Provincial Capitol Office, Calapan City');
                   }}
-                  className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-semibold transition-all ${
+                  className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-semibold transition-colors ${
                     mode === 'face_to_face' ? 'bg-indigo-50 border-indigo-500 text-indigo-900 ring-2 ring-indigo-500/20' : 'bg-slate-50 border-slate-200 text-slate-600'
                   }`}
                 >
@@ -311,7 +311,7 @@ END:VCALENDAR`;
                     setMode('phone');
                     setLocationOrLink(seeker.contactNumber || '0917-555-0199');
                   }}
-                  className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-semibold transition-all ${
+                  className={`p-3 rounded-xl border flex flex-col items-center gap-1.5 font-semibold transition-colors ${
                     mode === 'phone' ? 'bg-indigo-50 border-indigo-500 text-indigo-900 ring-2 ring-indigo-500/20' : 'bg-slate-50 border-slate-200 text-slate-600'
                   }`}
                 >

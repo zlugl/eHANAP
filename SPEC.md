@@ -158,5 +158,31 @@ erDiagram
 * **Milestone 3**: End-to-End Data Pipeline & Bidirectional Sync ("Pagbato ng Data")
 * **Milestone 4**: Automated Candidate Ranking & Two-Way Matching Engine
 * **Milestone 5**: PESO / LGU Admin Portal: LRA Management & Municipal Analytics
-* **Milestone 6**: UI / UX Modernization & Defense-Ready Design Polish
+* **Milestone 6**: UI / UX Modernization & Defense-Ready Design Polish (Hallmark Editorial System)
 * **Milestone 7**: Platform Hardening, End-to-End Testing & Thesis Defense Readiness
+
+---
+
+## 6. Design System Architecture & Hallmark UI Contract (Milestone 6)
+
+To prevent monolithic redesign failures and maintain defense-ready presentation quality, Milestone 6 decomposes into discrete, independently verifiable sub-phases governed by the Hallmark editorial system:
+
+### 6.1 Design Tokens & Aesthetic Standards
+- **Token Infrastructure**: Root CSS tokens defined in `src/tokens.css` and `src/index.css`.
+- **Palette**: Roxas Municipal Identity (Forest Emerald `#0F3F2E`, Warm Amber/Gold accents `#D97706`, Slate neutrals `#0F172A`, `#F8FAFC`).
+- **Control Craft**: 8-state control utilities (`default`, `hover`, `active`, `focus-visible`, `disabled`, `loading`, `read-only`, `error`).
+- **Accessibility & Motion Polish**: Strict `:focus-visible` focus rings, `motion-reduce:` alternatives for all animations, tabular numerals (`font-feature-settings: 'tnum'`) for candidate ranking scores and statistical metrics.
+
+### 6.2 Milestone 06 Sub-Phase Decomposition
+1. **Milestone 06.1 — Core App Shell & Design Tokens**:
+   - `src/tokens.css`, `src/index.css`, `src/App.tsx`, `src/components/Navbar.tsx`, `src/components/Footer.tsx`, `src/views/AuthModal.tsx`.
+2. **Milestone 06.2 — Job Seeker Portal Experience**:
+   - `SeekerProfileSetupWizard.tsx`, `SeekerDashboard.tsx`, `SeekerApplicationsPage.tsx`, `SeekerInterviewsPage.tsx`, `SeekerProfilePage.tsx`.
+3. **Milestone 06.3 — Employer Portal & Automated Ranking Engine**:
+   - `EmployerDashboard.tsx`, `EmployerApplicantsPage.tsx` (signature Decision Tree candidate ranking engine), `EmployerJobsPage.tsx`, `EmployerInterviewsPage.tsx`, `EmployerAnalyticsPage.tsx`, `EmployerProfilePage.tsx`, `EmployerProfileSetupWizard.tsx`, and associated candidate review modals.
+4. **Milestone 06.4 — PESO / LGU Admin Portal & Regional Analytics**:
+   - `AdminDashboard.tsx`, `AdminJobMatchingPage.tsx`, `AdminVerificationsPage.tsx`, `AdminJobsPage.tsx`, `AdminUsersPage.tsx`, `AdminReportsPage.tsx`, `AdminAuditLogsPage.tsx`, `AdminLraPage.tsx`.
+5. **Milestone 06.5 — Public Discovery & Search Views**:
+   - `LandingPage.tsx`, `JobSearchPage.tsx`, `JobDetailPage.tsx`, `EmployerSearchPage.tsx`.
+6. **Milestone 06.6 — Comprehensive Design Hardening & Accessibility Audit**:
+   - Full `tsc --noEmit` and `npm run build` verification, `sloplint` audit across all views.

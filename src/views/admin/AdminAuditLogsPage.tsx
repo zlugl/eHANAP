@@ -105,7 +105,7 @@ export const AdminAuditLogsPage: React.FC<{ onNavigate: (view: string) => void }
             <span className="text-[10px] font-black uppercase tracking-wider bg-slate-900 text-slate-100 px-2 py-0.5 rounded">
               System Accountability
             </span>
-            <span className="text-xs text-slate-400 font-semibold">{auditLogs.length} events logged</span>
+            <span className="text-xs text-slate-400 font-semibold"><span className="tabular-nums">{auditLogs.length}</span> events logged</span>
           </div>
           <h1 className="text-xl sm:text-2xl font-black text-slate-900 mt-1 flex items-center gap-2">
             <History className="w-6 h-6 text-amber-600" />
@@ -125,7 +125,7 @@ export const AdminAuditLogsPage: React.FC<{ onNavigate: (view: string) => void }
               placeholder="Search actor, action, or details..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none shadow-2xs w-full sm:w-64 font-medium text-slate-800"
+              className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 shadow-2xs w-full sm:w-64 font-medium text-slate-800"
             />
           </div>
 
@@ -133,7 +133,7 @@ export const AdminAuditLogsPage: React.FC<{ onNavigate: (view: string) => void }
           <select
             value={roleFilter}
             onChange={(e) => setRoleFilter(e.target.value as any)}
-            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-2xs focus:ring-2 focus:ring-amber-500 cursor-pointer"
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer"
           >
             <option value="all">All Roles</option>
             <option value="admin">PESO Admins</option>
@@ -211,7 +211,7 @@ export const AdminAuditLogsPage: React.FC<{ onNavigate: (view: string) => void }
 
                     {/* Column 4: Timestamp (De-emphasized metadata with clean clock icon) */}
                     <td className="px-4 sm:px-5 py-3 whitespace-nowrap text-right text-slate-500 font-medium">
-                      <div className="flex items-center justify-end gap-1.5 text-[11px]">
+                      <div className="flex items-center justify-end gap-1.5 text-[11px] tabular-nums">
                         <Clock className="w-3 h-3 text-slate-400 shrink-0" />
                         <span>{formatTime(log.timestamp)}</span>
                       </div>
@@ -221,7 +221,7 @@ export const AdminAuditLogsPage: React.FC<{ onNavigate: (view: string) => void }
                     <td className="px-3 py-3 whitespace-nowrap text-center">
                       <button 
                         onClick={() => setInspectLog(log)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer"
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                         title="Inspect full audit record"
                       >
                         <Eye className="w-4 h-4" />

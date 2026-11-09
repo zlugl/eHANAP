@@ -88,17 +88,17 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-sans">
+    <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-body">
       
       {/* Verification Warning Alert Banner (if pending or for_compliance) */}
       {currentEmployerProfile.status === 'for_compliance' && (
-        <div className="p-4 bg-amber-50 border-2 border-amber-400 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-950 shadow-sm animate-pulse">
+        <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-950 shadow-sm motion-safe:animate-pulse">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-amber-200 rounded-xl shrink-0">
               <ShieldAlert className="w-6 h-6 text-amber-800" />
             </div>
             <div>
-              <p className="font-black text-amber-950 text-sm">Action Required: Compliance Documents Requested</p>
+              <p className="font-bold text-amber-950 text-sm">Action Required: Compliance Documents Requested</p>
               <p className="text-amber-900 mt-0.5 font-medium">
                 PESO-LGU has requested compliance for your employer credentials: "{currentEmployerProfile.complianceRemarks || 'Please submit updated 2026 documents.'}"
               </p>
@@ -106,7 +106,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
           </div>
           <button
             onClick={() => onNavigate('employer-profile')}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shrink-0 transition-colors shadow-xs"
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shrink-0 transition-colors shadow-xs active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
             Update Compliance Documents
           </button>
@@ -133,21 +133,21 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
       )}
 
       {/* Hero Banner: "Find Qualified Candidates for Your Job Vacancies" */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-blue-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
-        <div className="flex items-center gap-4">
+      <div className="bg-[var(--color-ink)] text-[var(--color-paper)] p-6 sm:p-8 rounded-3xl border border-[var(--color-rule)] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative overflow-hidden">
+        <div className="flex items-center gap-4 relative z-10">
           <img
             src={currentEmployerProfile.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
             alt={currentEmployerProfile.companyName}
-            className="w-16 h-16 rounded-2xl object-cover ring-2 ring-blue-400/40 shrink-0"
+            className="w-16 h-16 rounded-2xl object-cover ring-1 ring-white/20 shrink-0"
           />
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+              <span className="text-xs font-semibold bg-white/10 text-white/90 border border-white/20 px-2.5 py-0.5 rounded-full">
                 Employer Recruitment Center
               </span>
               {currentEmployerProfile.status === 'verified' && (
-                <span className="text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded flex items-center gap-1">
-                  <ShieldCheck className="w-3 h-3 text-emerald-400" /> Verified
+                <span className="text-xs font-semibold bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> Verified
                 </span>
               )}
             </div>
@@ -166,37 +166,37 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Active Vacancies</p>
+            <p className="text-xs font-semibold text-slate-600 mb-1">Active Vacancies</p>
             <Briefcase className="w-4 h-4 text-blue-600" />
           </div>
-          <p className="text-2xl font-black text-slate-900 mt-1">{activeJobs.length}</p>
+          <p className="text-2xl font-black text-slate-900 mt-1 tabular-nums">{activeJobs.length}</p>
           <p className="text-[11px] text-slate-400 mt-1">Open hiring positions in Roxas</p>
         </div>
 
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Total Applicants</p>
+            <p className="text-xs font-semibold text-slate-600 mb-1">Total Applicants</p>
             <Users className="w-4 h-4 text-indigo-600" />
           </div>
-          <p className="text-2xl font-black text-blue-600 mt-1">{totalApplicantsCount}</p>
+          <p className="text-2xl font-black text-blue-600 mt-1 tabular-nums">{totalApplicantsCount}</p>
           <p className="text-[11px] text-slate-400 mt-1">Profiles and resumes received</p>
         </div>
 
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Highly Qualified Candidates</p>
+            <p className="text-xs font-semibold text-slate-600 mb-1">Highly Qualified Candidates</p>
             <Sparkles className="w-4 h-4 text-emerald-600" />
           </div>
-          <p className="text-2xl font-black text-emerald-600 mt-1">{qualifiedCandidatesCount}</p>
+          <p className="text-2xl font-black text-emerald-600 mt-1 tabular-nums">{qualifiedCandidatesCount}</p>
           <p className="text-[11px] text-emerald-700 font-bold mt-1">Decision Tree score &ge;75%</p>
         </div>
 
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/90 shadow-2xs">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Scheduled Interviews</p>
+            <p className="text-xs font-semibold text-slate-600 mb-1">Scheduled Interviews</p>
             <Calendar className="w-4 h-4 text-amber-600" />
           </div>
-          <p className="text-2xl font-black text-amber-600 mt-1">{upcomingInterviews.length}</p>
+          <p className="text-2xl font-black text-amber-600 mt-1 tabular-nums">{upcomingInterviews.length}</p>
           <p className="text-[11px] text-amber-700 font-bold mt-1">Active coordination calls</p>
         </div>
       </div>
@@ -206,7 +206,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                 Live Funnel Tracking
               </span>
             </div>
@@ -220,7 +220,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
 
           <button
             onClick={() => onNavigate('employer-applicants')}
-            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 self-start sm:self-center"
+            className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 self-start sm:self-center transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95 disabled:opacity-50"
           >
             <span>Open All Candidates ({totalApplicantsCount})</span>
             <ChevronRight className="w-3.5 h-3.5" />
@@ -233,10 +233,10 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
             role="button"
             tabIndex={0}
             onClick={() => onNavigate('employer-applicants', { status: 'applied' })}
-            className="p-3 bg-slate-50 hover:bg-blue-50 rounded-2xl border border-slate-200 cursor-pointer transition-all hover:border-blue-300"
+            className="p-3 bg-slate-50 hover:bg-blue-50 rounded-2xl border border-slate-200 cursor-pointer transition-colors hover:border-blue-300 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95"
           >
-            <span className="text-[10px] font-bold text-blue-800 uppercase block">Applied</span>
-            <span className="text-xl font-black text-blue-900">{appliedCount}</span>
+            <span className="text-xs font-semibold text-blue-800 block">Applied</span>
+            <span className="text-xl font-black text-blue-900 tabular-nums">{appliedCount}</span>
             <span className="text-[10px] text-slate-500 block truncate">Initial Resumes</span>
           </div>
 
@@ -244,10 +244,10 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
             role="button"
             tabIndex={0}
             onClick={() => onNavigate('employer-applicants', { status: 'reviewed' })}
-            className="p-3 bg-slate-50 hover:bg-amber-50 rounded-2xl border border-slate-200 cursor-pointer transition-all hover:border-amber-300"
+            className="p-3 bg-slate-50 hover:bg-amber-50 rounded-2xl border border-slate-200 cursor-pointer transition-colors hover:border-amber-300 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95"
           >
-            <span className="text-[10px] font-bold text-amber-800 uppercase block">Reviewed</span>
-            <span className="text-xl font-black text-amber-700">{reviewedCount}</span>
+            <span className="text-xs font-semibold text-amber-800 block">Reviewed</span>
+            <span className="text-xl font-black text-amber-700 tabular-nums">{reviewedCount}</span>
             <span className="text-[10px] text-slate-500 block truncate">ATS / Screening</span>
           </div>
 
@@ -255,10 +255,10 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
             role="button"
             tabIndex={0}
             onClick={() => onNavigate('employer-applicants', { status: 'interview' })}
-            className="p-3 bg-slate-50 hover:bg-purple-50 rounded-2xl border border-slate-200 cursor-pointer transition-all hover:border-purple-300"
+            className="p-3 bg-slate-50 hover:bg-purple-50 rounded-2xl border border-slate-200 cursor-pointer transition-colors hover:border-purple-300 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95"
           >
-            <span className="text-[10px] font-bold text-purple-800 uppercase block">Interview Scheduled</span>
-            <span className="text-xl font-black text-purple-700">{interviewCount}</span>
+            <span className="text-xs font-semibold text-purple-800 block">Interview Scheduled</span>
+            <span className="text-xl font-black text-purple-700 tabular-nums">{interviewCount}</span>
             <span className="text-[10px] text-slate-500 block truncate">Scheduled Sessions</span>
           </div>
 
@@ -266,10 +266,10 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
             role="button"
             tabIndex={0}
             onClick={() => onNavigate('employer-applicants', { status: 'hired' })}
-            className="p-3 bg-slate-50 hover:bg-emerald-50 rounded-2xl border border-slate-200 cursor-pointer transition-all hover:border-emerald-300"
+            className="p-3 bg-slate-50 hover:bg-emerald-50 rounded-2xl border border-slate-200 cursor-pointer transition-colors hover:border-emerald-300 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95"
           >
-            <span className="text-[10px] font-bold text-emerald-800 uppercase block">Accepted / Hired 🎉</span>
-            <span className="text-xl font-black text-emerald-700">{hiredCount}</span>
+            <span className="text-xs font-semibold text-emerald-800 block">Accepted / Hired</span>
+            <span className="text-xl font-black text-emerald-700 tabular-nums">{hiredCount}</span>
             <span className="text-[10px] text-slate-500 block truncate">Municipal Placement</span>
           </div>
 
@@ -277,10 +277,10 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
             role="button"
             tabIndex={0}
             onClick={() => onNavigate('employer-applicants', { status: 'rejected' })}
-            className="p-3 bg-slate-50 hover:bg-rose-50 rounded-2xl border border-slate-200 cursor-pointer transition-all hover:border-rose-300"
+            className="p-3 bg-slate-50 hover:bg-rose-50 rounded-2xl border border-slate-200 cursor-pointer transition-colors hover:border-rose-300 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95"
           >
-            <span className="text-[10px] font-bold text-rose-800 uppercase block">Rejected</span>
-            <span className="text-xl font-black text-rose-700">{rejectedCount}</span>
+            <span className="text-xs font-semibold text-rose-800 block">Rejected</span>
+            <span className="text-xl font-black text-rose-700 tabular-nums">{rejectedCount}</span>
             <span className="text-[10px] text-slate-500 block truncate">Declined / Closed</span>
           </div>
         </div>
@@ -304,7 +304,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
 
             <button
               onClick={() => onNavigate('employer-applicants')}
-              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1"
+              className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95 disabled:opacity-50"
             >
               <span>View All</span>
               <ChevronRight className="w-4 h-4" />
@@ -324,12 +324,12 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                 return (
                   <div
                     key={app.id}
-                    className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-blue-300 transition-all space-y-3"
+                    className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs hover:border-blue-300 transition-colors space-y-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         {/* Rank Badge */}
-                        <div className={`w-9 h-9 rounded-xl font-black text-xs flex items-center justify-center shrink-0 ${
+                        <div className={`w-9 h-9 rounded-xl font-black text-xs flex items-center justify-center shrink-0 tabular-nums ${
                           rank === 1 ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-200 font-black' :
                           rank === 2 ? 'bg-slate-200 text-slate-900 font-bold' :
                           rank === 3 ? 'bg-amber-700 text-white font-bold' :
@@ -347,7 +347,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                         <div>
                           <div className="flex items-center gap-2">
                             <h3 className="text-sm font-bold text-slate-900">{app.applicantName}</h3>
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded border uppercase bg-blue-50 text-blue-800 border-blue-200">
+                            <span className="text-xs font-semibold px-2 py-0.5 rounded border bg-blue-50 text-blue-800 border-blue-200">
                               {(app.decisionTreeOutcome || app.matchResult?.outcome || 'QUALIFIED').replace(/_/g, ' ')}
                             </span>
                           </div>
@@ -524,9 +524,9 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                         </div>
                         <button
                           onClick={() => onNavigate('employer-applicants', { jobId: job.id })}
-                          className="text-blue-700 font-bold hover:underline"
+                          className="text-blue-700 font-bold hover:underline transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95 disabled:opacity-50"
                         >
-                          Review Applicants ({jobApps.length}) →
+                          Review Applicants ({jobApps.length})
                         </button>
                       </div>
                     </div>
@@ -546,7 +546,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
 
               <button
                 onClick={() => onNavigate('employer-interviews')}
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:scale-95 disabled:opacity-50"
               >
                 <span>Calendar & Schedule</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -563,7 +563,7 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                   <div key={interview.id} className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 text-xs space-y-1">
                     <div className="flex items-center justify-between">
                       <p className="font-bold text-slate-900">{interview.applicantName}</p>
-                      <span className="text-[10px] font-bold uppercase bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded">
+                      <span className="text-xs font-semibold bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
                         {interview.type}
                       </span>
                     </div>

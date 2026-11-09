@@ -132,11 +132,11 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
 
         {/* Job Selection Dropdown */}
         <div className="w-full sm:w-auto min-w-[260px]">
-          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Select Job Posting</label>
+          <label className="block text-xs font-semibold text-slate-500 mb-1">Select Job Posting</label>
           <select
             value={effectiveJobId}
             onChange={e => setSelectedJobId(e.target.value)}
-            className="w-full px-3 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white text-slate-900 focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 text-xs font-bold border border-slate-300 rounded-xl bg-white text-slate-900 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
             {myJobs.map(j => (
               <option key={j.id} value={j.id}>
@@ -170,7 +170,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
               <button
                 onClick={() => setStatusFilter('all')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                   statusFilter === 'all' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -178,7 +178,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
               </button>
               <button
                 onClick={() => setStatusFilter('applied')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                   statusFilter === 'applied' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -186,7 +186,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
               </button>
               <button
                 onClick={() => setStatusFilter('reviewed')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                   statusFilter === 'reviewed' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -194,7 +194,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
               </button>
               <button
                 onClick={() => setStatusFilter('interview')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                   statusFilter === 'interview' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -202,15 +202,15 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
               </button>
               <button
                 onClick={() => setStatusFilter('hired')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                   statusFilter === 'hired' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
-                Accepted / Hired 🎉 ({statusCounts.hired})
+                Accepted / Hired ({statusCounts.hired})
               </button>
               <button
                 onClick={() => setStatusFilter('rejected')}
-                className={`px-3 py-1.5 rounded-xl font-bold transition-all whitespace-nowrap ${
+                className={`px-3 py-1.5 rounded-xl font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                   statusFilter === 'rejected' ? 'bg-rose-600 text-white shadow-xs' : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >
@@ -220,11 +220,11 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
 
             {/* Sort Toggle */}
             <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-              <span className="text-[11px] font-bold text-slate-400 uppercase">Sort By:</span>
+              <span className="text-xs font-semibold text-slate-500">Sort By:</span>
               <div className="inline-flex rounded-xl bg-slate-100 p-0.5 border border-slate-200">
                 <button
                   onClick={() => setSortBy('match')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors active:scale-95 disabled:opacity-50 ${
                     sortBy === 'match' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
@@ -232,7 +232,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                 </button>
                 <button
                   onClick={() => setSortBy('ats')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-colors flex items-center gap-1 active:scale-95 disabled:opacity-50 ${
                     sortBy === 'ats' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-slate-500 hover:text-slate-800'
                   }`}
                 >
@@ -259,13 +259,13 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
               return (
                 <div
                   key={app.id}
-                  className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:border-blue-300 transition-all space-y-4"
+                  className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs hover:border-blue-300 transition-colors space-y-4"
                 >
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     
                     <div className="flex items-center gap-4">
                       {/* Rank Badge */}
-                      <div className={`w-10 h-10 rounded-2xl font-black text-sm flex items-center justify-center shrink-0 shadow-xs ${
+                      <div className={`w-10 h-10 rounded-2xl font-black text-sm flex items-center justify-center shrink-0 shadow-xs tabular-nums ${
                         rank === 1 ? 'bg-amber-400 text-amber-950 ring-2 ring-amber-200' :
                         rank === 2 ? 'bg-slate-300 text-slate-900' :
                         rank === 3 ? 'bg-amber-700 text-white' :
@@ -283,7 +283,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                       <div>
                         <div className="flex items-center gap-2">
                           <h3 className="text-base font-bold text-slate-900">{app.applicantName}</h3>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${
                             (app.decisionTreeOutcome || app.matchResult?.outcome || '') === 'HIGHLY_QUALIFIED' || (app.decisionTreeOutcome || app.matchResult?.outcome || '') === 'HIGHLY QUALIFIED' ? 'bg-emerald-100 text-emerald-900 border-emerald-300' :
                             (app.decisionTreeOutcome || app.matchResult?.outcome || '') === 'QUALIFIED' ? 'bg-blue-100 text-blue-900 border-blue-300' :
                             'bg-amber-100 text-amber-900 border-amber-300'
@@ -303,13 +303,13 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                       <div className="text-right">
                         <span className="inline-flex items-center gap-1 bg-slate-900 text-emerald-400 border border-slate-800 px-3 py-1.5 rounded-xl font-black text-xs shadow-inner">
                           <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                          {app.matchScore}% Match
+                          <span className="tabular-nums font-bold">{app.matchScore}% Match</span>
                         </span>
                       </div>
 
                       <button
                         onClick={() => setExpandedApplicantId(expandedApplicantId === app.id ? null : app.id)}
-                        className={`inline-flex items-center gap-1.5 border px-3 py-1.5 rounded-xl font-black text-xs transition-colors shadow-2xs ${
+                        className={`inline-flex items-center gap-1.5 border px-3 py-1.5 rounded-xl font-black text-xs transition-colors shadow-2xs active:scale-95 disabled:opacity-50 ${
                           expandedApplicantId === app.id
                             ? 'bg-indigo-600 text-white border-indigo-700'
                             : 'bg-indigo-50 hover:bg-indigo-100 text-indigo-900 border-indigo-200'
@@ -323,16 +323,16 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
 
                       <button
                         onClick={() => setSelectedAtsApplicant({ app, seeker, atsResult, atsScore })}
-                        className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded-xl font-black text-xs transition-colors shadow-2xs"
+                        className="inline-flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded-xl font-black text-xs transition-colors shadow-2xs active:scale-95 disabled:opacity-50"
                         title="Open Applicant Tracking System (ATS) Audit & Resume Screening"
                       >
                         <Cpu className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>ATS: {atsScore}% ({atsResult?.grade || 'A'})</span>
+                        <span className="tabular-nums font-bold">ATS: {atsScore}% ({atsResult?.grade || 'A'})</span>
                       </button>
 
                       <button
                         onClick={() => setSelectedMatchReportAppId(app.id)}
-                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1 shadow-2xs"
+                        className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
                       >
                         <FileText className="w-3.5 h-3.5 text-slate-300" />
                         <span>Match Report</span>
@@ -340,7 +340,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
 
                       <button
                         onClick={() => setSelectedAtsApplicant({ app, seeker, atsResult, atsScore })}
-                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1 shadow-2xs"
+                        className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-colors flex items-center gap-1 shadow-2xs active:scale-95 disabled:opacity-50"
                       >
                         <Cpu className="w-3.5 h-3.5 text-white" />
                         <span>ATS Audit</span>
@@ -352,7 +352,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                   {/* Skills Chips & ATS Keywords */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[11px] font-bold text-slate-400 uppercase mr-1">Competencies:</span>
+                      <span className="text-xs font-semibold text-slate-500 mr-1">Competencies:</span>
                       {seeker?.technicalSkills.slice(0, 5).map(skill => (
                         <span key={skill} className="px-2 py-0.5 bg-slate-100 text-slate-800 rounded font-semibold text-[11px]">
                           {skill}
@@ -445,14 +445,14 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                     };
 
                     return (
-                      <div className="p-4 sm:p-5 bg-gradient-to-br from-indigo-50/40 via-white to-slate-50 rounded-2xl border border-indigo-100 shadow-inner space-y-4 animate-in fade-in duration-200">
+                      <div className="p-4 sm:p-5 bg-gradient-to-br from-indigo-50/40 via-white to-slate-50 rounded-2xl border border-indigo-100 shadow-inner space-y-4 motion-safe:animate-in motion-safe:fade-in duration-200">
                         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 border-b border-indigo-100/70 pb-3">
                           <div className="flex items-center gap-2">
                             <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
                               <Sparkles className="w-4 h-4" />
                             </div>
                             <div>
-                              <h4 className="text-xs font-black uppercase tracking-wider text-slate-900">
+                              <h4 className="text-xs font-bold text-slate-900">
                                 Explainable AI Match Score Breakdown
                               </h4>
                               <p className="text-[11px] text-slate-500">
@@ -493,7 +493,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                                 {/* Horizontal progress meter */}
                                 <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
                                   <div 
-                                    className={`${theme.bar} h-full rounded-full transition-all duration-500 ease-out`}
+                                    className={`${theme.bar} h-full rounded-full`}
                                     style={{ width: `${Math.min(100, Math.max(4, item.score))}%` }}
                                   ></div>
                                 </div>
@@ -505,8 +505,8 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                           <div className="bg-indigo-900 text-white p-3.5 rounded-xl border border-indigo-950 shadow-2xs flex flex-col justify-between">
                             <div>
                               <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">Composite Engine Score</span>
-                                <span className="text-xs font-black text-emerald-400">{app.matchScore}%</span>
+                                <span className="text-xs font-semibold text-indigo-300">Composite Engine Score</span>
+                                <span className="text-xs font-black text-emerald-400 tabular-nums">{app.matchScore}%</span>
                               </div>
                               <p className="text-[11px] text-slate-300 mt-1 leading-snug">
                                 Evaluated via E-Hanap's Roxas Municipal Decision Tree algorithm against verified candidate credentials.
@@ -522,7 +522,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                         {/* Matched Reasons & Gap Callouts */}
                         <div className="pt-2 border-t border-slate-100 flex flex-col sm:flex-row items-start gap-3 text-xs">
                           <div className="flex-1 space-y-1">
-                            <span className="text-[10px] font-bold text-emerald-800 uppercase block">Satisfied Criteria Rationale:</span>
+                            <span className="text-xs font-semibold text-emerald-800 block">Satisfied Criteria Rationale:</span>
                             <div className="flex flex-wrap gap-1">
                               {(matchResult?.matchedReasons && matchResult.matchedReasons.length > 0) ? (
                                 matchResult.matchedReasons.map((r, i) => (
@@ -539,7 +539,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
 
                           {matchResult?.missingQualifications && matchResult.missingQualifications.length > 0 && (
                             <div className="flex-1 space-y-1">
-                              <span className="text-[10px] font-bold text-amber-800 uppercase block">Potential Qualification Gaps:</span>
+                              <span className="text-xs font-semibold text-amber-800 block">Potential Qualification Gaps:</span>
                               <div className="flex flex-wrap gap-1">
                                 {matchResult.missingQualifications.map((m, i) => (
                                   <span key={i} className="inline-flex items-center gap-1 text-[11px] bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-md font-medium">
@@ -580,7 +580,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                           app.currentStatus === 'hired' ? 'hired' : 'rejected'
                         }
                         onChange={e => handleStatusChange(app.id, e.target.value as ApplicationStatus)}
-                        className={`px-2.5 py-1 border rounded-lg font-bold text-xs transition-all ${
+                        className={`px-2.5 py-1 border rounded-lg font-bold text-xs transition-colors ${
                           app.currentStatus === 'rejected' || app.currentStatus === 'not_selected'
                             ? 'border-rose-400 bg-rose-50 text-rose-800 ring-2 ring-rose-200'
                             : app.currentStatus === 'hired'
@@ -591,7 +591,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                         <option value="applied">Applied</option>
                         <option value="reviewed">Reviewed</option>
                         <option value="interview_scheduled">Interview Scheduled</option>
-                        <option value="hired">Accepted / Hired 🎉</option>
+                        <option value="hired">Accepted / Hired</option>
                         <option value="rejected" className="text-rose-700 font-bold bg-rose-50">Rejected (Finished)</option>
                       </select>
 
@@ -607,7 +607,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
 
                       <button
                         onClick={() => setSelectedInterviewAppId(app.id)}
-                        className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1"
+                        className="px-3.5 py-1.5 bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs rounded-lg transition-colors flex items-center gap-1 active:scale-95 disabled:opacity-50"
                       >
                         <Calendar className="w-3.5 h-3.5" />
                         <span>Schedule Interview</span>
@@ -615,18 +615,18 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
 
                       <button
                         onClick={() => handleStatusChange(app.id, 'hired')}
-                        className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-colors ${
+                        className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-colors active:scale-95 disabled:opacity-50 ${
                           app.currentStatus === 'hired'
                             ? 'bg-emerald-600 text-white shadow-xs'
                             : 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200'
                         }`}
                       >
-                        Accept / Hire 🎉
+                        Accept / Hire
                       </button>
 
                       <button
                         onClick={() => handleStatusChange(app.id, 'rejected')}
-                        className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-colors ${
+                        className={`px-3 py-1.5 font-bold text-xs rounded-lg transition-colors active:scale-95 disabled:opacity-50 ${
                           app.currentStatus === 'rejected' || app.currentStatus === 'not_selected'
                             ? 'bg-rose-600 text-white shadow-xs'
                             : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200'
@@ -641,7 +641,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                           setFeedbackRating(app.feedback?.rating || 5);
                           setFeedbackComment(app.feedback?.comment || '');
                         }}
-                        className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs rounded-lg flex items-center gap-1 transition-colors"
+                        className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs rounded-lg flex items-center gap-1 transition-colors active:scale-95 disabled:opacity-50"
                       >
                         <Star className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
                         <span>{app.feedback ? `Feedback (${app.feedback.rating}★)` : 'Rate & Feedback'}</span>
@@ -664,7 +664,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
                         onClick={() => setSelectedStatusModalApp(app)}
                         className="text-indigo-600 hover:text-indigo-800 font-bold hover:underline"
                       >
-                        View Full Log ({app.statusHistory.length}) →
+                        View Full Log ({app.statusHistory.length})
                       </button>
                     </div>
                   )}

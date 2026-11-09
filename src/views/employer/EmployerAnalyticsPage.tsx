@@ -110,13 +110,13 @@ export const EmployerAnalyticsPage: React.FC<EmployerAnalyticsPageProps> = ({ on
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 font-body">
       
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="text-xs font-semibold bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-full">
               Recruitment Intelligence
             </span>
             <span className="text-xs text-slate-500 font-semibold">
@@ -136,7 +136,7 @@ export const EmployerAnalyticsPage: React.FC<EmployerAnalyticsPageProps> = ({ on
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrint}
-            className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+            className="px-3.5 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
             <Printer className="w-4 h-4 text-slate-600" />
             <span className="hidden sm:inline">Print Summary</span>
@@ -144,7 +144,7 @@ export const EmployerAnalyticsPage: React.FC<EmployerAnalyticsPageProps> = ({ on
 
           <button
             onClick={handleExportReport}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
             <Download className="w-4 h-4" />
             <span>Export CSV Report</span>
@@ -156,45 +156,45 @@ export const EmployerAnalyticsPage: React.FC<EmployerAnalyticsPageProps> = ({ on
       {/* KPI Cards Row */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Received</p>
+          <p className="text-xs font-semibold text-slate-500">Total Received</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-slate-900">{totalAppsCount}</span>
+            <span className="text-2xl font-black text-slate-900 tabular-nums">{totalAppsCount}</span>
             <Users className="w-4 h-4 text-blue-500" />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Incoming applications</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Qualified (≥75%)</p>
+          <p className="text-xs font-semibold text-slate-500">Qualified (≥75%)</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-emerald-600">{qualifiedApps.length}</span>
-            <span className="text-xs font-black text-emerald-600">{qualifiedRate}%</span>
+            <span className="text-2xl font-black text-emerald-600 tabular-nums">{qualifiedApps.length}</span>
+            <span className="text-xs font-black text-emerald-600 tabular-nums">{qualifiedRate}%</span>
           </div>
           <p className="text-[11px] text-emerald-700 font-medium mt-1">Decision Tree matched</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Interview Rate</p>
+          <p className="text-xs font-semibold text-slate-500">Interview Rate</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-amber-600">{interviewCount}</span>
-            <span className="text-xs font-black text-amber-600">{interviewRate}%</span>
+            <span className="text-2xl font-black text-amber-600 tabular-nums">{interviewCount}</span>
+            <span className="text-xs font-black text-amber-600 tabular-nums">{interviewRate}%</span>
           </div>
           <p className="text-[11px] text-amber-700 font-medium mt-1">Shortlisted to interview</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Hired Placements</p>
+          <p className="text-xs font-semibold text-slate-500">Hired Placements</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-indigo-600">{hiredCount}</span>
-            <span className="text-xs font-black text-indigo-600">{hireRate}%</span>
+            <span className="text-2xl font-black text-indigo-600 tabular-nums">{hiredCount}</span>
+            <span className="text-xs font-black text-indigo-600 tabular-nums">{hireRate}%</span>
           </div>
-          <p className="text-[11px] text-indigo-700 font-medium mt-1">Successful hires 🎉</p>
+          <p className="text-[11px] text-indigo-700 font-medium mt-1">Successful hires</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs col-span-2 md:col-span-1">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Avg Match Score</p>
+          <p className="text-xs font-semibold text-slate-500">Avg Match Score</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-purple-600">{avgMatchScore}%</span>
+            <span className="text-2xl font-black text-purple-600 tabular-nums">{avgMatchScore}%</span>
             <Sparkles className="w-4 h-4 text-purple-500" />
           </div>
           <p className="text-[11px] text-purple-700 font-medium mt-1">Talent relevance</p>
@@ -205,7 +205,7 @@ export const EmployerAnalyticsPage: React.FC<EmployerAnalyticsPageProps> = ({ on
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
           onClick={() => setActiveTab('funnel')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
             activeTab === 'funnel'
               ? 'bg-indigo-600 text-white shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
@@ -216,7 +216,7 @@ export const EmployerAnalyticsPage: React.FC<EmployerAnalyticsPageProps> = ({ on
 
         <button
           onClick={() => setActiveTab('salary')}
-          className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
             activeTab === 'salary'
               ? 'bg-indigo-600 text-white shadow-2xs'
               : 'text-slate-600 hover:bg-slate-100'
@@ -324,7 +324,7 @@ export const EmployerAnalyticsPage: React.FC<EmployerAnalyticsPageProps> = ({ on
                     <p className="font-bold">PESO Roxas Endorsement Compliance</p>
                     <p className="text-[10px] text-indigo-700">DOLE LGU Placement Standard</p>
                   </div>
-                  <span className="text-[10px] font-black uppercase bg-indigo-200 text-indigo-900 px-2 py-0.5 rounded">
+                  <span className="text-xs font-semibold bg-indigo-200 text-indigo-900 px-2.5 py-0.5 rounded">
                     Compliant
                   </span>
                 </div>

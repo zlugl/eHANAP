@@ -77,13 +77,13 @@ export const EmployerInterviewsPage: React.FC<EmployerInterviewsPageProps> = ({ 
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 font-body">
       
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="text-xs font-semibold bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full">
               Coordination & Sessions
             </span>
             <span className="text-xs text-slate-500 font-semibold">
@@ -104,7 +104,7 @@ export const EmployerInterviewsPage: React.FC<EmployerInterviewsPageProps> = ({ 
           <div className="bg-slate-200/80 p-1 rounded-xl flex items-center gap-1 text-xs font-bold">
             <button
               onClick={() => setActiveTab('calendar')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                 activeTab === 'calendar'
                   ? 'bg-white text-slate-900 shadow-2xs font-black'
                   : 'text-slate-600 hover:text-slate-900'
@@ -114,7 +114,7 @@ export const EmployerInterviewsPage: React.FC<EmployerInterviewsPageProps> = ({ 
             </button>
             <button
               onClick={() => setActiveTab('list')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                 activeTab === 'list'
                   ? 'bg-white text-slate-900 shadow-2xs font-black'
                   : 'text-slate-600 hover:text-slate-900'
@@ -126,7 +126,7 @@ export const EmployerInterviewsPage: React.FC<EmployerInterviewsPageProps> = ({ 
 
           <button
             onClick={() => onNavigate('employer-applicants')}
-            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
             <Users className="w-4 h-4" />
             <span>Select Candidate to Interview</span>
@@ -138,36 +138,36 @@ export const EmployerInterviewsPage: React.FC<EmployerInterviewsPageProps> = ({ 
       {/* Summary Stats Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Upcoming Sessions</p>
+          <p className="text-xs font-semibold text-slate-500">Upcoming Sessions</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-slate-900">{upcomingInterviews.length}</span>
+            <span className="text-2xl font-black text-slate-900 tabular-nums">{upcomingInterviews.length}</span>
             <Clock className="w-4 h-4 text-amber-500" />
           </div>
           <p className="text-[11px] text-amber-600 font-medium mt-1">Active coordination calls</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Candidate Confirmed</p>
+          <p className="text-xs font-semibold text-slate-500">Candidate Confirmed</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-emerald-600">{acceptedInterviews.length}</span>
+            <span className="text-2xl font-black text-emerald-600 tabular-nums">{acceptedInterviews.length}</span>
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
           </div>
           <p className="text-[11px] text-emerald-600 font-medium mt-1">Accepted invitations</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Reschedule Requests</p>
+          <p className="text-xs font-semibold text-slate-500">Reschedule Requests</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-purple-600">{rescheduledInterviews.length}</span>
+            <span className="text-2xl font-black text-purple-600 tabular-nums">{rescheduledInterviews.length}</span>
             <AlertCircle className="w-4 h-4 text-purple-500" />
           </div>
           <p className="text-[11px] text-purple-600 font-medium mt-1">Awaiting date resolution</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Completed Sessions</p>
+          <p className="text-xs font-semibold text-slate-500">Completed Sessions</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-slate-700">{completedInterviews.length}</span>
+            <span className="text-2xl font-black text-slate-700 tabular-nums">{completedInterviews.length}</span>
             <UserCheck className="w-4 h-4 text-slate-400" />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Evaluations finished</p>
@@ -203,7 +203,7 @@ export const EmployerInterviewsPage: React.FC<EmployerInterviewsPageProps> = ({ 
               </p>
               <button
                 onClick={() => onNavigate('employer-applicants')}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
               >
                 <Users className="w-4 h-4" />
                 <span>Go to Candidates Pipeline</span>
@@ -218,7 +218,7 @@ export const EmployerInterviewsPage: React.FC<EmployerInterviewsPageProps> = ({ 
                 return (
                   <div
                     key={inv.id}
-                    className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-300 transition-all p-5 space-y-4"
+                    className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-amber-300 transition-colors p-5 space-y-4"
                   >
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3">
@@ -236,7 +236,7 @@ export const EmployerInterviewsPage: React.FC<EmployerInterviewsPageProps> = ({ 
                       </div>
 
                       {/* Status Tag */}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
                         inv.status === 'accepted' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         inv.status === 'scheduled' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
                         inv.status === 'reschedule_requested' ? 'bg-purple-100 text-purple-800 border border-purple-200' :

@@ -122,9 +122,9 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigate }) =>
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setIsEncodeModalOpen(true)}
-            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-black rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-xs transition-all flex items-center gap-1.5 text-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
           >
-            <UserPlus className="w-4 h-4 text-amber-950" />
+            <UserPlus className="w-4 h-4 text-slate-950" />
             <span>+ Encode Walk-In Bio-Data</span>
           </button>
 
@@ -132,22 +132,22 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigate }) =>
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold">
             <button
               onClick={() => setActiveTab('seekers')}
-              className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 activeTab === 'seekers' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <UserCheck className="w-4 h-4" />
-              <span>Job Seekers ({jobSeekers.length})</span>
+              <span>Job Seekers (<span className="tabular-nums">{jobSeekers.length}</span>)</span>
             </button>
 
             <button
               onClick={() => setActiveTab('employers')}
-              className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                 activeTab === 'employers' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               <Building2 className="w-4 h-4" />
-              <span>Employers ({employers.length})</span>
+              <span>Employers (<span className="tabular-nums">{employers.length}</span>)</span>
             </button>
           </div>
         </div>
@@ -157,25 +157,25 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigate }) =>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">College Graduates</span>
-          <p className="text-xl font-black text-slate-900 mt-0.5">{collegeGradCount}</p>
+          <p className="text-xl font-black text-slate-900 mt-0.5 tabular-nums">{collegeGradCount}</p>
           <span className="text-[10px] text-slate-500">Degree holders & professionals</span>
         </div>
 
         <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">High School / K-12</span>
-          <p className="text-xl font-black text-slate-900 mt-0.5">{hsGradCount}</p>
+          <p className="text-xl font-black text-slate-900 mt-0.5 tabular-nums">{hsGradCount}</p>
           <span className="text-[10px] text-slate-500">Entry-level & retail readiness</span>
         </div>
 
         <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Out-of-School Youth</span>
-          <p className="text-xl font-black text-amber-700 mt-0.5">{osyCount}</p>
+          <p className="text-xl font-black text-amber-700 mt-0.5 tabular-nums">{osyCount}</p>
           <span className="text-[10px] text-amber-800 font-semibold">Priority TVET/LRA target</span>
         </div>
 
         <div className="bg-white p-3.5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Walk-In Physical Bio-Data</span>
-          <p className="text-xl font-black text-blue-700 mt-0.5">{walkInCount}</p>
+          <p className="text-xl font-black text-blue-700 mt-0.5 tabular-nums">{walkInCount}</p>
           <span className="text-[10px] text-blue-800 font-semibold">Encoded by PESO personnel</span>
         </div>
       </div>

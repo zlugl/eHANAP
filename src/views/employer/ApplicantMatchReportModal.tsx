@@ -38,11 +38,11 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
   const decisionTree = job.decisionTree;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto font-sans">
-      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-slate-200 overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-auto max-h-[92vh] flex flex-col">
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-3 sm:p-4 overflow-y-auto font-sans">
+      <div className="bg-white w-full max-w-2xl rounded-2xl shadow-xl border border-slate-200 overflow-hidden motion-safe:animate-in motion-safe:fade-in motion-safe:zoom-in-95 duration-200 my-auto max-h-[92vh] flex flex-col">
         
         {/* Header */}
-        <div className="p-4 sm:p-5 bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 text-white flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-indigo-600/30 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
               <Sparkles className="w-5 h-5" />
@@ -52,7 +52,7 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
               <p className="text-xs text-slate-300 truncate">Detailed requirement verification for {seeker.firstName} {seeker.lastName}</p>
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0 focus-visible:ring-2 focus-visible:ring-white">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -75,8 +75,8 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
             </div>
 
             <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-200">
-              <p className="text-[10px] font-bold text-slate-400 uppercase">Match Score</p>
-              <p className={`text-xl sm:text-2xl font-black ${
+              <p className="text-xs font-semibold text-slate-500">Match score</p>
+              <p className={`text-xl sm:text-2xl font-black tabular-nums ${
                 application.matchScore >= 80 ? 'text-emerald-600' :
                 application.matchScore >= 60 ? 'text-indigo-600' :
                 'text-amber-600'
@@ -88,7 +88,7 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
 
           {/* AI Qualification Logic Evaluation breakdown */}
           <div className="space-y-3">
-            <h5 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+            <h5 className="text-xs font-bold text-slate-800">
               Decision Tree Requirement Rules Evaluated ({(decisionTree as any)?.nodes?.length || (application.matchResult?.matchedReasons?.length || 0) + (application.matchResult?.missingQualifications?.length || 0)})
             </h5>
 
@@ -111,7 +111,7 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
                           )}
                           <span className="text-slate-900">{node.question}</span>
                         </div>
-                        <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold shrink-0 self-start sm:self-center ${
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 self-start sm:self-center ${
                           passed ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
                         }`}>
                           Weight: {node.weight}%
@@ -171,7 +171,7 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
           <button
             onClick={onClose}
-            className="px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors text-center"
+            className="px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-200/60 rounded-xl transition-colors text-center focus-visible:outline-2 focus-visible:outline-indigo-500"
           >
             Close Report
           </button>
@@ -183,9 +183,9 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
                 onScheduleInterview(application.id);
               }
             }}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5"
+            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-1.5 focus-visible:outline-2 focus-visible:outline-indigo-500 whitespace-nowrap"
           >
-            Schedule Interview Session
+            Schedule interview
           </button>
         </div>
 

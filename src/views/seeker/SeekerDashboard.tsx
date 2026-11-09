@@ -324,20 +324,21 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
   }
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] text-slate-900 font-sans pb-12 select-none">
+    <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] font-body pb-12 select-none">
       
       {/* Centered App Container */}
       <div className="max-w-md sm:max-w-xl md:max-w-2xl mx-auto px-3 sm:px-4 pt-3 sm:pt-5 space-y-6">
 
-        {/* TOP CONTOURED HEADER BANNER (Matches royal blue Color UI Design) */}
-        <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-700 text-white p-5 sm:p-6 shadow-xl border border-blue-500/30">
+        {/* TOP CONTOURED HEADER BANNER */}
+        <div className="relative rounded-2xl overflow-hidden bg-[var(--color-ink)] text-[var(--color-paper)] p-5 sm:p-6 border border-[var(--color-rule)]">
           
           {/* Subtle Organic Topographical Contour Curves */}
           <svg 
-            className="absolute inset-0 w-full h-full pointer-events-none opacity-25" 
+            className="absolute inset-0 w-full h-full pointer-events-none opacity-20" 
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 500 240"
             preserveAspectRatio="none"
+            aria-hidden="true"
           >
             <path d="M-20,40 Q150,-10 280,60 T520,30" fill="none" stroke="#ffffff" strokeWidth="1.6" />
             <path d="M-20,80 Q140,20 290,100 T520,60" fill="none" stroke="#ffffff" strokeWidth="1.6" />
@@ -351,15 +352,15 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
             {/* Top Row: Location & Notification Bell */}
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-[11px] text-white/70 font-medium tracking-wide">
+                <p className="text-[11px] text-[var(--color-paper)]/70 font-medium">
                   Location
                 </p>
                 <div className="relative">
                   <button
                     type="button"
-                    className="flex items-center gap-1.5 text-sm sm:text-base font-bold text-white mt-0.5 cursor-default"
+                    className="flex items-center gap-1.5 text-sm sm:text-base font-bold text-[var(--color-paper)] mt-0.5 cursor-default"
                   >
-                    <MapPin className="w-4 h-4 text-white shrink-0" />
+                    <MapPin className="w-4 h-4 text-[var(--color-accent)] shrink-0" aria-hidden="true" />
                     <span>{currentLocation}</span>
                   </button>
                 </div>
@@ -368,35 +369,36 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
               {/* Notification Bell Button */}
               <button
                 onClick={() => setIsNotifDrawerOpen(true)}
-                className="relative p-2.5 bg-white/15 hover:bg-white/25 active:scale-95 text-white rounded-2xl border border-white/15 shadow-sm transition-all cursor-pointer backdrop-blur-xs"
+                className="relative p-2.5 bg-[var(--color-paper)]/10 hover:bg-[var(--color-paper)]/20 active:opacity-85 text-[var(--color-paper)] rounded-xl border border-[var(--color-paper)]/20 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
                 title="Notifications"
                 aria-label="View notifications"
               >
-                <Bell className="w-5 h-5 text-white" />
+                <Bell className="w-5 h-5 text-[var(--color-paper)]" aria-hidden="true" />
                 {unreadNotifCount > 0 && (
-                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-blue-600" />
+                  <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[var(--color-ink)]" />
                 )}
               </button>
             </div>
 
             {/* Bottom Row: Search Bar & Filter Button */}
             <div className="flex items-center gap-2.5 pt-1">
-              {/* White Search Input Card */}
-              <div className="flex-1 bg-white rounded-2xl px-3.5 py-2.5 flex items-center gap-2.5 shadow-sm">
-                <Search className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+              {/* Search Input Card */}
+              <div className="flex-1 bg-[var(--color-paper)] rounded-xl px-3.5 py-2.5 flex items-center gap-2.5 border border-[var(--color-rule)] text-[var(--color-ink)]">
+                <Search className="w-4.5 h-4.5 text-[var(--color-ink-muted)] shrink-0" aria-hidden="true" />
                 <input
                   type="text"
                   placeholder="Search jobs, categories or companies"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full text-xs sm:text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none bg-transparent"
+                  className="w-full text-xs sm:text-sm font-medium text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)]/60 focus:outline-none bg-transparent"
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="p-1 text-slate-400 hover:text-slate-600 rounded-lg cursor-pointer"
+                    className="p-1 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] rounded-lg cursor-pointer"
+                    aria-label="Clear search"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -404,36 +406,36 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
               {/* Filter Button */}
               <button
                 onClick={() => setIsFilterModalOpen(true)}
-                className="p-3 bg-white hover:bg-blue-50 active:scale-95 text-blue-600 rounded-2xl shadow-sm transition-all cursor-pointer shrink-0"
+                className="p-3 bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] active:opacity-85 text-[var(--color-ink)] rounded-xl border border-[var(--color-rule)] transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
                 title="Filter preferences"
                 aria-label="Filter preferences"
               >
-                <SlidersHorizontal className="w-5 h-5 text-blue-600" />
+                <SlidersHorizontal className="w-5 h-5 text-[var(--color-ink)]" aria-hidden="true" />
               </button>
             </div>
 
           </div>
         </div>
 
-        {/* SECTION 1: SUGGESTED JOBS (Matches image.png) */}
+        {/* SECTION 1: SUGGESTED JOBS */}
         <div className="space-y-3">
           
           {/* Header Row */}
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+              <h2 className="text-lg sm:text-xl font-bold text-[var(--color-ink)] font-display tracking-tight">
                 Recommended For You
               </h2>
               {currentSeekerProfile && (
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-emerald-600" />
+                <span className="text-[10px] font-medium text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <Sparkles className="w-3 h-3 text-emerald-600" aria-hidden="true" />
                   <span>Aligned with your Profile</span>
                 </span>
               )}
             </div>
             <button
               onClick={() => onNavigate('jobs')}
-              className="text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              className="text-xs font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
             >
               See all
             </button>
@@ -442,10 +444,10 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
           {/* Horizontal Carousel Cards */}
           <div className="flex items-stretch gap-3.5 overflow-x-auto pb-2 scrollbar-none snap-x snap-mandatory">
             {filteredSuggested.length === 0 ? (
-              <div className="w-full bg-white rounded-3xl p-8 text-center border border-slate-200/80">
-                <Briefcase className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-xs font-bold text-slate-700">No Job Offers Available Yet</p>
-                <p className="text-[11px] text-slate-400 mt-1">There are no job vacancies posted yet in Roxas. Newly registered employers will publish openings here.</p>
+              <div className="w-full bg-[var(--color-paper)] rounded-2xl p-8 text-center border border-[var(--color-rule)]">
+                <Briefcase className="w-8 h-8 text-[var(--color-ink-muted)] mx-auto mb-2" aria-hidden="true" />
+                <p className="text-xs font-bold text-[var(--color-ink)]">No Job Offers Available Yet</p>
+                <p className="text-[11px] text-[var(--color-ink-muted)] mt-1">There are no job vacancies posted yet in Roxas. Newly registered employers will publish openings here.</p>
               </div>
             ) : (
               filteredSuggested.map((job) => {
@@ -455,16 +457,16 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                   <div
                     key={job.id}
                     onClick={() => setViewingJob(job)}
-                    className="min-w-[280px] sm:min-w-[320px] max-w-[340px] bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer flex flex-col justify-between space-y-3.5 snap-start shrink-0 relative group"
+                    className="min-w-[280px] sm:min-w-[320px] max-w-[340px] bg-[var(--color-paper)] rounded-2xl p-4 sm:p-5 border border-[var(--color-rule)] hover:border-[var(--color-accent)] transition-colors cursor-pointer flex flex-col justify-between space-y-3.5 snap-start shrink-0 relative group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                   >
                     <div>
                       {/* Decision Tree Match Score Badge & Tag */}
                       <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-black shadow-2xs">
-                          <Sparkles className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
-                          <span>{match.score}% Match</span>
+                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
+                          <Sparkles className="w-3.5 h-3.5 text-emerald-600 motion-safe:animate-pulse" aria-hidden="true" />
+                          <span className="tabular-nums font-bold">{match.score}% Match</span>
                         </div>
-                        <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+                        <span className="text-[10px] font-medium text-[var(--color-ink)] bg-[var(--color-paper-warm)] px-2 py-0.5 rounded-md border border-[var(--color-rule)]">
                           {match.label}
                         </span>
                       </div>
@@ -472,8 +474,8 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                       {/* Top Row: Logo, Title & Bookmark */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          {/* Dark Squircle Logo with Initial */}
-                          <div className={`relative w-12 h-12 rounded-2xl ${job.logoBg} flex items-center justify-center text-white font-serif font-black text-2xl shadow-xs shrink-0 overflow-hidden`}>
+                          {/* Logo with Initial */}
+                          <div className={`relative w-12 h-12 rounded-xl ${job.logoBg} flex items-center justify-center text-white font-serif font-black text-2xl shadow-xs shrink-0 overflow-hidden`}>
                             {job.logoUrl ? (
                               <img src={job.logoUrl} alt={job.companyName} className="w-full h-full object-cover" />
                             ) : (
@@ -481,13 +483,13 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                             )}
                           </div>
                           <div>
-                            <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight group-hover:text-indigo-600 transition-colors line-clamp-1">
+                            <h3 className="font-bold text-[var(--color-ink)] text-sm sm:text-base leading-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
                               {job.title}
                             </h3>
                             <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                              <span className="text-xs text-slate-500 font-medium">{job.companyName}</span>
-                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
-                                <CheckCircle2 className="w-3 h-3 text-blue-600 stroke-[2.5]" />
+                              <span className="text-xs text-[var(--color-ink-muted)] font-medium">{job.companyName}</span>
+                              <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--color-paper-warm)] border border-[var(--color-rule)] text-[var(--color-ink)] text-[10px] font-medium">
+                                <CheckCircle2 className="w-3 h-3 text-[var(--color-accent)] stroke-[2.5]" aria-hidden="true" />
                                 <span>PESO-Verified</span>
                               </span>
                             </div>
@@ -498,23 +500,24 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                         <button
                           type="button"
                           onClick={(e) => toggleBookmark(job.id, job.title, e)}
-                          className="p-1.5 text-slate-400 hover:text-slate-800 transition-colors cursor-pointer shrink-0"
+                          className="p-1.5 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] rounded"
                           title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
                           aria-label="Bookmark job"
                         >
                           <Bookmark 
-                            className={`w-5 h-5 transition-all ${
+                            className={`w-5 h-5 transition-colors ${
                               isBookmarked 
-                                ? 'fill-slate-800 text-slate-800 scale-105' 
-                                : 'text-slate-400 hover:text-slate-700'
+                                ? 'fill-[var(--color-ink)] text-[var(--color-ink)]' 
+                                : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]'
                             }`} 
+                            aria-hidden="true"
                           />
                         </button>
                       </div>
 
                       {/* Location Row */}
-                      <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-3 font-medium">
-                        <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <div className="flex items-center gap-1.5 text-xs text-[var(--color-ink-muted)] mt-3 font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-[var(--color-accent)] shrink-0" aria-hidden="true" />
                         <span className="truncate">{job.location}</span>
                       </div>
 
@@ -523,7 +526,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                         {job.tags.map((tag) => (
                           <span
                             key={tag}
-                            className="bg-slate-100/90 text-slate-600 text-[11px] font-semibold px-2.5 py-1 rounded-xl"
+                            className="bg-[var(--color-paper-warm)] text-[var(--color-ink)] text-[11px] font-medium px-2.5 py-1 rounded-lg border border-[var(--color-rule)]"
                           >
                             {tag}
                           </span>
@@ -532,22 +535,22 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                     </div>
 
                     {/* Bottom Row: Experience Level, Work Setup & Salary */}
-                    <div className="pt-2.5 flex items-center justify-between border-t border-slate-100">
+                    <div className="pt-2.5 flex items-center justify-between border-t border-[var(--color-rule)]">
                       <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100/90 text-slate-600 text-[11px] font-medium">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[var(--color-paper-warm)] text-[var(--color-ink)] text-[11px] font-medium border border-[var(--color-rule)]">
                           {job.experienceLevel}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                        <span className="text-[11px] text-[var(--color-ink-muted)] font-medium hidden sm:inline">
                           • {job.workSetup}
                         </span>
                       </div>
 
                       {/* Salary */}
                       <div className="text-right">
-                        <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                        <span className="font-bold text-[var(--color-ink)] text-xs sm:text-sm font-mono tabular-nums">
                           {job.salary}
                         </span>
-                        <span className="text-[10px] text-slate-400 ml-1">
+                        <span className="text-[10px] text-[var(--color-ink-muted)] ml-1">
                           {job.period}
                         </span>
                       </div>
@@ -560,17 +563,17 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
           </div>
         </div>
 
-        {/* SECTION 2: RECENT JOBS (Matches image.png) */}
+        {/* SECTION 2: RECENT JOBS */}
         <div className="space-y-3.5">
           
           {/* Header Row */}
           <div className="flex items-center justify-between px-1">
-            <h2 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">
+            <h2 className="text-lg sm:text-xl font-bold text-[var(--color-ink)] font-display tracking-tight">
               Recent Jobs
             </h2>
             <button
               onClick={() => onNavigate('jobs')}
-              className="text-xs font-semibold text-slate-400 hover:text-slate-700 transition-colors cursor-pointer"
+              className="text-xs font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
             >
               See all
             </button>
@@ -584,10 +587,10 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                  className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                     isActive
-                      ? 'bg-[#404040] text-white shadow-xs'
-                      : 'bg-white border border-slate-200/90 text-slate-600 hover:bg-slate-50'
+                      ? 'bg-[var(--color-ink)] text-[var(--color-paper)] shadow-xs'
+                      : 'bg-[var(--color-paper)] border border-[var(--color-rule)] text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-paper-warm)]'
                   }`}
                 >
                   {cat}
@@ -599,10 +602,10 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
           {/* Recent Jobs Vertical List */}
           <div className="space-y-3">
             {filteredRecent.length === 0 ? (
-              <div className="bg-white rounded-3xl p-8 text-center border border-slate-200/80">
-                <Briefcase className="w-8 h-8 text-slate-300 mx-auto mb-2" />
-                <p className="text-xs font-bold text-slate-700">No Recent Job Vacancies</p>
-                <p className="text-[11px] text-slate-400 mt-1">No employers have posted job openings yet. Check back once local businesses in Roxas register.</p>
+              <div className="bg-[var(--color-paper)] rounded-2xl p-8 text-center border border-[var(--color-rule)]">
+                <Briefcase className="w-8 h-8 text-[var(--color-ink-muted)] mx-auto mb-2" aria-hidden="true" />
+                <p className="text-xs font-bold text-[var(--color-ink)]">No Recent Job Vacancies</p>
+                <p className="text-[11px] text-[var(--color-ink-muted)] mt-1">No employers have posted job openings yet. Check back once local businesses in Roxas register.</p>
               </div>
             ) : (
               filteredRecent.map((job) => {
@@ -612,15 +615,15 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                   <div
                     key={job.id}
                     onClick={() => setViewingJob(job)}
-                    className="bg-white rounded-3xl p-4 sm:p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer relative group space-y-3"
+                    className="bg-[var(--color-paper)] rounded-2xl p-4 sm:p-5 border border-[var(--color-rule)] hover:border-[var(--color-accent)] transition-colors cursor-pointer relative group space-y-3 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                   >
                     {/* Decision Tree Match Badge Header */}
                     <div className="flex items-center justify-between gap-2">
-                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-300 text-emerald-800 text-[11px] font-black shadow-2xs">
-                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{match.score}% Match</span>
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
+                        <Sparkles className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
+                        <span className="tabular-nums font-bold">{match.score}% Match</span>
                       </div>
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">
+                      <span className="text-[10px] font-medium text-[var(--color-ink)] bg-[var(--color-paper-warm)] px-2 py-0.5 rounded-md border border-[var(--color-rule)]">
                         {match.label}
                       </span>
                     </div>
@@ -628,8 +631,8 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                     {/* Top Row: Logo, Title & Bookmark */}
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        {/* Squircle Logo with Initial */}
-                        <div className={`relative w-12 h-12 rounded-2xl ${job.logoBg} flex items-center justify-center font-serif font-black text-2xl shadow-xs shrink-0 overflow-hidden`}>
+                        {/* Logo with Initial */}
+                        <div className={`relative w-12 h-12 rounded-xl ${job.logoBg} flex items-center justify-center font-serif font-black text-2xl shadow-xs shrink-0 overflow-hidden`}>
                           {job.logoUrl ? (
                             <img src={job.logoUrl} alt={job.companyName} className="w-full h-full object-cover" />
                           ) : (
@@ -637,13 +640,13 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                           )}
                         </div>
                         <div>
-                          <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-tight group-hover:text-indigo-600 transition-colors line-clamp-1">
+                          <h3 className="font-bold text-[var(--color-ink)] text-sm sm:text-base leading-tight group-hover:text-[var(--color-accent)] transition-colors line-clamp-1">
                             {job.title}
                           </h3>
                           <div className="flex items-center gap-1.5 flex-wrap mt-1">
-                            <span className="text-xs text-slate-500 font-medium">{job.companyName}</span>
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[10px] font-bold">
-                              <CheckCircle2 className="w-3 h-3 text-blue-600 stroke-[2.5]" />
+                            <span className="text-xs text-[var(--color-ink-muted)] font-medium">{job.companyName}</span>
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-[var(--color-paper-warm)] border border-[var(--color-rule)] text-[var(--color-ink)] text-[10px] font-medium">
+                              <CheckCircle2 className="w-3 h-3 text-[var(--color-accent)] stroke-[2.5]" aria-hidden="true" />
                               <span>PESO-Verified</span>
                             </span>
                           </div>
@@ -654,16 +657,17 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                       <button
                         type="button"
                         onClick={(e) => toggleBookmark(job.id, job.title, e)}
-                        className="p-1.5 text-slate-400 hover:text-slate-800 transition-colors cursor-pointer shrink-0"
+                        className="p-1.5 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] transition-colors cursor-pointer shrink-0 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] rounded"
                         title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
                         aria-label="Bookmark job"
                       >
                         <Bookmark 
-                          className={`w-5 h-5 transition-all ${
+                          className={`w-5 h-5 transition-colors ${
                             isBookmarked 
-                              ? 'fill-slate-800 text-slate-800 scale-105' 
-                              : 'text-slate-400 hover:text-slate-700'
+                              ? 'fill-[var(--color-ink)] text-[var(--color-ink)]' 
+                              : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]'
                           }`} 
+                          aria-hidden="true"
                         />
                       </button>
                     </div>
@@ -673,7 +677,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                       {job.tags.map((tag) => (
                         <span
                           key={tag}
-                          className="bg-slate-100/90 text-slate-600 text-[11px] font-semibold px-2.5 py-1 rounded-xl"
+                          className="bg-[var(--color-paper-warm)] text-[var(--color-ink)] text-[11px] font-medium px-2.5 py-1 rounded-lg border border-[var(--color-rule)]"
                         >
                           {tag}
                         </span>
@@ -681,21 +685,21 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                     </div>
 
                     {/* Bottom Row: Experience Level, Work Setup & Salary */}
-                    <div className="pt-2.5 flex items-center justify-between border-t border-slate-100">
+                    <div className="pt-2.5 flex items-center justify-between border-t border-[var(--color-rule)]">
                       <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-slate-100/90 text-slate-600 text-[11px] font-medium">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg bg-[var(--color-paper-warm)] text-[var(--color-ink)] text-[11px] font-medium border border-[var(--color-rule)]">
                           {job.experienceLevel}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-medium hidden sm:inline">
+                        <span className="text-[11px] text-[var(--color-ink-muted)] font-medium hidden sm:inline">
                           • {job.workSetup}
                         </span>
                       </div>
 
                       <div className="text-right">
-                        <span className="font-bold text-slate-900 text-xs sm:text-sm">
+                        <span className="font-bold text-[var(--color-ink)] text-xs sm:text-sm font-mono tabular-nums">
                           {job.salary}
                         </span>
-                        <span className="text-[10px] text-slate-400 ml-1">
+                        <span className="text-[10px] text-[var(--color-ink-muted)] ml-1">
                           {job.period}
                         </span>
                       </div>
@@ -713,28 +717,29 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
       {/* FILTER DRAWER / MODAL */}
       {isFilterModalOpen && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 motion-safe:animate-in motion-safe:fade-in"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsFilterModalOpen(false);
           }}
         >
-          <div className="bg-white rounded-3xl p-6 max-w-sm w-full space-y-5 shadow-2xl border border-slate-200">
+          <div className="bg-[var(--color-paper)] rounded-2xl p-6 max-w-sm w-full space-y-5 shadow-xl border border-[var(--color-rule)]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <SlidersHorizontal className="w-5 h-5 text-slate-900" />
-                <h3 className="font-black text-slate-900 text-base">Filter Vacancies</h3>
+                <SlidersHorizontal className="w-5 h-5 text-[var(--color-ink)]" aria-hidden="true" />
+                <h3 className="font-bold text-[var(--color-ink)] text-base font-display">Filter Vacancies</h3>
               </div>
               <button
                 onClick={() => setIsFilterModalOpen(false)}
-                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-xl"
+                className="p-1.5 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] rounded-xl transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                aria-label="Close filters"
               >
-                <X className="w-5 h-5" />
+                <X className="w-5 h-5" aria-hidden="true" />
               </button>
             </div>
 
             {/* Work Setup Filter */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <label className="text-xs font-semibold text-[var(--color-ink)] block">
                 Work Setup
               </label>
               <div className="grid grid-cols-4 gap-1.5">
@@ -742,10 +747,10 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                   <button
                     key={setup}
                     onClick={() => setFilterWorkSetup(setup)}
-                    className={`py-2 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
+                    className={`py-2 text-xs font-semibold rounded-xl border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                       filterWorkSetup === setup
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-[var(--color-ink)] text-[var(--color-paper)] border-[var(--color-ink)]'
+                        : 'bg-[var(--color-paper-warm)] text-[var(--color-ink)] border-[var(--color-rule)] hover:border-[var(--color-ink-muted)]'
                     }`}
                   >
                     {setup === 'all' ? 'All' : setup}
@@ -756,7 +761,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
 
             {/* Job Type Filter */}
             <div className="space-y-2">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              <label className="text-xs font-semibold text-[var(--color-ink)] block">
                 Employment Type
               </label>
               <div className="grid grid-cols-4 gap-1.5">
@@ -764,10 +769,10 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                   <button
                     key={type}
                     onClick={() => setFilterJobType(type)}
-                    className={`py-2 text-[11px] font-semibold rounded-xl border transition-all cursor-pointer ${
+                    className={`py-2 text-[11px] font-semibold rounded-xl border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                       filterJobType === type
-                        ? 'bg-slate-900 text-white border-slate-900'
-                        : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
+                        ? 'bg-[var(--color-ink)] text-[var(--color-paper)] border-[var(--color-ink)]'
+                        : 'bg-[var(--color-paper-warm)] text-[var(--color-ink)] border-[var(--color-rule)] hover:border-[var(--color-ink-muted)]'
                     }`}
                   >
                     {type === 'all' ? 'All' : type}
@@ -784,13 +789,13 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
                   setFilterJobType('all');
                   setIsFilterModalOpen(false);
                 }}
-                className="w-1/2 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl"
+                className="btn btn--quiet w-1/2 py-2.5 text-xs font-medium rounded-xl border border-[var(--color-rule)] cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
               >
                 Reset All
               </button>
               <button
                 onClick={() => setIsFilterModalOpen(false)}
-                className="w-1/2 py-2.5 bg-slate-900 text-white text-xs font-bold rounded-xl shadow-md hover:bg-slate-800"
+                className="btn btn--primary w-1/2 py-2.5 text-xs font-bold rounded-xl cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
               >
                 Apply Filters
               </button>

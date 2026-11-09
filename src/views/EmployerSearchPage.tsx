@@ -60,11 +60,11 @@ export const EmployerSearchPage: React.FC<EmployerSearchPageProps> = ({ onNaviga
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-sans">
       
       {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-indigo-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-3xl shadow-xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              PESO Verified Business Directory
+            <span className="text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-2.5 py-0.5 rounded-full">
+              PESO verified business directory
             </span>
             <span className="text-[10px] text-slate-400 font-semibold">Oriental Mindoro</span>
           </div>
@@ -78,12 +78,12 @@ export const EmployerSearchPage: React.FC<EmployerSearchPageProps> = ({ onNaviga
 
         <div className="flex items-center gap-3 shrink-0">
           <div className="p-3 bg-white/10 rounded-2xl border border-white/10 text-center">
-            <p className="text-xl font-black text-emerald-400">{employers.filter(e => e.status === 'verified').length}</p>
-            <p className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider">Accredited</p>
+            <p className="text-xl font-black text-emerald-400 tabular-nums">{employers.filter(e => e.status === 'verified').length}</p>
+            <p className="text-[11px] text-slate-300 font-medium">Accredited</p>
           </div>
           <div className="p-3 bg-white/10 rounded-2xl border border-white/10 text-center">
-            <p className="text-xl font-black text-indigo-300">{jobPosts.filter(j => j.status === 'active').length}</p>
-            <p className="text-[10px] text-slate-300 font-semibold uppercase tracking-wider">Open Vacancies</p>
+            <p className="text-xl font-black text-indigo-300 tabular-nums">{jobPosts.filter(j => j.status === 'active').length}</p>
+            <p className="text-[11px] text-slate-300 font-medium">Open vacancies</p>
           </div>
         </div>
       </div>

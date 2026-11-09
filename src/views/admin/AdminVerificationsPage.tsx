@@ -59,27 +59,27 @@ export const AdminVerificationsPage: React.FC<AdminVerificationsPageProps> = ({ 
         <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
           <button
             onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${filter === 'all' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${filter === 'all' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
           >
-            All ({employers.length})
+            All (<span className="tabular-nums">{employers.length}</span>)
           </button>
           <button
             onClick={() => setFilter('pending')}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${filter === 'pending' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${filter === 'pending' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
           >
-            Pending ({employers.filter(e => e.status === 'pending').length})
+            Pending (<span className="tabular-nums">{employers.filter(e => e.status === 'pending').length}</span>)
           </button>
           <button
             onClick={() => setFilter('for_compliance')}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${filter === 'for_compliance' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 ${filter === 'for_compliance' ? 'bg-amber-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
           >
-            For Compliance ({employers.filter(e => e.status === 'for_compliance').length})
+            For Compliance (<span className="tabular-nums">{employers.filter(e => e.status === 'for_compliance').length}</span>)
           </button>
           <button
             onClick={() => setFilter('verified')}
-            className={`px-3 py-1.5 rounded-lg transition-colors ${filter === 'verified' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+            className={`px-3 py-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${filter === 'verified' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
           >
-            Verified ({employers.filter(e => e.status === 'verified').length})
+            Verified (<span className="tabular-nums">{employers.filter(e => e.status === 'verified').length}</span>)
           </button>
         </div>
       </div>
@@ -286,7 +286,7 @@ export const AdminVerificationsPage: React.FC<AdminVerificationsPageProps> = ({ 
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     onClick={() => handleStatusUpdate('verified')}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600 cursor-pointer"
                   >
                     <Check className="w-4 h-4" />
                     Approve & Verify Employer
@@ -299,7 +299,7 @@ export const AdminVerificationsPage: React.FC<AdminVerificationsPageProps> = ({ 
                       verifyEmployer(selectedEmployer.id, 'for_compliance', notes);
                       setVerificationNotes('');
                     }}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow-xs"
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-amber-500 cursor-pointer"
                   >
                     <FileText className="w-4 h-4" />
                     Return for Compliance
@@ -307,7 +307,7 @@ export const AdminVerificationsPage: React.FC<AdminVerificationsPageProps> = ({ 
 
                   <button
                     onClick={() => handleStatusUpdate('rejected')}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs rounded-xl transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-rose-600 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                     Reject Registration
@@ -316,7 +316,7 @@ export const AdminVerificationsPage: React.FC<AdminVerificationsPageProps> = ({ 
                   {selectedEmployer.status === 'verified' && (
                     <button
                       onClick={() => handleStatusUpdate('suspended')}
-                      className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition-colors flex items-center gap-1"
+                      className="px-3.5 py-2 bg-slate-700 hover:bg-slate-800 text-white font-semibold text-xs rounded-xl transition-colors flex items-center gap-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-700 cursor-pointer"
                     >
                       Suspend Account
                     </button>

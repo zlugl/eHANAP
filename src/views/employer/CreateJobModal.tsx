@@ -51,20 +51,22 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
   // STRICT VERIFICATION CHECK: Employers cannot post until verified by PESO
   if (currentEmployerProfile.status !== 'verified') {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200 font-sans">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in duration-200 font-sans">
         <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden p-6 sm:p-8 text-center space-y-5">
           <div className="w-16 h-16 rounded-3xl bg-amber-100 text-amber-700 flex items-center justify-center mx-auto ring-8 ring-amber-50">
             <AlertCircle className="w-8 h-8" />
           </div>
           <div>
-            <span className="text-[11px] uppercase font-bold tracking-wider px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
-              PESO Verification Required
-            </span>
-            <h2 className="text-xl font-black text-slate-900 mt-2">
+            <h2 className="text-xl font-black text-slate-900">
               Cannot Post Job Vacancies Yet
             </h2>
+            <div className="mt-2">
+              <span className="text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200">
+                PESO Verification Required
+              </span>
+            </div>
             <p className="text-xs text-slate-600 mt-2 leading-relaxed">
-              Bago makapag-post ng trabaho sa eHANAP portal, kailangan munang ma-verify ang inyong establisyimento ng <strong>PESO Oriental Mindoro</strong>. Ang kasalukuyang accreditation status ng <strong>{currentEmployerProfile.companyName}</strong> ay: <span className="font-bold text-amber-700 uppercase">{currentEmployerProfile.status.replace(/_/g, ' ')}</span>.
+              Bago makapag-post ng trabaho sa eHANAP portal, kailangan munang ma-verify ang inyong establisyimento ng <strong>PESO Oriental Mindoro</strong>. Ang kasalukuyang accreditation status ng <strong>{currentEmployerProfile.companyName}</strong> ay: <span className="font-bold text-amber-700 capitalize">{currentEmployerProfile.status.replace(/_/g, ' ')}</span>.
             </p>
           </div>
 
@@ -175,14 +177,14 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-sm motion-safe:animate-in motion-safe:fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden flex flex-col max-h-[94vh] sm:max-h-[90vh]">
         
         {/* Modal Header */}
         <div className="bg-slate-900 px-5 sm:px-6 py-4 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Building2 className="w-5 h-5 text-blue-400" />
-            <h2 className="text-sm font-bold uppercase tracking-wider">
+            <h2 className="text-sm font-bold">
               Post New Job Vacancy (Oriental Mindoro)
             </h2>
           </div>
@@ -316,7 +318,7 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
 
           {/* AI Decision Tree Criteria Configuration */}
           <div className="p-4 bg-blue-50/80 border border-blue-200 rounded-xl space-y-3">
-            <h3 className="font-bold text-blue-900 uppercase tracking-wider flex items-center gap-1.5">
+            <h3 className="font-bold text-blue-900 text-xs flex items-center gap-1.5">
               <Sparkles className="w-4 h-4 text-blue-600" />
               AI Decision Tree Qualification Logic Parameters
             </h3>
@@ -375,7 +377,7 @@ export const CreateJobModal: React.FC<CreateJobModalProps> = ({ isOpen, onClose,
             {/* Required Skills Adder */}
             <div>
               <label className="block font-bold text-slate-800 mb-0.5">Key Relevant Skills (Preferred & Evaluated)</label>
-              <p className="text-[11px] text-slate-500 mb-1.5">Specify core competencies. Candidates are matched on what they possess — not all skills are strictly required to apply.</p>
+              <p className="text-[11px] text-slate-500 mb-1.5">Specify core competencies. Candidates are matched on what they possess; not all skills are strictly required to apply.</p>
               <div className="flex flex-wrap gap-1.5 mb-2">
                 {requiredSkills.map(s => (
                   <span key={s} className="px-2 py-0.5 bg-blue-100 text-blue-900 rounded font-semibold flex items-center gap-1">

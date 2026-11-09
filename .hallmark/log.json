@@ -1,0 +1,28 @@
+[
+ {
+  "shape": "Narrative Workflow",
+  "theme": "furrow",
+  "axes": "light/grotesk-sans/warm",
+  "hero": "Stage",
+  "nav": "masthead",
+  "footer": "colophon block",
+  "imagery": "product sample in hero",
+  "photos": [],
+  "entry": "src/views/LandingPage.tsx",
+  "fingerprint": "14-narrative-workflow",
+  "sections": [
+   "hero",
+   "stage-1",
+   "stage-2",
+   "stage-3",
+   "faq",
+   "tiers",
+   "footer"
+  ],
+  "signature": "live Decision Tree candidate compatibility scoring engine",
+  "waived": [],
+  "prompt": "eHANAP localized job placement and skills matching marketplace for PESO Roxas Oriental Mindoro",
+  "date": "2026-11-09",
+  "mode": "build"
+ }
+]

@@ -238,7 +238,7 @@ function AppContent() {
       onNavigate={handleNavigate}
       onOpenBookmarks={() => setIsBookmarksOpen(true)}
     >
-      <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900 font-sans antialiased relative">
+      <div className="min-h-screen flex flex-col bg-[var(--color-paper)] text-[var(--color-ink)] font-body antialiased relative">
         {/* Navigation Header */}
         <Navbar
           currentView={currentView}
@@ -252,34 +252,36 @@ function AppContent() {
       <main className="flex-1 pb-16 sm:pb-20 lg:pb-0">
         {/* If user tries to access a protected route without permissions */}
         {isUnauthorized ? (
-          <div className="max-w-xl mx-auto my-16 p-8 bg-white rounded-2xl border border-slate-200 shadow-xl text-center space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
-              <ShieldAlert className="w-6 h-6" />
+          <div className="max-w-xl mx-auto my-16 p-8 bg-[var(--color-paper-2)] rounded-[var(--radius-card)] border border-[var(--color-rule)] shadow-[var(--shadow-card)] text-center space-y-4">
+            <div className="w-12 h-12 rounded-xl bg-[var(--color-accent-soft)] border border-[var(--color-rule)] text-[var(--color-accent-ink)] flex items-center justify-center mx-auto">
+              <ShieldAlert className="w-6 h-6" aria-hidden="true" />
             </div>
-            <h2 className="text-xl font-bold text-slate-900">
-              {!currentUser ? 'Authentication Required' : 'Access Restricted'}
+            <h2 className="text-xl font-bold text-[var(--color-ink)]">
+              {!currentUser ? 'Authentication required' : 'Access restricted'}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+            <p className="text-xs sm:text-sm text-[var(--color-muted)] leading-relaxed">
               {!currentUser 
-                ? 'You need to log in to access this role-specific dashboard or management feature.'
+                ? 'Please sign in to access this role-specific dashboard or management feature.'
                 : `This page is reserved for authorized accounts. You are currently logged in as a ${currentUser.role.replace(/_/g, ' ')}.`
               }
             </p>
             <div className="flex items-center justify-center gap-3 pt-2">
               <button
+                type="button"
                 onClick={() => handleNavigate('landing')}
-                className="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-1.5"
+                className="btn btn--quiet text-xs"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Return to Welcome Page</span>
+                <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                <span>Return to home page</span>
               </button>
               {!currentUser && (
                 <button
+                  type="button"
                   onClick={() => handleOpenAuth('login')}
-                  className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                  className="btn btn--primary text-xs"
                 >
-                  <LogIn className="w-4 h-4" />
-                  <span>Log In Now</span>
+                  <LogIn className="w-4 h-4" aria-hidden="true" />
+                  <span>Sign in now</span>
                 </button>
               )}
             </div>

@@ -1,0 +1,22 @@
+{
+  "scanned": "2026-11-09T12:56:00+08:00",
+  "findings": {
+    "fonts": "Inter (Google Fonts, index.html L12, src/index.css L1)",
+    "palette": "Tailwind CSS v4 (src/index.css L2)",
+    "motion": "motion 12.23.24 (package.json L24)",
+    "spacing": "Tailwind CSS v4 standard scale",
+    "framework": "React 19 + Vite (package.json L26, L39)"
+  },
+  "preserve": [
+    "font stack",
+    "palette",
+    "spacing scale"
+  ],
+  "introduce": [
+    "shape",
+    "theme",
+    "gates",
+    "hero discipline",
+    "slots"
+  ]
+}

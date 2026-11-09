@@ -156,9 +156,9 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
 
         <button
           onClick={() => setIsCreateModalOpen(true)}
-          className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-black rounded-xl shadow-md transition-all flex items-center gap-1.5 text-xs"
+          className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-xs transition-all flex items-center gap-1.5 text-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
         >
-          <Plus className="w-4 h-4 text-amber-950" />
+          <Plus className="w-4 h-4 text-slate-950" />
           <span>Schedule New LRA Event</span>
         </button>
       </div>
@@ -171,7 +171,7 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
           </div>
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Coordinated Events</span>
-            <p className="text-2xl font-black text-slate-900">{totalLras}</p>
+            <p className="text-2xl font-black text-slate-900 tabular-nums">{totalLras}</p>
             <span className="text-[11px] text-slate-500">Visiting external employers</span>
           </div>
         </div>
@@ -182,7 +182,7 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
           </div>
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Target Vacancies</span>
-            <p className="text-2xl font-black text-amber-950">{totalSlots}</p>
+            <p className="text-2xl font-black text-amber-950 tabular-nums">{totalSlots}</p>
             <span className="text-[11px] text-slate-500">Slots opened for Roxas labor pool</span>
           </div>
         </div>
@@ -193,7 +193,7 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
           </div>
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Hired-on-the-Spot (HOTS)</span>
-            <p className="text-2xl font-black text-emerald-700">{totalHots}</p>
+            <p className="text-2xl font-black text-emerald-700 tabular-nums">{totalHots}</p>
             <span className="text-[11px] text-emerald-600 font-semibold">Immediate placements recorded</span>
           </div>
         </div>
@@ -245,7 +245,7 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
                       setSelectedEvent(event);
                       setIsHotsModalOpen(true);
                     }}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-emerald-600"
                   >
                     <Flame className="w-4 h-4 text-emerald-200" />
                     <span>Log HOTS Applicant</span>
@@ -360,7 +360,7 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
       {isCreateModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
           <div className="bg-white w-full max-w-2xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8 animate-in fade-in duration-200">
-            <div className="bg-gradient-to-r from-slate-900 via-amber-950 to-slate-900 text-white p-6 flex items-center justify-between border-b border-amber-900/40">
+            <div className="bg-slate-900 text-white p-6 flex items-center justify-between border-b border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-400">
                   <Calendar className="w-5 h-5" />

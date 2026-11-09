@@ -233,7 +233,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
         <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl text-xs font-bold">
           <button
             onClick={() => setActiveTab('matching')}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer ${
               activeTab === 'matching' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
@@ -243,12 +243,12 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
 
           <button
             onClick={() => setActiveTab('referrals')}
-            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer ${
               activeTab === 'referrals' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <FileCheck className="w-4 h-4" />
-            <span>Issued Referral Slips ({referralSlips.length})</span>
+            <span>Issued Referral Slips (<span className="tabular-nums">{referralSlips.length}</span>)</span>
           </button>
         </div>
       </div>
@@ -416,7 +416,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
 
                   {/* Circular / Big Match Score */}
                   <div className="text-right">
-                    <div className={`text-2xl font-black ${
+                    <div className={`text-2xl font-black tabular-nums ${
                       score >= 90 ? 'text-emerald-700' : score >= 75 ? 'text-blue-700' : 'text-amber-700'
                     }`}>
                       {score}%
@@ -456,7 +456,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
                         <span className="truncate pr-2">{b.criterion}:</span>
                         <div className="flex items-center gap-2 shrink-0 font-mono">
                           <span className="text-[10px] text-slate-500">{b.note}</span>
-                          <span className="font-bold text-slate-900 bg-white px-1.5 py-0.2 rounded border border-slate-200">
+                          <span className="font-bold text-slate-900 bg-white px-1.5 py-0.2 rounded border border-slate-200 tabular-nums">
                             {b.points}/{b.weight}
                           </span>
                         </div>
@@ -473,9 +473,9 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
 
                   <button
                     onClick={() => handleOpenReferralForSeeker(seeker)}
-                    className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-amber-950 font-black rounded-xl shadow-xs transition-all flex items-center gap-1.5 text-xs"
+                    className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl shadow-xs transition-all flex items-center gap-1.5 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
                   >
-                    <FileCheck className="w-4 h-4 text-amber-950" />
+                    <FileCheck className="w-4 h-4 text-slate-950" />
                     <span>Generate Referral Slip</span>
                   </button>
                 </div>

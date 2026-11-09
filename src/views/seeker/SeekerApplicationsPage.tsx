@@ -196,52 +196,28 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
             className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 text-white border border-emerald-500/30 p-5 sm:p-6 shadow-xl shadow-emerald-950/20"
           >
-            {/* Background Floating Micro-Particles */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-30">
-              <motion.div
-                animate={{ y: [-10, 10, -10], opacity: [0.3, 0.7, 0.3] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -top-4 right-1/4 w-32 h-32 bg-emerald-500/20 rounded-full blur-2xl"
-              />
-              <motion.div
-                animate={{ y: [10, -10, 10], opacity: [0.2, 0.5, 0.2] }}
-                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute -bottom-4 right-10 w-24 h-24 bg-teal-400/20 rounded-full blur-xl"
-              />
+            {/* Background Texture Line */}
+            <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,var(--color-accent)_0%,transparent_60%)] opacity-30" />
             </div>
 
             <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
               
               <div className="flex items-start sm:items-center gap-4">
-                {/* Animated Pulsing Check Icon */}
+                {/* Check Icon */}
                 <div className="relative shrink-0">
-                  <motion.div
-                    animate={{ scale: [1, 1.35, 1.5], opacity: [0.6, 0.15, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
-                    className="absolute inset-0 rounded-2xl bg-emerald-400/40 -m-1"
-                  />
-                  <motion.div
-                    initial={{ scale: 0, rotate: -45 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 450, damping: 22, delay: 0.1 }}
-                    className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-400 text-white flex items-center justify-center shadow-lg shadow-emerald-600/30 relative z-10"
-                  >
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md relative z-10">
                     <CheckCircle2 className="w-6 h-6" />
-                  </motion.div>
+                  </div>
                 </div>
 
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <motion.span
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.15 }}
-                      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                    >
+                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
                       <Sparkles className="w-3 h-3" />
                       Application Dispatched
-                    </motion.span>
-                    <span className="text-[11px] text-slate-400">
+                    </span>
+                    <span className="text-xs text-slate-400">
                       PESO Compliant & Verified
                     </span>
                   </div>
@@ -311,7 +287,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
         <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'all'
                 ? 'bg-slate-900 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -321,7 +297,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
           </button>
           <button
             onClick={() => setStatusFilter('active')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'active'
                 ? 'bg-indigo-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -331,7 +307,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
           </button>
           <button
             onClick={() => setStatusFilter('applied')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'applied'
                 ? 'bg-blue-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -341,7 +317,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
           </button>
           <button
             onClick={() => setStatusFilter('reviewed')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'reviewed'
                 ? 'bg-amber-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -351,7 +327,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
           </button>
           <button
             onClick={() => setStatusFilter('interview')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'interview'
                 ? 'bg-purple-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -361,17 +337,17 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
           </button>
           <button
             onClick={() => setStatusFilter('hired')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'hired'
                 ? 'bg-emerald-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
-            Accepted / Hired 🎉 ({hiredCount})
+            Accepted / Hired ({hiredCount})
           </button>
           <button
             onClick={() => setStatusFilter('rejected')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors whitespace-nowrap active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'rejected'
                 ? 'bg-rose-600 text-white shadow-xs'
                 : 'text-slate-600 hover:bg-slate-100'
@@ -447,7 +423,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                 }}
                 whileHover={{ y: -2 }}
                 transition={{ duration: 0.2 }}
-                className={`bg-white rounded-3xl border transition-all duration-300 overflow-hidden ${
+                className={`bg-white rounded-3xl border transition-colors duration-200 overflow-hidden ${
                   isNewlySubmitted
                     ? 'border-emerald-500 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/10'
                     : 'border-slate-200/90 shadow-xs hover:shadow-md hover:border-slate-300'
@@ -456,14 +432,14 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                 
                 {/* Top Info Strip if newly submitted */}
                 {isNewlySubmitted && (
-                  <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 px-5 py-1.5 text-white text-[11px] font-bold flex items-center justify-between">
+                  <div className="bg-emerald-600 px-5 py-1.5 text-white text-[11px] font-bold flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <motion.span
                         animate={{ scale: [1, 1.4, 1] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
                         className="w-2 h-2 rounded-full bg-white inline-block"
                       />
-                      <span>✨ Newly Dispatched Application</span>
+                      <span>Newly Dispatched Application</span>
                     </div>
                     <span className="text-[10px] font-normal opacity-90">
                       Applied just now
@@ -480,7 +456,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                         src={job?.companyLogo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
                         alt={companyName}
                         onClick={() => setSelectedEmployerProfile({ companyName, employerId: job?.employerId })}
-                        className="w-13 h-13 rounded-2xl object-cover ring-1 ring-slate-200/80 shrink-0 shadow-xs cursor-pointer hover:ring-2 hover:ring-indigo-400 hover:opacity-90 transition-all"
+                        className="w-13 h-13 rounded-2xl object-cover ring-1 ring-slate-200/80 shrink-0 shadow-xs cursor-pointer hover:ring-2 hover:ring-indigo-400 hover:opacity-90 transition-opacity"
                         title="Click to visit employer profile"
                       />
                       <div>
@@ -488,7 +464,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                           <h3 className="text-base sm:text-lg font-bold text-slate-900">{jobTitle}</h3>
                           {app.currentStatus === 'hired' && (
                             <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2 py-0.5 rounded-full border border-emerald-300">
-                              Hired 🎉
+                              Hired
                             </span>
                           )}
                         </div>
@@ -519,20 +495,20 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                     <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
                       <div className="bg-slate-900 text-emerald-400 border border-slate-800 px-3 py-1.5 rounded-2xl font-black text-xs flex items-center gap-1.5 shadow-inner">
                         <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>{matchScore}% Match</span>
+                        <span className="tabular-nums font-bold">{matchScore}% Match</span>
                       </div>
 
                       <button
                         onClick={() => setSelectedAtsApp(app)}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-2xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs"
+                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 px-3 py-1.5 rounded-2xl font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs active:scale-95 disabled:opacity-50"
                         title="View Applicant Tracking System (ATS) Audit & Keywords"
                       >
                         <Cpu className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span>ATS: {app.atsScore || app.atsResult?.score || 94}%</span>
+                        <span className="tabular-nums font-bold">ATS: {app.atsScore || app.atsResult?.score || 94}%</span>
                       </button>
 
                       <span className="bg-slate-50 text-slate-600 border border-slate-200 px-3 py-1.5 rounded-2xl font-bold text-xs flex items-center gap-1.5 shadow-2xs">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 motion-safe:animate-pulse" />
                         <span>Status Updated by Employer</span>
                       </span>
 
@@ -540,7 +516,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                         whileHover={{ scale: 1.04 }}
                         whileTap={{ scale: 0.96 }}
                         onClick={() => onNavigate('job-detail', { jobId: app.jobId })}
-                        className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-xl transition-colors flex items-center gap-1"
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-2 rounded-xl transition-colors flex items-center gap-1 active:scale-95 disabled:opacity-50"
                       >
                         <span>View Vacancy</span>
                         <ExternalLink className="w-3 h-3" />
@@ -568,7 +544,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                     <motion.div 
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200/90 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-emerald-950"
+                      className="p-4 bg-emerald-50/70 border border-emerald-200/90 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-emerald-950"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
@@ -578,7 +554,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                           <p className="font-bold text-emerald-950 flex items-center gap-1.5">
                             <span>Officially Hired by {companyName}</span>
                             <span className="bg-emerald-600 text-white text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                              Completed 🎉
+                              Completed
                             </span>
                           </p>
                           <p className="text-[11px] text-emerald-700 mt-0.5">
@@ -597,7 +573,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                     <motion.div 
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-blue-950"
+                      className="p-4 bg-blue-50/70 border border-blue-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-blue-950"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
@@ -819,7 +795,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-slate-900">{selectedStepDetail.step.label}</h3>
-                  <span className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                  <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
                     selectedStepDetail.isCurrent 
                       ? 'bg-indigo-100 text-indigo-800' 
                       : selectedStepDetail.isCompleted 
@@ -836,7 +812,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
               </div>
               <button 
                 onClick={() => setSelectedStepDetail(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer"
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 cursor-pointer active:scale-95 disabled:opacity-50"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -862,7 +838,7 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                   setSelectedStepDetail(null);
                   setSelectedAtsApp(app);
                 }}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50 whitespace-nowrap"
               >
                 <Cpu className="w-4 h-4" />
                 <span>View ATS Resume Keyword Audit</span>

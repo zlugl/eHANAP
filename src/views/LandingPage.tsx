@@ -1,412 +1,439 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { ROXAS_MUNICIPALITY, ROXAS_BARANGAYS } from '../data/mockData';
-import { 
-  Search, 
-  MapPin, 
-  Sparkles, 
-  Briefcase, 
-  Building2, 
-  Users, 
-  User, 
-  CheckCircle2, 
-  TrendingUp, 
-  ShieldCheck, 
-  ArrowRight,
-  FileText,
-  BrainCircuit,
-  Award,
-  ChevronRight,
-  Calendar,
-  LogIn,
-  UserPlus,
-  Compass,
-  Check,
-  Phone,
-  Mail,
-  HelpCircle,
-  BarChart3,
-  Clock,
-  Layers,
-  FileCheck,
-  Shield,
-  Send
-} from 'lucide-react';
+import { Search, CheckCircle2, UserCheck, ShieldCheck, MapPin, Building2, Briefcase } from 'lucide-react';
 
 interface LandingPageProps {
   onNavigate: (view: string, params?: any) => void;
   onOpenAuth: (mode: 'login' | 'register', initialRole?: 'job_seeker' | 'employer') => void;
 }
 
+interface CandidateSample {
+  name: string;
+  barangay: string;
+  role: string;
+  education: string;
+  score: number;
+  nodes: { label: string; weight: string; score: string; status: string }[];
+}
+
+const CANDIDATES: CandidateSample[] = [
+  {
+    name: 'Maria Elena Santos',
+    barangay: 'Dangay, Roxas',
+    role: 'Junior Systems Assistant',
+    education: 'BS Information Technology',
+    score: 94,
+    nodes: [
+      { label: 'Educational attainment', weight: '25%', score: '25%', status: 'meets requirement' },
+      { label: 'Degree alignment', weight: '20%', score: '20%', status: 'exact alignment' },
+      { label: 'Skills competency', weight: '30%', score: '25%', status: '5 of 6 matched domains' },
+      { label: 'Work experience', weight: '15%', score: '14%', status: '2 verifiable years' },
+      { label: 'Verified credentials', weight: '10%', score: '10%', status: 'civil service passer' },
+    ],
+  },
+  {
+    name: 'Roberto D. Alcantara',
+    barangay: 'Bagumbayan, Roxas',
+    role: 'Warehouse Assistant',
+    education: 'TVET Automotive & Logistics',
+    score: 88,
+    nodes: [
+      { label: 'Educational attainment', weight: '25%', score: '25%', status: 'meets requirement' },
+      { label: 'Degree alignment', weight: '20%', score: '16%', status: 'related technical trade' },
+      { label: 'Skills competency', weight: '30%', score: '24%', status: '4 of 6 matched domains' },
+      { label: 'Work experience', weight: '15%', score: '13%', status: '3 verifiable years' },
+      { label: 'Verified credentials', weight: '10%', score: '10%', status: 'tesda national certificate' },
+    ],
+  },
+];
+
+const FAQS = [
+  {
+    question: 'What credentials do job seekers need to register?',
+    answer: 'College graduates provide resumes in PDF or DOCX format. High school graduates and vocational youth complete the standardized municipal bio-data record.',
+  },
+  {
+    question: 'How does the automated candidate ranking engine calculate compatibility?',
+    answer: 'The system evaluates five deterministic nodes: educational attainment (25%), degree alignment (20%), skills overlap (30%), experience (15%), and verified certifications (10%).',
+  },
+  {
+    question: 'What documentation must local Roxas employers submit for vacancy verification?',
+    answer: 'Accredited businesses submit an active Mayor’s Permit from the BPLO, DTI or SEC registration, and valid sanitary and fire safety clearances.',
+  },
+  {
+    question: 'How are regional Local Recruitment Activities coordinated?',
+    answer: 'External employers accredited by PESO run scheduled hiring sessions in Roxas, issuing municipal referral slips to prescreened residents.',
+  },
+];
+
+const TIERS = [
+  {
+    role: 'Job seeker registration',
+    scope: 'Roxas residents and youth',
+    proof: 'Resume or municipal bio-data',
+    service: 'Automated ranking alerts and one-click application',
+  },
+  {
+    role: 'Local employer accreditation',
+    scope: 'Verified Roxas businesses',
+    proof: 'Mayor’s permit and DTI/SEC',
+    service: 'Ranked candidate rosters and direct interview scheduling',
+  },
+  {
+    role: 'Regional LRA partner',
+    scope: 'External provincial employers',
+    proof: 'PESO accreditation certificate',
+    service: 'Municipal recruitment venue and prescreened referral slips',
+  },
+  {
+    role: 'PESO municipal monitoring',
+    scope: 'LGU administration',
+    proof: 'Municipal charter authority',
+    service: 'Barangay labor statistics and employment placement tracking',
+  },
+];
+
 export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth }) => {
-  const { jobPosts, employers, jobSeekers, applications, announcements } = useApp();
+  const { jobPosts, employers } = useApp();
+  const [activeCandidateIndex, setActiveCandidateIndex] = useState(0);
 
-  const activeJobs = jobPosts.filter(j => j.status === 'active');
-  const verifiedEmployers = employers.filter(e => e.status === 'verified');
-  const totalHired = applications.filter(a => a.currentStatus === 'hired').length;
-
+  const activeCandidate = CANDIDATES[activeCandidateIndex];
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
-      
-      {/* Top Banner Notice */}
-      {announcements.length > 0 && (
-        <div className="bg-slate-900 text-slate-100 px-4 py-2 text-xs font-medium border-b border-slate-800 flex items-center justify-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0"></span>
-          <span className="font-bold uppercase tracking-wider text-[10px] bg-indigo-900 text-indigo-200 px-2 py-0.5 rounded border border-indigo-700">PESO Roxas Notice:</span>
-          <span className="truncate max-w-2xl">{announcements[0].title}</span>
-          <button 
-            onClick={() => onNavigate('jobs')} 
-            className="underline font-bold text-indigo-300 hover:text-white ml-2 text-[11px]"
-          >
-            Explore
-          </button>
-        </div>
-      )}
-
-      {/* HERO SECTION */}
-      <section className="relative bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 text-white overflow-hidden pt-12 pb-20 px-4 sm:px-6 lg:px-8">
-        
-        {/* Background Mesh */}
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#6366f1_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none"></div>
-
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="max-w-3xl space-y-6 text-left">
+    <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] font-sans antialiased">
+      {/* Hero Section · Posture: Stage */}
+      <section className="pt-12 pb-20 border-b border-[var(--color-rule)]">
+        <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             
-            {/* Location Badge */}
-            <div className="inline-flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 text-slate-200 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow-inner">
-              <MapPin className="w-4 h-4 text-emerald-400" />
-              <span>📍 Roxas, Oriental Mindoro • Public Employment Service Office (PESO)</span>
-            </div>
-
-            {/* Main Headline */}
-            <div>
-              <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
-                Find Local Opportunities in Roxas with <span className="text-indigo-400">eHANAP</span>
+            {/* Columns 1 to 5: Headline, Lede, Actions */}
+            <div className="lg:col-span-5 space-y-6 text-left">
+              <h1 className="font-display text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.08] text-[var(--color-ink)]">
+                Municipal employment matched by verified credentials.
               </h1>
-              <p className="text-base sm:text-lg text-slate-300 mt-3 font-normal leading-relaxed max-w-2xl">
-                eHANAP connects job seekers and employers in <strong>Roxas, Oriental Mindoro</strong> through smart job matching.
+
+              <p className="text-lg text-[var(--color-muted)] leading-relaxed max-w-[50ch]">
+                Public employment service matching engine for job seekers and employers in Roxas.
               </p>
-            </div>
 
-            {/* Primary Call to Action Buttons */}
-            <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-2">
-              <button
-                onClick={() => onNavigate('jobs')}
-                className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 group"
-              >
-                <Search className="w-4 h-4 group-hover:scale-110 transition-transform" />
-                <span>Find Jobs</span>
-              </button>
-
-              <button
-                onClick={() => onOpenAuth('register', 'employer')}
-                className="w-full sm:w-auto px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2"
-              >
-                <Building2 className="w-4 h-4 text-emerald-400" />
-                <span>I'm Hiring</span>
-              </button>
-
-              <button
-                onClick={() => onOpenAuth('login')}
-                className="w-full sm:w-auto px-5 py-3 bg-white/10 hover:bg-white/15 text-slate-200 hover:text-white border border-white/10 font-semibold text-sm rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                <LogIn className="w-4 h-4 text-indigo-300" />
-                <span>Log In</span>
-              </button>
-
-              <button
-                onClick={() => onOpenAuth('login')}
-                className="w-full sm:w-auto px-5 py-3 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-200 hover:text-white border border-indigo-400/30 font-bold text-sm rounded-xl transition-colors flex items-center justify-center gap-2 shadow-sm"
-                title="Quick Demo Accounts for Employers (Puregold, Tech, Agri, Sales) and PESO Admin"
-              >
-                <Sparkles className="w-4 h-4 text-amber-300" />
-                <span>Demo Accounts</span>
-              </button>
-            </div>
-
-
-            {/* Quick metrics in Roxas */}
-            <div className="grid grid-cols-2 gap-8 pt-4 border-t border-slate-800/80 max-w-sm">
-              <div>
-                <p className="text-xl sm:text-2xl font-black text-white">{activeJobs.length} Vacancies</p>
-                <p className="text-[11px] sm:text-xs text-slate-400">Active in Roxas</p>
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => onNavigate('jobs')}
+                  className="btn btn--primary"
+                >
+                  Find local vacancies
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onOpenAuth('register', 'employer')}
+                  className="btn btn--quiet"
+                >
+                  Employer portal
+                </button>
               </div>
-              <div>
-                <p className="text-xl sm:text-2xl font-black text-emerald-400">{verifiedEmployers.length} Employers</p>
-                <p className="text-[11px] sm:text-xs text-slate-400">PESO Verified</p>
+
+              <div className="pt-4 border-t border-[var(--color-rule)] text-sm text-[var(--color-muted)] flex items-center gap-4">
+                <span>20 Roxas barangays covered</span>
+                <span className="text-[var(--color-rule)]">/</span>
+                <span>Deterministic ranking</span>
+              </div>
+            </div>
+
+            {/* Columns 6 to 12: Live Decision Tree Matching Engine Visual */}
+            <div className="lg:col-span-7">
+              <div
+                data-slot="hero"
+                data-kind="product"
+                className="entry notebook p-6 border border-[var(--color-ink)] shadow-[var(--shadow-lift)]"
+              >
+                {/* Header Row */}
+                <div className="flex items-center justify-between pb-4 border-b border-[var(--color-ink)]">
+                  <div>
+                    <span className="text-xs text-[var(--color-muted)] block">Decision tree matching engine</span>
+                    <span className="font-display text-lg font-semibold text-[var(--color-ink)]">
+                      {activeCandidate.role}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs text-[var(--color-muted)] block">Rank compatibility</span>
+                    <span className="num font-display text-2xl font-semibold text-[var(--color-accent)]">
+                      {activeCandidate.score}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Candidate Selector Switcher */}
+                <div className="py-3 flex items-center gap-2 border-b border-[var(--color-rule)]" role="tablist" aria-label="Sample candidate evaluation">
+                  {CANDIDATES.map((cand, idx) => (
+                    <button
+                      key={cand.name}
+                      type="button"
+                      role="tab"
+                      aria-selected={activeCandidateIndex === idx}
+                      onClick={() => setActiveCandidateIndex(idx)}
+                      className={`btn btn--quiet text-xs py-1 px-3 min-h-[36px] ${
+                        activeCandidateIndex === idx
+                          ? 'bg-[var(--color-ink)] text-[var(--color-paper)] border-[var(--color-ink)]'
+                          : ''
+                      }`}
+                    >
+                      {cand.name} ({cand.barangay})
+                    </button>
+                  ))}
+                </div>
+
+                {/* Candidate Overview */}
+                <div className="py-3 text-xs text-[var(--color-muted)] flex items-center justify-between border-b border-[var(--color-rule)]">
+                  <span>Educational attainment: <strong className="text-[var(--color-ink)] font-medium">{activeCandidate.education}</strong></span>
+                  <span className="text-[var(--color-green)] font-medium">PESO verified profile</span>
+                </div>
+
+                {/* Five Evaluation Nodes Table */}
+                <div className="divide-y divide-[var(--color-rule)] text-sm">
+                  {activeCandidate.nodes.map((node) => (
+                    <div key={node.label} className="py-2.5 flex items-center justify-between">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-medium text-[var(--color-ink)]">{node.label}</span>
+                        <span className="num text-xs text-[var(--color-muted)]">(weight {node.weight})</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-[var(--color-muted)]">{node.status}</span>
+                        <span className="num font-medium text-[var(--color-ink)] w-12 text-right">
+                          {node.score}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Card Footnote */}
+                <div className="mt-4 pt-3 border-t border-[var(--color-ink)] flex items-center justify-between text-xs text-[var(--color-muted)]">
+                  <span>Evaluation complexity: O(log n)</span>
+                  <span>Roxas PESO thesis implementation</span>
+                </div>
               </div>
             </div>
 
           </div>
         </div>
       </section>
-      {/* SYSTEM PURPOSE & 3 USER ROLES SECTION */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="about">
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <span className="text-xs font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
-            PESO Roxas Local Employment Marketplace
-          </span>
-          <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight mt-3">
-            Connecting Job Seekers, Employers & PESO Roxas
-          </h2>
-          <p className="text-sm text-slate-600 mt-2">
-            The platform provides three purpose-built experiences dedicated strictly to the local workforce of Roxas, Oriental Mindoro.
-          </p>
-        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          
-          {/* Card 1: Job Seekers */}
-          <div className="bg-white rounded-3xl p-7 border border-slate-200 hover:border-emerald-500 hover:shadow-xl transition-all flex flex-col justify-between group relative">
-            <div className="space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center font-bold">
-                <Users className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Role 1: Job Seeker</span>
-                <h3 className="text-lg font-bold text-slate-900 mt-1">
-                  “Help me find a job.”
-                </h3>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Find available jobs in Roxas that match your education, skills, and experience with AI-powered resume extraction and transparent matching.
+      {/* Narrative Workflow Stage 1.0 */}
+      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
+        <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div className="lg:col-span-5 space-y-4">
+              <h2 className="font-display text-2xl sm:text-4xl font-semibold tracking-tight text-[var(--color-ink)]">
+                1.0 Credentials intake and verification
+              </h2>
+              <p className="text-[var(--color-muted)] leading-relaxed">
+                Dual credential ingestion accommodates diverse backgrounds across Roxas. Resumes are parsed for university graduates, and structured bio-data registers vocational seekers and youth.
               </p>
 
-              <ul className="space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Search available jobs in Roxas</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Resume upload & AI validation</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                  <span>Track applications & interviews</span>
-                </li>
-              </ul>
+              <figure className="mt-6 border border-[var(--color-rule)] rounded-[var(--radius-card)] overflow-hidden bg-[var(--color-paper-2)]">
+                <div data-slot="municipal-hall" data-alt="Municipality of Roxas Municipal Hall">
+                  <img
+                    src="/assets/images/Municipal.jpeg"
+                    alt="Municipality of Roxas Municipal Hall, Oriental Mindoro"
+                    className="w-full h-48 object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <figcaption className="p-3 text-xs text-[var(--color-muted)] border-t border-[var(--color-rule)] flex items-center justify-between">
+                  <span>Roxas Municipal Hall</span>
+                  <span>PESO Operations Desk</span>
+                </figcaption>
+              </figure>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => onOpenAuth('register', 'job_seeker')}
-                className="w-full py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Find Jobs in Roxas</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+            <div className="lg:col-span-7">
+              <div className="border border-[var(--color-rule)] bg-[var(--color-paper-2)] p-6 rounded-[var(--radius-card)] space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--color-rule)]">
+                  <span className="font-medium text-sm text-[var(--color-ink)]">Standardized municipal intake format</span>
+                  <span className="text-xs text-[var(--color-green)] font-medium">BPLO & PESO compliant</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div className="p-4 border border-[var(--color-rule)] rounded-[var(--radius-pill)] bg-[var(--color-paper)]">
+                    <span className="font-medium block text-[var(--color-ink)]">Formal resume ingestion</span>
+                    <span className="text-xs text-[var(--color-muted)] mt-1 block">
+                      PDF and DOCX extraction parses degree alignment, verified years, and vocational skill keywords.
+                    </span>
+                  </div>
+                  <div className="p-4 border border-[var(--color-rule)] rounded-[var(--radius-pill)] bg-[var(--color-paper)]">
+                    <span className="font-medium block text-[var(--color-ink)]">Structured bio-data intake</span>
+                    <span className="text-xs text-[var(--color-muted)] mt-1 block">
+                      Standard form captures high-school attainment, TVET trade skills, and barangay residence.
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Card 2: Employers */}
-          <div className="bg-white rounded-3xl p-7 border border-slate-200 hover:border-blue-500 hover:shadow-xl transition-all flex flex-col justify-between group relative">
-            <div className="space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center font-bold">
-                <Building2 className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Role 2: Employer</span>
-                <h3 className="text-lg font-bold text-slate-900 mt-1">
-                  “Help me find qualified workers.”
-                </h3>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Post job vacancies, receive local applicants, evaluate qualifications with AI ranking, schedule interviews, and make hiring decisions.
-              </p>
-
-              <ul className="space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>Post Roxas job vacancies</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>AI candidate ranking & breakdown</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-                  <span>Schedule interviews & record hires</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => onOpenAuth('register', 'employer')}
-                className="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>Post a Job in Roxas</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3: PESO Roxas Admin */}
-          <div className="bg-white rounded-3xl p-7 border border-slate-200 hover:border-amber-500 hover:shadow-xl transition-all flex flex-col justify-between group relative">
-            <div className="space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center font-bold">
-                <ShieldCheck className="w-6 h-6" />
-              </div>
-              <div>
-                <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Role 3: PESO Roxas Admin</span>
-                <h3 className="text-lg font-bold text-slate-900 mt-1">
-                  “Manage & monitor employment in Roxas.”
-                </h3>
-              </div>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Manage, verify, monitor, and analyze local employment activity. Verify employers, review postings, track placements, and generate reports.
-              </p>
-
-              <ul className="space-y-2 text-xs text-slate-600 pt-2 border-t border-slate-100">
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Employer verification & document review</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Job post & application monitoring</span>
-                </li>
-                <li className="flex items-center gap-2">
-                  <Check className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                  <span>Roxas employment analytics & reports</span>
-                </li>
-              </ul>
-            </div>
-
-            <div className="mt-6 pt-4 border-t border-slate-100">
-              <button
-                onClick={() => onOpenAuth('login')}
-                className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <span>PESO Admin Access</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          </div>
-
         </div>
       </section>
 
-      {/* HOW IT WORKS SECTION */}
-      <section className="py-16 bg-slate-900 text-white px-4 sm:px-6 lg:px-8" id="how-it-works">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <span className="text-xs font-bold uppercase tracking-wider text-indigo-400 bg-indigo-950/80 px-3 py-1 rounded-full border border-indigo-800">
-              Clear Workflow
-            </span>
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-3">
-              How eHANAP Works in Roxas
+      {/* Narrative Workflow Stage 2.0 */}
+      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper-2)]">
+        <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div className="lg:col-span-5 space-y-4">
+              <h2 className="font-display text-2xl sm:text-4xl font-semibold tracking-tight text-[var(--color-ink)]">
+                2.0 Deterministic decision tree scoring
+              </h2>
+              <p className="text-[var(--color-muted)] leading-relaxed">
+                Applicants are evaluated across five objective nodes. Scores calculate deterministically to produce transparent matching rankings across all 20 Roxas barangays.
+              </p>
+            </div>
+
+            <div className="lg:col-span-7">
+              <div className="border border-[var(--color-rule)] bg-[var(--color-paper)] p-6 rounded-[var(--radius-card)]">
+                <div className="pb-3 border-b border-[var(--color-rule)] mb-3">
+                  <span className="font-medium text-sm text-[var(--color-ink)]">Five-node scoring distribution</span>
+                </div>
+                <div className="divide-y divide-[var(--color-rule)] text-sm">
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span>Node 1: Educational attainment level</span>
+                    <span className="num font-medium text-[var(--color-ink)]">25% weight</span>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span>Node 2: Degree and course alignment</span>
+                    <span className="num font-medium text-[var(--color-ink)]">20% weight</span>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span>Node 3: Six-domain technical skills overlap</span>
+                    <span className="num font-medium text-[var(--color-ink)]">30% weight</span>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span>Node 4: Verifiable experience delta</span>
+                    <span className="num font-medium text-[var(--color-ink)]">15% weight</span>
+                  </div>
+                  <div className="py-2.5 flex items-center justify-between">
+                    <span>Node 5: Government and TESDA certifications</span>
+                    <span className="num font-medium text-[var(--color-ink)]">10% weight</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Narrative Workflow Stage 3.0 */}
+      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
+        <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            <div className="lg:col-span-5 space-y-4">
+              <h2 className="font-display text-2xl sm:text-4xl font-semibold tracking-tight text-[var(--color-ink)]">
+                3.0 PESO referral and recruitment facilitation
+              </h2>
+              <p className="text-[var(--color-muted)] leading-relaxed">
+                Vacancies publish only after PESO compliance approval. Qualified candidates receive automated match alerts and official municipal referral slips for direct interview scheduling.
+              </p>
+            </div>
+
+            <div className="lg:col-span-7">
+              <div className="border border-[var(--color-rule)] bg-[var(--color-paper-2)] p-6 rounded-[var(--radius-card)] space-y-3">
+                <div className="flex items-center justify-between pb-3 border-b border-[var(--color-rule)]">
+                  <span className="font-medium text-sm text-[var(--color-ink)]">Municipal placement pipeline</span>
+                  <span className="text-xs text-[var(--color-accent)] font-medium">Official PESO authorization</span>
+                </div>
+                <div className="space-y-3 text-sm">
+                  <div className="p-3 border border-[var(--color-rule)] rounded-[var(--radius-pill)] bg-[var(--color-paper)] flex items-start gap-3">
+                    <span className="num font-semibold text-[var(--color-ink)]">A.</span>
+                    <div>
+                      <span className="font-medium block text-[var(--color-ink)]">Employer compliance audit</span>
+                      <span className="text-xs text-[var(--color-muted)]">Verification of Mayor’s Permit, DTI/SEC registrations, and fire safety clearances.</span>
+                    </div>
+                  </div>
+                  <div className="p-3 border border-[var(--color-rule)] rounded-[var(--radius-pill)] bg-[var(--color-paper)] flex items-start gap-3">
+                    <span className="num font-semibold text-[var(--color-ink)]">B.</span>
+                    <div>
+                      <span className="font-medium block text-[var(--color-ink)]">Automated candidate ranking roster</span>
+                      <span className="text-xs text-[var(--color-muted)]">Live sortable candidate table with transparent match reasoning for employers.</span>
+                    </div>
+                  </div>
+                  <div className="p-3 border border-[var(--color-rule)] rounded-[var(--radius-pill)] bg-[var(--color-paper)] flex items-start gap-3">
+                    <span className="num font-semibold text-[var(--color-ink)]">C.</span>
+                    <div>
+                      <span className="font-medium block text-[var(--color-ink)]">Local Recruitment Activity coordination</span>
+                      <span className="text-xs text-[var(--color-muted)]">Facilitation of regional mass-hiring activities for partners like Puregold Calapan.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Municipal Inquiries (FAQ) */}
+      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper-2)]">
+        <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
+          <div className="max-w-2xl mb-12">
+            <h2 className="font-display text-2xl sm:text-4xl font-semibold tracking-tight text-[var(--color-ink)]">
+              Municipal employment inquiries
             </h2>
-            <p className="text-sm text-slate-400 mt-2">
-              From resume validation to AI qualification and municipal placement monitoring.
+            <p className="text-[var(--color-muted)] mt-2">
+              Common questions on seeker registration, employer accreditation, and candidate matching in Roxas.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700/80 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-900/80 text-indigo-300 font-black text-sm flex items-center justify-center border border-indigo-700">
-                1
+          <div className="border-t border-[var(--color-ink)] divide-y divide-[var(--color-rule)]">
+            {FAQS.map((faq) => (
+              <div key={faq.question} className="py-6 grid grid-cols-1 md:grid-cols-12 gap-4">
+                <div className="md:col-span-5">
+                  <h3 className="font-medium text-base text-[var(--color-ink)] leading-snug">
+                    {faq.question}
+                  </h3>
+                </div>
+                <div className="md:col-span-7">
+                  <p className="text-sm text-[var(--color-muted)] leading-relaxed">
+                    {faq.answer}
+                  </p>
+                </div>
               </div>
-              <h4 className="text-sm font-bold text-white">Upload & Validate Resume</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Job seekers upload PDF/DOCX resumes. The engine extracts education, degrees, skills, and experience with zero manual friction.
-              </p>
-            </div>
-
-            <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700/80 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-900/80 text-indigo-300 font-black text-sm flex items-center justify-center border border-indigo-700">
-                2
-              </div>
-              <h4 className="text-sm font-bold text-white">AI Job Matching</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Evaluates candidate profiles against Roxas employer requirements with explainable matching percentages and checklists.
-              </p>
-            </div>
-
-            <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700/80 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-900/80 text-indigo-300 font-black text-sm flex items-center justify-center border border-indigo-700">
-                3
-              </div>
-              <h4 className="text-sm font-bold text-white">Candidate Ranking & Interviews</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Employers view top-ranked qualified candidates, review breakdowns, shortlist applicants, and schedule interviews.
-              </p>
-            </div>
-
-            <div className="bg-slate-800/80 p-6 rounded-2xl border border-slate-700/80 space-y-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-900/80 text-indigo-300 font-black text-sm flex items-center justify-center border border-indigo-700">
-                4
-              </div>
-              <h4 className="text-sm font-bold text-white">PESO Monitoring & Reports</h4>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                PESO Roxas verifies employers, oversees hiring integrity, tracks local placements, and exports official reports.
-              </p>
-            </div>
-
+            ))}
           </div>
         </div>
       </section>
 
-      {/* CONTACT & LOCAL PESO OFFICE SECTION */}
-      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto" id="contact">
-        <div className="bg-gradient-to-br from-indigo-900 to-slate-900 rounded-3xl p-8 sm:p-12 text-white border border-indigo-800 shadow-xl">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-            
-            <div className="md:col-span-7 space-y-4">
-              <span className="text-xs font-bold uppercase tracking-wider text-emerald-400 bg-emerald-950 px-3 py-1 rounded-full border border-emerald-800">
-                Public Employment Service Office
-              </span>
-              <h3 className="text-2xl sm:text-3xl font-black text-white">
-                Visit the PESO Roxas Office
-              </h3>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Need on-site assistance with resume encoding, employer accreditation, or job placement? Visit the PESO Desk at the Roxas Municipal Hall.
-              </p>
+      {/* Municipal Facilitation Tiers (Table) */}
+      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
+        <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
+          <div className="max-w-2xl mb-12">
+            <h2 className="font-display text-2xl sm:text-4xl font-semibold tracking-tight text-[var(--color-ink)]">
+              Accreditation and service criteria
+            </h2>
+            <p className="text-[var(--color-muted)] mt-2">
+              Statutory requirements and system capabilities across each municipal user tier.
+            </p>
+          </div>
 
-              <div className="space-y-2 pt-2 text-xs text-slate-200">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>PESO Desk, Municipal Hall Compound, Roxas, Oriental Mindoro</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>(043) 289-XXXX • 0917-PESO-ROXAS</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>peso.roxas@ormindoro.gov.ph</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="md:col-span-5 bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/15 text-center space-y-4">
-              <h4 className="text-base font-bold text-white">Get Started Today</h4>
-              <p className="text-xs text-slate-300">
-                Create your account in less than 2 minutes to access local employment opportunities in Roxas.
-              </p>
-              <div className="space-y-2">
-                <button
-                  onClick={() => onOpenAuth('register', 'job_seeker')}
-                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
-                >
-                  Register as Job Seeker
-                </button>
-                <button
-                  onClick={() => onOpenAuth('register', 'employer')}
-                  className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors"
-                >
-                  Register as Employer
-                </button>
-              </div>
-            </div>
-
+          <div className="overflow-x-auto border-t border-[var(--color-ink)]">
+            <table className="w-full text-left text-sm border-collapse">
+              <thead>
+                <tr className="border-b border-[var(--color-rule)] text-[var(--color-muted)]">
+                  <th className="py-3 pr-4 font-medium">Participant role</th>
+                  <th className="py-3 px-4 font-medium">Municipal scope</th>
+                  <th className="py-3 px-4 font-medium">Required proof</th>
+                  <th className="py-3 pl-4 font-medium">System capability</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--color-rule)]">
+                {TIERS.map((tier) => (
+                  <tr key={tier.role} className="hover:bg-[var(--color-paper-2)]">
+                    <td className="py-4 pr-4 font-medium text-[var(--color-ink)]">{tier.role}</td>
+                    <td className="py-4 px-4 text-[var(--color-muted)]">{tier.scope}</td>
+                    <td className="py-4 px-4 text-[var(--color-muted)]">{tier.proof}</td>
+                    <td className="py-4 pl-4 text-[var(--color-muted)]">{tier.service}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
-
     </div>
   );
 };

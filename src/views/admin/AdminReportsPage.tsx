@@ -190,7 +190,7 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
 
           <button
             onClick={() => setIsPrintModalOpen(true)}
-            className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2"
+            className="flex-1 sm:flex-initial justify-center px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
             <Printer className="w-4 h-4" />
             <span>Print Official PDF</span>
@@ -202,25 +202,25 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Total Applications</p>
-          <p className="text-2xl font-black text-slate-900">{totalApplications}</p>
+          <p className="text-2xl font-black text-slate-900 tabular-nums">{totalApplications}</p>
           <p className="text-[11px] text-emerald-600 font-bold mt-1">▲ Real-time pipeline</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Hired Candidates</p>
-          <p className="text-2xl font-black text-emerald-600">{hiredCount}</p>
+          <p className="text-2xl font-black text-emerald-600 tabular-nums">{hiredCount}</p>
           <p className="text-[11px] text-slate-400 mt-1">Confirmed placements</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Verified Employers</p>
-          <p className="text-2xl font-black text-indigo-600">{verifiedEmployers.length}</p>
+          <p className="text-2xl font-black text-indigo-600 tabular-nums">{verifiedEmployers.length}</p>
           <p className="text-[11px] text-indigo-600 font-bold mt-1">Accredited partners</p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Municipal Coverage</p>
-          <p className="text-2xl font-black text-slate-900">15 / 15</p>
+          <p className="text-2xl font-black text-slate-900 tabular-nums">15 / 15</p>
           <p className="text-[11px] text-slate-400 mt-1">100% Provincial Reach</p>
         </div>
       </div>

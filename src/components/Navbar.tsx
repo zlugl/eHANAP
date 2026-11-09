@@ -37,7 +37,8 @@ import {
   Play,
   MessageCircle,
   Key,
-  Lock
+  Lock,
+  MapPin
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -173,117 +174,110 @@ export const Navbar: React.FC<NavbarProps> = ({
   })();
 
   return (
-    <header className="sticky top-0 z-40 bg-white border-b border-slate-200/80 shadow-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-40 bg-[var(--color-paper-2)] border-b border-[var(--color-rule)]">
+      <div className="max-w-[var(--container)] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           
           {/* Logo & LGU Oriental Mindoro Seal */}
           <div className="flex items-center gap-3">
             <button 
+              type="button"
               onClick={() => handleNav(
                 currentUser?.role === 'job_seeker' ? (isSeekerIncomplete ? 'seeker-profile-setup' : 'seeker-dashboard') :
                 currentUser?.role === 'employer' ? (isEmployerIncomplete ? 'employer-profile-setup' : 'employer-dashboard') :
                 currentUser?.role === 'admin' ? 'admin-dashboard' : 'landing'
               )}
-              className="flex items-center gap-2.5 group text-left focus:outline-none"
+              className="flex items-center gap-2.5 group text-left focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] rounded-md whitespace-nowrap"
             >
-              <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold shadow-xs group-hover:scale-105 transition-transform">
-                <FileText className="w-5 h-5" />
+              <div className="w-8 h-8 rounded-md bg-[var(--color-ink)] flex items-center justify-center text-[var(--color-paper)] font-bold">
+                <FileText className="w-4 h-4" aria-hidden="true" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-lg font-black tracking-tight text-slate-900 font-sans">
-                    e<span className="text-indigo-600">HANAP</span>
+                  <span className="font-display text-xl font-semibold tracking-tight text-[var(--color-ink)]">
+                    eHANAP
                   </span>
-                  <span className="text-[10px] uppercase font-bold bg-indigo-50 text-indigo-700 px-1.5 py-0.5 rounded border border-indigo-200/60">
+                  <span className="text-[11px] font-medium bg-[var(--color-paper-3)] text-[var(--color-ink)] px-2 py-0.5 rounded-full border border-[var(--color-rule)]">
                     PESO Roxas
                   </span>
                   {isFirestoreConnected && (
                     <span 
-                      className="hidden sm:inline-flex items-center gap-1 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-full border border-emerald-200"
+                      className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium text-[var(--color-green)] bg-[var(--color-green-soft)] px-2 py-0.5 rounded-full border border-[var(--color-green)]"
                       title="Real-time Firebase Firestore database active"
                     >
-                      <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-amber-500 animate-spin' : 'bg-emerald-500 animate-pulse'}`}></span>
+                      <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-[var(--color-accent)] motion-safe:animate-spin' : 'bg-[var(--color-green)] motion-safe:animate-pulse'}`}></span>
                       <span>Firestore</span>
                     </span>
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 font-semibold tracking-wide">
-                  📍 Roxas, Oriental Mindoro
-                </p>
+                <div className="flex items-center gap-1 text-[11px] text-[var(--color-muted)] font-normal">
+                  <MapPin className="w-3 h-3 text-[var(--color-muted)]" aria-hidden="true" />
+                  <span>Roxas, Oriental Mindoro</span>
+                </div>
               </div>
             </button>
           </div>
 
           {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-stretch h-16 gap-1 sm:gap-2 text-xs font-semibold">
+          <nav className="hidden lg:flex items-stretch h-16 gap-1 sm:gap-2 text-xs" aria-label="Main navigation">
             
             {/* GUEST (NOT LOGGED IN) NAVIGATION */}
             {!currentUser && (
               <>
                 <button
+                  type="button"
                   onClick={() => handleNav('landing')}
-                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'landing'
-                      ? 'border-indigo-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Home"
                 >
-                  <Home className={`w-5 h-5 mb-0.5 ${currentView === 'landing' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'landing' ? 'text-indigo-600' : 'group-hover:text-slate-900'}>Home</span>
+                  <Home className={`w-4 h-4 mb-0.5 ${currentView === 'landing' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Home</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('jobs')}
-                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'jobs'
-                      ? 'border-indigo-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Find Jobs"
                 >
-                  <Search className={`w-5 h-5 mb-0.5 ${currentView === 'jobs' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'jobs' ? 'text-indigo-600' : 'group-hover:text-slate-900'}>Find Jobs</span>
+                  <Search className={`w-4 h-4 mb-0.5 ${currentView === 'jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Vacancies</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('employers')}
-                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'employers'
-                      ? 'border-indigo-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Employers"
                 >
-                  <Building2 className={`w-5 h-5 mb-0.5 ${currentView === 'employers' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'employers' ? 'text-indigo-600' : 'group-hover:text-slate-900'}>Employers</span>
+                  <Building2 className={`w-4 h-4 mb-0.5 ${currentView === 'employers' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Employers</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => {
                     handleNav('landing');
                     setTimeout(() => {
                       document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' });
                     }, 100);
                   }}
-                  className="h-full flex flex-col items-center justify-center px-3 border-b-2 border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors text-xs font-medium cursor-pointer group"
+                  className="h-full flex flex-col items-center justify-center px-3 border-b-2 border-transparent text-[var(--color-muted)] hover:text-[var(--color-ink)] hover:border-[var(--color-rule)] transition-colors text-xs font-medium cursor-pointer group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85"
                 >
-                  <HelpCircle className="w-5 h-5 mb-0.5 text-slate-500 group-hover:text-slate-800" />
-                  <span>How It Works</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    handleNav('landing');
-                    setTimeout(() => {
-                      document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
-                    }, 100);
-                  }}
-                  className="h-full flex flex-col items-center justify-center px-3 border-b-2 border-transparent text-slate-600 hover:text-slate-900 hover:border-slate-300 transition-colors text-xs font-medium cursor-pointer group"
-                >
-                  <Briefcase className="w-5 h-5 mb-0.5 text-slate-500 group-hover:text-slate-800" />
-                  <span>About eHANAP</span>
+                  <HelpCircle className="w-4 h-4 mb-0.5 text-[var(--color-muted)] group-hover:text-[var(--color-ink)]" aria-hidden="true" />
+                  <span>How it works</span>
                 </button>
               </>
             )}
@@ -292,148 +286,159 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser?.role === 'job_seeker' && !isSeekerIncomplete && (
               <>
                 <button
+                  type="button"
                   onClick={() => handleNav('seeker-dashboard')}
-                      className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-all cursor-pointer text-xs group ${
-                        currentView === 'seeker-dashboard'
-                          ? 'border-indigo-600 font-bold'
-                          : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
-                      }`}
-                      title="Home"
-                    >
-                      <Home className={`w-5 h-5 mb-0.5 ${currentView === 'seeker-dashboard' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                      <span className={currentView === 'seeker-dashboard' ? 'text-indigo-600' : 'group-hover:text-slate-900'}>Home</span>
-                    </button>
+                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
+                    currentView === 'seeker-dashboard'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
+                  }`}
+                  title="Home"
+                >
+                  <Home className={`w-4 h-4 mb-0.5 ${currentView === 'seeker-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Home</span>
+                </button>
 
-                    <button
-                      onClick={() => handleNav('jobs')}
-                      className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-all cursor-pointer text-xs group ${
-                        currentView === 'jobs'
-                          ? 'border-indigo-600 font-bold'
-                          : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
-                      }`}
-                      title="Search Jobs"
-                    >
-                      <Search className={`w-5 h-5 mb-0.5 ${currentView === 'jobs' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                      <span className={currentView === 'jobs' ? 'text-indigo-600' : 'group-hover:text-slate-900'}>Search Jobs</span>
-                    </button>
+                <button
+                  type="button"
+                  onClick={() => handleNav('jobs')}
+                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
+                    currentView === 'jobs'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
+                  }`}
+                  title="Search Jobs"
+                >
+                  <Search className={`w-4 h-4 mb-0.5 ${currentView === 'jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Vacancies</span>
+                </button>
 
-                    <button
-                      onClick={() => handleNav('seeker-applications')}
-                      className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-all cursor-pointer text-xs group ${
-                        currentView === 'seeker-applications'
-                          ? 'border-indigo-600 font-bold'
-                          : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
-                      }`}
-                      title="Applications"
-                    >
-                      <FileCheck2 className={`w-5 h-5 mb-0.5 ${currentView === 'seeker-applications' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                      <span className={currentView === 'seeker-applications' ? 'text-indigo-600' : 'group-hover:text-slate-900'}>Applications</span>
-                    </button>
+                <button
+                  type="button"
+                  onClick={() => handleNav('seeker-applications')}
+                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
+                    currentView === 'seeker-applications'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
+                  }`}
+                  title="Applications"
+                >
+                  <FileCheck2 className={`w-4 h-4 mb-0.5 ${currentView === 'seeker-applications' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Applications</span>
+                </button>
 
-                    <button
-                      onClick={() => handleNav('seeker-interviews')}
-                      className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-all cursor-pointer text-xs group ${
-                        currentView === 'seeker-interviews'
-                          ? 'border-indigo-600 font-bold'
-                          : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
-                      }`}
-                      title="Interviews"
-                    >
-                      <Calendar className={`w-5 h-5 mb-0.5 ${currentView === 'seeker-interviews' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                      <span className={currentView === 'seeker-interviews' ? 'text-indigo-600' : 'group-hover:text-slate-900'}>Interviews</span>
-                    </button>
-                  </>
-                )}
+                <button
+                  type="button"
+                  onClick={() => handleNav('seeker-interviews')}
+                  className={`h-full flex flex-col items-center justify-center px-3.5 sm:px-4 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
+                    currentView === 'seeker-interviews'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
+                  }`}
+                  title="Interviews"
+                >
+                  <Calendar className={`w-4 h-4 mb-0.5 ${currentView === 'seeker-interviews' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Interviews</span>
+                </button>
+              </>
+            )}
 
             {/* EMPLOYER NAVIGATION */}
             {currentUser?.role === 'employer' && !isEmployerIncomplete && (
               <>
                 <button
+                  type="button"
                   onClick={() => handleNav('employer-dashboard')}
-                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'employer-dashboard'
-                      ? 'border-blue-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Employer Home"
                 >
-                  <Home className={`w-5 h-5 mb-0.5 ${currentView === 'employer-dashboard' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'employer-dashboard' ? 'text-blue-700' : 'group-hover:text-slate-900'}>Home</span>
+                  <Home className={`w-4 h-4 mb-0.5 ${currentView === 'employer-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Home</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('employer-jobs')}
-                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'employer-jobs'
-                      ? 'border-blue-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Job Vacancies"
                 >
-                  <Briefcase className={`w-5 h-5 mb-0.5 ${currentView === 'employer-jobs' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'employer-jobs' ? 'text-blue-700' : 'group-hover:text-slate-900'}>Vacancies</span>
+                  <Briefcase className={`w-4 h-4 mb-0.5 ${currentView === 'employer-jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Vacancies</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('employer-applicants')}
-                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'employer-applicants'
-                      ? 'border-blue-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Candidates & Ranking"
                 >
-                  <Users className={`w-5 h-5 mb-0.5 ${currentView === 'employer-applicants' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'employer-applicants' ? 'text-blue-700' : 'group-hover:text-slate-900'}>Candidates</span>
+                  <Users className={`w-4 h-4 mb-0.5 ${currentView === 'employer-applicants' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Candidates</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('employer-interviews')}
-                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'employer-interviews'
-                      ? 'border-blue-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Interview Schedule"
                 >
-                  <Calendar className={`w-5 h-5 mb-0.5 ${currentView === 'employer-interviews' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'employer-interviews' ? 'text-blue-700' : 'group-hover:text-slate-900'}>Interviews</span>
+                  <Calendar className={`w-4 h-4 mb-0.5 ${currentView === 'employer-interviews' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Interviews</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('employer-analytics')}
-                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'employer-analytics'
-                      ? 'border-blue-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Recruitment Analytics"
                 >
-                  <BarChart3 className={`w-5 h-5 mb-0.5 ${currentView === 'employer-analytics' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'employer-analytics' ? 'text-blue-700' : 'group-hover:text-slate-900'}>Analytics</span>
+                  <BarChart3 className={`w-4 h-4 mb-0.5 ${currentView === 'employer-analytics' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Analytics</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('employer-profile')}
-                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'employer-profile'
-                      ? 'border-blue-600 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Company Profile"
                 >
-                  <Building2 className={`w-5 h-5 mb-0.5 ${currentView === 'employer-profile' ? 'text-slate-900' : 'text-slate-500 group-hover:text-slate-800'}`} />
-                  <span className={currentView === 'employer-profile' ? 'text-blue-700' : 'group-hover:text-slate-900'}>Profile</span>
+                  <Building2 className={`w-4 h-4 mb-0.5 ${currentView === 'employer-profile' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Profile</span>
                 </button>
 
                 {onOpenPostJobModal && (
                   <div className="flex items-center pl-1.5">
                     <button
+                      type="button"
                       onClick={onOpenPostJobModal}
-                      className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold transition-colors flex items-center gap-1.5 shadow-xs text-xs cursor-pointer"
+                      className="btn btn--primary text-xs min-h-[36px] py-1.5 px-3"
                     >
-                      <PlusCircle className="w-3.5 h-3.5" />
-                      <span>Post Job</span>
+                      <PlusCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>Post vacancy</span>
                     </button>
                   </div>
                 )}
@@ -444,81 +449,87 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser?.role === 'admin' && (
               <>
                 <button
+                  type="button"
                   onClick={() => handleNav('admin-dashboard')}
-                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'admin-dashboard'
-                      ? 'border-amber-500 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Admin Home"
                 >
-                  <Home className={`w-5 h-5 mb-0.5 ${currentView === 'admin-dashboard' ? 'text-amber-800' : 'text-slate-500 group-hover:text-amber-700'}`} />
-                  <span className={currentView === 'admin-dashboard' ? 'text-amber-900' : 'group-hover:text-slate-900'}>Home</span>
+                  <Home className={`w-4 h-4 mb-0.5 ${currentView === 'admin-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Home</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('admin-verifications')}
-                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'admin-verifications'
-                      ? 'border-amber-500 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Verify Employers"
                 >
-                  <ShieldCheck className={`w-5 h-5 mb-0.5 ${currentView === 'admin-verifications' ? 'text-amber-800' : 'text-slate-500 group-hover:text-amber-700'}`} />
-                  <span className={currentView === 'admin-verifications' ? 'text-amber-900' : 'group-hover:text-slate-900'}>Verify</span>
+                  <ShieldCheck className={`w-4 h-4 mb-0.5 ${currentView === 'admin-verifications' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Verify</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('admin-jobs')}
-                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'admin-jobs'
-                      ? 'border-amber-500 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Monitor Jobs"
                 >
-                  <Briefcase className={`w-5 h-5 mb-0.5 ${currentView === 'admin-jobs' ? 'text-amber-800' : 'text-slate-500 group-hover:text-amber-700'}`} />
-                  <span className={currentView === 'admin-jobs' ? 'text-amber-900' : 'group-hover:text-slate-900'}>Jobs</span>
+                  <Briefcase className={`w-4 h-4 mb-0.5 ${currentView === 'admin-jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Vacancies</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('admin-users')}
-                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'admin-users'
-                      ? 'border-amber-500 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="User Registry"
                 >
-                  <Users className={`w-5 h-5 mb-0.5 ${currentView === 'admin-users' ? 'text-amber-800' : 'text-slate-500 group-hover:text-amber-700'}`} />
-                  <span className={currentView === 'admin-users' ? 'text-amber-900' : 'group-hover:text-slate-900'}>Registry</span>
+                  <Users className={`w-4 h-4 mb-0.5 ${currentView === 'admin-users' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Registry</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('admin-reports')}
-                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'admin-reports'
-                      ? 'border-amber-500 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Labor Reports"
                 >
-                  <FileSpreadsheet className={`w-5 h-5 mb-0.5 ${currentView === 'admin-reports' ? 'text-amber-800' : 'text-slate-500 group-hover:text-amber-700'}`} />
-                  <span className={currentView === 'admin-reports' ? 'text-amber-900' : 'group-hover:text-slate-900'}>Reports</span>
+                  <FileSpreadsheet className={`w-4 h-4 mb-0.5 ${currentView === 'admin-reports' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Reports</span>
                 </button>
 
                 <button
+                  type="button"
                   onClick={() => handleNav('admin-audit-logs')}
-                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-all cursor-pointer text-xs group ${
+                  className={`h-full flex flex-col items-center justify-center px-3 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
                     currentView === 'admin-audit-logs'
-                      ? 'border-amber-500 font-bold'
-                      : 'border-transparent text-slate-600 hover:border-slate-300 font-medium'
+                      ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
+                      : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
                   }`}
                   title="Audit Logs"
                 >
-                  <Clock className={`w-5 h-5 mb-0.5 ${currentView === 'admin-audit-logs' ? 'text-amber-800' : 'text-slate-500 group-hover:text-amber-700'}`} />
-                  <span className={currentView === 'admin-audit-logs' ? 'text-amber-900' : 'group-hover:text-slate-900'}>Logs</span>
+                  <Clock className={`w-4 h-4 mb-0.5 ${currentView === 'admin-audit-logs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'}`} aria-hidden="true" />
+                  <span>Logs</span>
                 </button>
               </>
             )}
@@ -530,12 +541,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Job Alerts Quick Access Button (Seekers) */}
             {currentUser?.role === 'job_seeker' && onOpenSubscriptions && (
               <button
+                type="button"
                 onClick={onOpenSubscriptions}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-xl border border-indigo-200/80 transition-colors shadow-2xs"
-                title="Manage Job Alert Subscriptions"
+                className="btn btn--quiet text-xs min-h-[36px] py-1.5 px-3"
+                title="Manage job alert subscriptions"
               >
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
-                <span className="hidden sm:inline">Job Alerts</span>
+                <Sparkles className="w-3.5 h-3.5 text-[var(--color-accent)]" aria-hidden="true" />
+                <span className="hidden sm:inline">Job alerts</span>
               </button>
             )}
 
@@ -543,13 +555,14 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser && (
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setIsNotifOpen(!isNotifOpen)}
-                  className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
+                  className="relative p-2 rounded-md text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                   aria-label="Notifications"
                 >
-                  <Bell className="w-5 h-5" />
+                  <Bell className="w-5 h-5" aria-hidden="true" />
                   {unreadNotifs > 0 && (
-                    <span className="absolute top-1 right-1 w-4 h-4 bg-emerald-600 text-white font-bold text-[10px] rounded-full flex items-center justify-center animate-pulse">
+                    <span className="num absolute top-1 right-1 w-4 h-4 bg-[var(--color-accent)] text-[var(--color-accent-ink)] font-medium text-[10px] rounded-full flex items-center justify-center">
                       {unreadNotifs}
                     </span>
                   )}
@@ -569,30 +582,37 @@ export const Navbar: React.FC<NavbarProps> = ({
             {currentUser ? (
               <div className="relative">
                 <button
+                  type="button"
                   onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)}
-                  className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-slate-100 transition-colors border border-slate-200"
+                  className="flex items-center gap-2.5 p-1 rounded-md hover:bg-[var(--color-paper-3)] transition-colors border border-[var(--color-rule)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                 >
-                  <img
-                    src={currentUser.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                    alt={userDisplayName || currentUser.name}
-                    className="w-8 h-8 rounded-lg object-cover ring-2 ring-indigo-500/30"
-                  />
-                  <div className="hidden sm:block text-left">
-                    <p className="text-xs font-semibold text-slate-800 line-clamp-1">{userDisplayName}</p>
-                    <p className="text-[10px] text-indigo-600 capitalize font-medium">
+                  {currentUser.avatar ? (
+                    <img
+                      src={currentUser.avatar}
+                      alt={userDisplayName || currentUser.name}
+                      className="w-7 h-7 rounded-sm object-cover"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-sm bg-[var(--color-paper-3)] border border-[var(--color-rule)] flex items-center justify-center text-[var(--color-muted)] font-medium text-xs">
+                      <User className="w-4 h-4" aria-hidden="true" />
+                    </div>
+                  )}
+                  <div className="hidden sm:block text-left pr-1">
+                    <p className="text-xs font-medium text-[var(--color-ink)] line-clamp-1">{userDisplayName}</p>
+                    <p className="text-[10px] text-[var(--color-muted)] capitalize">
                       {currentUser.role === 'admin' ? 'PESO/LGU Admin' : (currentUser?.role || '').replace(/_/g, ' ')}
                     </p>
                   </div>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                  <ChevronDown className="w-3.5 h-3.5 text-[var(--color-muted)]" aria-hidden="true" />
                 </button>
 
                 {/* Profile Dropdown Menu */}
                 {isProfileMenuOpen && (
-                  <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-1 z-50 animate-in fade-in slide-in-from-top-2">
-                    <div className="px-4 py-2.5 border-b border-slate-100 bg-slate-50">
-                      <p className="text-xs font-bold text-slate-900">{userDisplayName}</p>
-                      <p className="text-[11px] text-slate-500">{currentUser.email}</p>
-                      <span className="inline-block mt-1 text-[10px] uppercase font-bold bg-indigo-100 text-indigo-800 px-1.5 py-0.5 rounded">
+                  <div className="absolute right-0 top-11 w-56 bg-[var(--color-paper-2)] rounded-[var(--radius-card)] shadow-[var(--shadow-card)] border border-[var(--color-rule)] py-1 z-50">
+                    <div className="px-4 py-2.5 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
+                      <p className="text-xs font-semibold text-[var(--color-ink)]">{userDisplayName}</p>
+                      <p className="text-[11px] text-[var(--color-muted)]">{currentUser.email}</p>
+                      <span className="inline-block mt-1 text-[10px] font-medium bg-[var(--color-paper-3)] text-[var(--color-ink)] px-2 py-0.5 rounded-full border border-[var(--color-rule)]">
                         {currentUser.role === 'admin' ? 'PESO/LGU Admin' : currentUser.role.replace(/_/g, ' ')}
                       </span>
                     </div>
@@ -600,30 +620,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {currentUser.role === 'job_seeker' && (
                       <>
                         <button
+                          type="button"
                           onClick={() => handleNav('seeker-profile')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <User className="w-4 h-4 text-emerald-600" />
-                          My Profile & Resume
+                          <User className="w-4 h-4 text-[var(--color-green)]" aria-hidden="true" />
+                          <span>My profile & resume</span>
                         </button>
                         {onOpenSubscriptions && (
                           <button
+                            type="button"
                             onClick={() => {
                               setIsProfileMenuOpen(false);
                               onOpenSubscriptions();
                             }}
-                            className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                            className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                           >
-                            <Bell className="w-4 h-4 text-indigo-600" />
-                            Job Alert Preferences
+                            <Bell className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                            <span>Job alert preferences</span>
                           </button>
                         )}
                         <button
+                          type="button"
                           onClick={() => handleNav('seeker-profile')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <Settings className="w-4 h-4 text-slate-500" />
-                          Settings
+                          <Settings className="w-4 h-4 text-[var(--color-muted)]" aria-hidden="true" />
+                          <span>Settings</span>
                         </button>
                       </>
                     )}
@@ -631,46 +654,52 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {currentUser.role === 'employer' && (
                       <>
                         <button
+                          type="button"
                           onClick={() => handleNav('employer-dashboard')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <Home className="w-4 h-4 text-blue-600" />
-                          Dashboard Overview
+                          <Home className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Dashboard overview</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('employer-jobs')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <Briefcase className="w-4 h-4 text-blue-600" />
-                          Job Vacancies ({jobPosts?.filter(j => j.employerId === currentEmployerProfile?.id).length || 0})
+                          <Briefcase className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Vacancies ({jobPosts?.filter(j => j.employerId === currentEmployerProfile?.id).length || 0})</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('employer-applicants')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <Users className="w-4 h-4 text-blue-600" />
-                          Candidates & Ranking
+                          <Users className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Candidates & ranking</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('employer-interviews')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <Calendar className="w-4 h-4 text-amber-600" />
-                          Interview Calendar
+                          <Calendar className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Interview calendar</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('employer-analytics')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <BarChart3 className="w-4 h-4 text-indigo-600" />
-                          Recruitment Analytics
+                          <BarChart3 className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Recruitment analytics</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('employer-profile')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <Building2 className="w-4 h-4 text-blue-600" />
-                          Company Profile & Compliance
+                          <Building2 className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Company profile</span>
                         </button>
                       </>
                     )}
@@ -678,58 +707,62 @@ export const Navbar: React.FC<NavbarProps> = ({
                     {currentUser.role === 'admin' && (
                       <>
                         <button
+                          type="button"
                           onClick={() => handleNav('admin-dashboard')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <ShieldCheck className="w-4 h-4 text-amber-600" />
-                          PESO Admin Center
+                          <ShieldCheck className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>PESO admin center</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('admin-reports')}
-                          className="w-full text-left px-4 py-2 text-xs text-slate-700 hover:bg-slate-100 flex items-center gap-2"
+                          className="w-full text-left px-4 py-2 text-xs text-[var(--color-ink)] hover:bg-[var(--color-paper-3)] flex items-center gap-2"
                         >
-                          <FileSpreadsheet className="w-4 h-4 text-amber-600" />
-                          Generate Reports
+                          <FileSpreadsheet className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Generate reports</span>
                         </button>
                       </>
                     )}
 
-                    <div className="border-t border-slate-100 my-1"></div>
-
-
+                    <div className="border-t border-[var(--color-rule)] my-1"></div>
 
                     <button
+                      type="button"
                       onClick={handleLogout}
-                      className="w-full text-left px-4 py-2 text-xs text-rose-600 hover:bg-rose-50 flex items-center gap-2 font-medium"
+                      className="w-full text-left px-4 py-2 text-xs text-[var(--color-error)] hover:bg-[var(--color-paper-3)] flex items-center gap-2 font-medium"
                     >
-                      <LogOut className="w-4 h-4 text-rose-500" />
-                      Log Out
+                      <LogOut className="w-4 h-4" aria-hidden="true" />
+                      <span>Log out</span>
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={() => onOpenAuth('login')}
-                  className="px-2.5 sm:px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200/80 rounded-xl transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
-                  title="Demo Accounts for Employers and PESO Admin"
+                  className="btn btn--quiet text-xs min-h-[36px] py-1.5 px-3"
+                  title="Demo accounts for employers and PESO admin"
                 >
-                  <Key className="w-3.5 h-3.5 text-indigo-600" />
-                  <span className="hidden sm:inline">Demo Logins</span>
+                  <Key className="w-3.5 h-3.5 text-[var(--color-accent)]" aria-hidden="true" />
+                  <span className="hidden sm:inline">Demo logins</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => onOpenAuth('login')}
-                  className="px-2.5 sm:px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                  className="btn btn--quiet text-xs min-h-[36px] py-1.5 px-3.5"
                 >
-                  Log In
+                  <span>Log in</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => onOpenAuth('register')}
-                  className="hidden sm:inline-flex px-3.5 sm:px-4 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-xs transition-colors items-center gap-1.5"
+                  className="btn btn--primary text-xs min-h-[36px] py-1.5 px-4"
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Create Account</span>
+                  <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>Create account</span>
                 </button>
               </div>
             )}
@@ -749,65 +782,70 @@ export const Navbar: React.FC<NavbarProps> = ({
       {currentUser && !isSeekerIncomplete && !isEmployerIncomplete && currentView !== 'seeker-profile-setup' && currentView !== 'employer-profile-setup' && (
         <div 
           aria-label="Mobile and Tablet Quick Navigation"
-          className="lg:hidden w-full bg-white border-b border-slate-200/80 shadow-2xs select-none"
+          className="lg:hidden w-full bg-[var(--color-paper-2)] border-b border-[var(--color-rule)] select-none"
         >
           <div className="max-w-md sm:max-w-xl mx-auto px-2 sm:px-4 py-1.5">
             <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 sm:gap-2">
               {currentUser.role === 'job_seeker' && (
                 <>
                   <button
+                    type="button"
                     onClick={() => handleNav('seeker-dashboard')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'seeker-dashboard'
-                        ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Home className={`w-5 h-5 mb-0.5 ${currentView === 'seeker-dashboard' ? 'text-indigo-600' : 'text-slate-500'}`} />
+                    <Home className={`w-4 h-4 mb-0.5 ${currentView === 'seeker-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Home</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('jobs')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'jobs'
-                        ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Search className={`w-5 h-5 mb-0.5 ${currentView === 'jobs' ? 'text-indigo-600' : 'text-slate-500'}`} />
+                    <Search className={`w-4 h-4 mb-0.5 ${currentView === 'jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Jobs</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('seeker-applications')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'seeker-applications'
-                        ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <FileCheck2 className={`w-5 h-5 mb-0.5 ${currentView === 'seeker-applications' ? 'text-indigo-600' : 'text-slate-500'}`} />
+                    <FileCheck2 className={`w-4 h-4 mb-0.5 ${currentView === 'seeker-applications' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Applications</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('seeker-interviews')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'seeker-interviews'
-                        ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Calendar className={`w-5 h-5 mb-0.5 ${currentView === 'seeker-interviews' ? 'text-indigo-600' : 'text-slate-500'}`} />
+                    <Calendar className={`w-4 h-4 mb-0.5 ${currentView === 'seeker-interviews' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Interviews</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('seeker-profile')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'seeker-profile'
-                        ? 'bg-indigo-50 text-indigo-700 font-bold border border-indigo-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <User className={`w-5 h-5 mb-0.5 ${currentView === 'seeker-profile' ? 'text-indigo-600' : 'text-slate-500'}`} />
+                    <User className={`w-4 h-4 mb-0.5 ${currentView === 'seeker-profile' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Profile</span>
                   </button>
                 </>
@@ -816,58 +854,63 @@ export const Navbar: React.FC<NavbarProps> = ({
               {currentUser.role === 'employer' && (
                 <>
                   <button
+                    type="button"
                     onClick={() => handleNav('employer-dashboard')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'employer-dashboard'
-                        ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Home className={`w-5 h-5 mb-0.5 ${currentView === 'employer-dashboard' ? 'text-blue-600' : 'text-slate-500'}`} />
+                    <Home className={`w-4 h-4 mb-0.5 ${currentView === 'employer-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Home</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('employer-jobs')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'employer-jobs'
-                        ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Briefcase className={`w-5 h-5 mb-0.5 ${currentView === 'employer-jobs' ? 'text-blue-600' : 'text-slate-500'}`} />
+                    <Briefcase className={`w-4 h-4 mb-0.5 ${currentView === 'employer-jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Vacancies</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('employer-applicants')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'employer-applicants'
-                        ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Users className={`w-5 h-5 mb-0.5 ${currentView === 'employer-applicants' ? 'text-blue-600' : 'text-slate-500'}`} />
+                    <Users className={`w-4 h-4 mb-0.5 ${currentView === 'employer-applicants' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Candidates</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('employer-interviews')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'employer-interviews'
-                        ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Calendar className={`w-5 h-5 mb-0.5 ${currentView === 'employer-interviews' ? 'text-blue-600' : 'text-slate-500'}`} />
+                    <Calendar className={`w-4 h-4 mb-0.5 ${currentView === 'employer-interviews' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Interviews</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('employer-profile')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'employer-profile'
-                        ? 'bg-blue-50 text-blue-700 font-bold border border-blue-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Building2 className={`w-5 h-5 mb-0.5 ${currentView === 'employer-profile' ? 'text-blue-600' : 'text-slate-500'}`} />
+                    <Building2 className={`w-4 h-4 mb-0.5 ${currentView === 'employer-profile' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Profile</span>
                   </button>
                 </>
@@ -876,58 +919,63 @@ export const Navbar: React.FC<NavbarProps> = ({
               {currentUser.role === 'admin' && (
                 <>
                   <button
+                    type="button"
                     onClick={() => handleNav('admin-dashboard')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'admin-dashboard'
-                        ? 'bg-amber-50 text-amber-900 font-bold border border-amber-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Home className={`w-5 h-5 mb-0.5 ${currentView === 'admin-dashboard' ? 'text-amber-700' : 'text-slate-500'}`} />
+                    <Home className={`w-4 h-4 mb-0.5 ${currentView === 'admin-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Home</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('admin-verifications')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'admin-verifications'
-                        ? 'bg-amber-50 text-amber-900 font-bold border border-amber-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <ShieldCheck className={`w-5 h-5 mb-0.5 ${currentView === 'admin-verifications' ? 'text-amber-700' : 'text-slate-500'}`} />
+                    <ShieldCheck className={`w-4 h-4 mb-0.5 ${currentView === 'admin-verifications' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Verify</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('admin-jobs')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'admin-jobs'
-                        ? 'bg-amber-50 text-amber-900 font-bold border border-amber-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Briefcase className={`w-5 h-5 mb-0.5 ${currentView === 'admin-jobs' ? 'text-amber-700' : 'text-slate-500'}`} />
-                    <span className="text-[10px] leading-tight">Jobs</span>
+                    <Briefcase className={`w-4 h-4 mb-0.5 ${currentView === 'admin-jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
+                    <span className="text-[10px] leading-tight">Vacancies</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('admin-users')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'admin-users'
-                        ? 'bg-amber-50 text-amber-900 font-bold border border-amber-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <Users className={`w-5 h-5 mb-0.5 ${currentView === 'admin-users' ? 'text-amber-700' : 'text-slate-500'}`} />
+                    <Users className={`w-4 h-4 mb-0.5 ${currentView === 'admin-users' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Registry</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleNav('admin-reports')}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer text-xs ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
                       currentView === 'admin-reports'
-                        ? 'bg-amber-50 text-amber-900 font-bold border border-amber-200/80 shadow-2xs'
-                        : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900 border border-transparent font-medium'
+                        ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
+                        : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
                     }`}
                   >
-                    <FileSpreadsheet className={`w-5 h-5 mb-0.5 ${currentView === 'admin-reports' ? 'text-amber-700' : 'text-slate-500'}`} />
+                    <FileSpreadsheet className={`w-4 h-4 mb-0.5 ${currentView === 'admin-reports' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
                     <span className="text-[10px] leading-tight">Reports</span>
                   </button>
                 </>
@@ -939,58 +987,63 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden bg-white border-b border-slate-200 px-4 pt-3 pb-5 space-y-3 shadow-xl animate-in slide-in-from-top-2 max-h-[calc(100vh-4rem)] overflow-y-auto">
+        <div className="lg:hidden bg-[var(--color-paper-2)] border-b border-[var(--color-rule)] px-4 pt-3 pb-5 space-y-3 shadow-[var(--shadow-lift)] max-h-[calc(100vh-4rem)] overflow-y-auto">
           {/* Detailed Navigation Item Rows with Icons */}
           <div className="space-y-1">
             {!currentUser ? (
               <>
                 <button
+                  type="button"
                   onClick={() => handleNav('landing')}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                    currentView === 'landing' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                  className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                    currentView === 'landing' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                   }`}
                 >
-                  <Home className={`w-4 h-4 ${currentView === 'landing' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                  <span>Welcome & Portal Overview</span>
+                  <Home className={`w-4 h-4 ${currentView === 'landing' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
+                  <span>Welcome overview</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleNav('jobs')}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                    currentView === 'jobs' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                  className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                    currentView === 'jobs' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                   }`}
                 >
-                  <Search className={`w-4 h-4 ${currentView === 'jobs' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                  <span>Find Jobs in Roxas</span>
+                  <Search className={`w-4 h-4 ${currentView === 'jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
+                  <span>Find vacancies in Roxas</span>
                 </button>
                 <button
+                  type="button"
                   onClick={() => handleNav('employers')}
-                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                    currentView === 'employers' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                  className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                    currentView === 'employers' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                   }`}
                 >
-                  <Building2 className={`w-4 h-4 ${currentView === 'employers' ? 'text-indigo-600' : 'text-slate-500'}`} />
-                  <span>Registered Employers</span>
+                  <Building2 className={`w-4 h-4 ${currentView === 'employers' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'}`} aria-hidden="true" />
+                  <span>Registered employers</span>
                 </button>
-                <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                <div className="pt-2 border-t border-[var(--color-rule)] flex flex-col gap-2">
                   <button
+                    type="button"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       onOpenAuth('login');
                     }}
-                    className="w-full py-2 bg-slate-100 text-slate-800 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
+                    className="btn btn--quiet text-xs min-h-[40px] w-full"
                   >
-                    <LogIn className="w-4 h-4" />
-                    <span>Log In</span>
+                    <LogIn className="w-4 h-4" aria-hidden="true" />
+                    <span>Sign in</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       onOpenAuth('register');
                     }}
-                    className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs"
+                    className="btn btn--primary text-xs min-h-[40px] w-full"
                   >
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>Create Account</span>
+                    <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                    <span>Register account</span>
                   </button>
                 </div>
               </>
@@ -999,76 +1052,84 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {currentUser?.role === 'admin' && (
                   <>
                     <button
+                      type="button"
                       onClick={() => handleNav('admin-dashboard')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'admin-dashboard' ? 'bg-amber-50 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'admin-dashboard' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Home className="w-4 h-4 text-amber-700" />
-                      <span>Admin Overview</span>
+                      <Home className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Admin overview</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('admin-verifications')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'admin-verifications' ? 'bg-amber-50 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'admin-verifications' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <ShieldCheck className="w-4 h-4 text-amber-700" />
-                      <span>Verify Employers</span>
+                      <ShieldCheck className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Verify employers</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('admin-jobs')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'admin-jobs' ? 'bg-amber-50 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'admin-jobs' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Briefcase className="w-4 h-4 text-amber-700" />
-                      <span>Monitor Job Postings</span>
+                      <Briefcase className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Monitor job postings</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('admin-job-matching')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'admin-job-matching' ? 'bg-amber-50 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'admin-job-matching' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Sparkles className="w-4 h-4 text-amber-700" />
-                      <span>Rule-Based Matching & Referrals</span>
+                      <Sparkles className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Decision tree matching</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('admin-lra')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'admin-lra' ? 'bg-amber-50 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'admin-lra' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Building2 className="w-4 h-4 text-amber-700" />
-                      <span>Visiting Companies (LRA)</span>
+                      <Building2 className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Visiting companies (LRA)</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('admin-users')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'admin-users' ? 'bg-amber-50 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'admin-users' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Users className="w-4 h-4 text-amber-700" />
-                      <span>User Registry (Seekers & Employers)</span>
+                      <Users className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>User registry</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('admin-reports')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'admin-reports' ? 'bg-amber-50 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'admin-reports' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <FileSpreadsheet className="w-4 h-4 text-amber-700" />
-                      <span>Labor Reports & Analytics</span>
+                      <FileSpreadsheet className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Labor reports</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('admin-audit-logs')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'admin-audit-logs' ? 'bg-amber-50 text-amber-900 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'admin-audit-logs' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Clock className="w-4 h-4 text-amber-700" />
-                      <span>Audit Logs</span>
+                      <Clock className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>System audit logs</span>
                     </button>
                   </>
                 )}
@@ -1076,69 +1137,76 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {currentUser?.role === 'employer' && (
                   <>
                     <button
+                      type="button"
                       onClick={() => handleNav('employer-dashboard')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'employer-dashboard' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'employer-dashboard' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Home className="w-4 h-4 text-blue-700" />
-                      <span>Employer Dashboard</span>
+                      <Home className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Employer overview</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('employer-jobs')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'employer-jobs' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'employer-jobs' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Briefcase className="w-4 h-4 text-blue-700" />
-                      <span>Job Vacancies & Postings</span>
+                      <Briefcase className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Job vacancies</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('employer-applicants')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'employer-applicants' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'employer-applicants' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Users className="w-4 h-4 text-blue-700" />
-                      <span>Candidates & Ranking</span>
+                      <Users className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Candidates & ranking</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('employer-interviews')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'employer-interviews' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'employer-interviews' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Calendar className="w-4 h-4 text-blue-700" />
-                      <span>Interview Schedule & Calendar</span>
+                      <Calendar className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Interview schedule</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('employer-analytics')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'employer-analytics' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'employer-analytics' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <BarChart3 className="w-4 h-4 text-blue-700" />
-                      <span>Recruitment Analytics & Reports</span>
+                      <BarChart3 className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Recruitment analytics</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => handleNav('employer-profile')}
-                      className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                        currentView === 'employer-profile' ? 'bg-blue-50 text-blue-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                      className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                        currentView === 'employer-profile' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                       }`}
                     >
-                      <Building2 className="w-4 h-4 text-blue-700" />
-                      <span>Company Profile & PESO Compliance</span>
+                      <Building2 className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                      <span>Company profile</span>
                     </button>
                     {onOpenPostJobModal && (
                       <button
+                        type="button"
                         onClick={() => {
                           setIsMobileMenuOpen(false);
                           onOpenPostJobModal();
                         }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center gap-2.5 transition-colors shadow-2xs mt-1"
+                        className="btn btn--primary text-xs min-h-[40px] w-full mt-1"
                       >
-                        <PlusCircle className="w-4 h-4" />
-                        <span>Post New Job Vacancy</span>
+                        <PlusCircle className="w-4 h-4" aria-hidden="true" />
+                        <span>Post vacancy</span>
                       </button>
                     )}
                   </>
@@ -1147,81 +1215,88 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {currentUser?.role === 'job_seeker' && (
                   <>
                     {isSeekerIncomplete ? (
-                      <div className="p-3 bg-amber-50 border border-amber-200/90 rounded-2xl space-y-2 mb-2">
-                        <div className="flex items-center gap-2 text-xs font-bold text-amber-900">
-                          <Lock className="w-4 h-4 text-amber-600 shrink-0" />
-                          <span>Candidate Profile Setup Required</span>
+                      <div className="p-3 bg-[var(--color-paper-3)] border border-[var(--color-rule)] rounded-md space-y-2 mb-2">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-ink)]">
+                          <Lock className="w-4 h-4 text-[var(--color-accent)] shrink-0" aria-hidden="true" />
+                          <span>Candidate profile setup required</span>
                         </div>
-                        <p className="text-[11px] text-amber-700 leading-normal">
-                          Complete your profile and skills inventory first to unlock the dashboard and local job vacancies.
+                        <p className="text-[11px] text-[var(--color-muted)] leading-normal">
+                          Complete your profile and skills inventory first to access the dashboard and local job vacancies.
                         </p>
                         <button
+                          type="button"
                           onClick={() => handleNav('seeker-profile-setup')}
-                          className="w-full py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                          className="btn btn--primary text-xs min-h-[38px] w-full"
                         >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          <span>Start Profile Set Up</span>
+                          <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Start profile setup</span>
                         </button>
                       </div>
                     ) : (
                       <>
                         <button
+                          type="button"
                           onClick={() => handleNav('seeker-dashboard')}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                            currentView === 'seeker-dashboard' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                          className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                            currentView === 'seeker-dashboard' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                           }`}
                         >
-                          <Home className="w-4 h-4 text-indigo-700" />
-                          <span>Job Seeker Dashboard</span>
+                          <Home className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Seeker dashboard</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('jobs')}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                            currentView === 'jobs' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                          className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                            currentView === 'jobs' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                           }`}
                         >
-                          <Search className="w-4 h-4 text-indigo-700" />
-                          <span>Search Jobs</span>
+                          <Search className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Search vacancies</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('seeker-applications')}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                            currentView === 'seeker-applications' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                          className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                            currentView === 'seeker-applications' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                           }`}
                         >
-                          <FileCheck2 className="w-4 h-4 text-indigo-700" />
-                          <span>My Applications</span>
+                          <FileCheck2 className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Applications</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('seeker-interviews')}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                            currentView === 'seeker-interviews' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                          className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                            currentView === 'seeker-interviews' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                           }`}
                         >
-                          <Calendar className="w-4 h-4 text-indigo-700" />
-                          <span>My Interviews</span>
+                          <Calendar className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Interviews</span>
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleNav('seeker-profile')}
-                          className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2.5 transition-colors ${
-                            currentView === 'seeker-profile' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-700 hover:bg-slate-100'
+                          className={`w-full text-left px-3 py-2 rounded-md text-xs flex items-center gap-2.5 transition-colors focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
+                            currentView === 'seeker-profile' ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]' : 'text-[var(--color-ink)] hover:bg-[var(--color-paper-3)]'
                           }`}
                         >
-                          <User className="w-4 h-4 text-indigo-700" />
-                          <span>My Profile & Resume</span>
+                          <User className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                          <span>Profile & resume</span>
                         </button>
                       </>
                     )}
                   </>
                 )}
 
-                <div className="pt-2 border-t border-slate-100">
+                <div className="pt-2 border-t border-[var(--color-rule)]">
                   <button
+                    type="button"
                     onClick={handleLogout}
-                    className="w-full py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold rounded-xl flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                    className="w-full py-2 text-[var(--color-error)] hover:bg-[var(--color-paper-3)] text-xs font-semibold rounded-md flex items-center justify-center gap-2 transition-colors cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-rose-500" />
-                    <span>Log Out</span>
+                    <LogOut className="w-4 h-4" aria-hidden="true" />
+                    <span>Sign out</span>
                   </button>
                 </div>
               </>

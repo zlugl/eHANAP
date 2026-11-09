@@ -30,16 +30,16 @@ interface JobSearchPageProps {
   onNavigate: (view: string, params?: any) => void;
 }
 
-// Visual palette generator for company squircle logos matching image.png
+// Visual palette generator for company squircle logos
 const LOGO_THEMES = [
-  { bg: 'bg-orange-500 text-white', letter: 'A' },
+  { bg: 'bg-indigo-900 text-white', letter: 'A' },
   { bg: 'bg-slate-900 text-white', letter: 'S' },
-  { bg: 'bg-purple-600 text-white', letter: 'C' },
-  { bg: 'bg-emerald-600 text-white', letter: 'M' },
-  { bg: 'bg-amber-500 text-white', letter: 'F' },
-  { bg: 'bg-rose-500 text-white', letter: 'H' },
-  { bg: 'bg-blue-600 text-white', letter: 'T' },
-  { bg: 'bg-indigo-600 text-white', letter: 'P' },
+  { bg: 'bg-slate-800 text-white', letter: 'C' },
+  { bg: 'bg-emerald-800 text-white', letter: 'M' },
+  { bg: 'bg-amber-800 text-white', letter: 'F' },
+  { bg: 'bg-rose-900 text-white', letter: 'H' },
+  { bg: 'bg-blue-900 text-white', letter: 'T' },
+  { bg: 'bg-indigo-950 text-white', letter: 'P' },
 ];
 
 export const JobSearchPage: React.FC<JobSearchPageProps> = ({ 
@@ -267,31 +267,50 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#fafbfc] text-slate-900 font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-indigo-500 selection:text-white">
 
       {/* ======================================================== */}
-      {/* 1. TOP HERO BANNER & SEARCH CAPSULE (Matches image.png) */}
+      {/* 1. TOP HERO BANNER & SEARCH CAPSULE                      */}
       {/* ======================================================== */}
-      <section className="bg-white border-b border-slate-100 pt-10 sm:pt-14 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center space-y-4">
+      <section className="bg-slate-900 text-white pt-10 sm:pt-14 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
+        <div className="max-w-5xl mx-auto space-y-6">
           
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 tracking-tight">
-            Find Your Dream Jobs
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-500 max-w-xl mx-auto leading-relaxed">
-            Verified local employment opportunities in Roxas, Oriental Mindoro with real-time AI Decision Tree qualification matching.
-          </p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-2.5 py-0.5 rounded-full">
+                  PESO Roxas Verified Vacancies
+                </span>
+                <span className="text-[10px] text-slate-400 font-semibold">Oriental Mindoro</span>
+              </div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
+                Find Local Opportunities
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 mt-2 max-w-xl leading-relaxed">
+                Accredited employment vacancies across the Municipality of Roxas with explainable Decision Tree qualification matching.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0 self-start sm:self-center">
+              <div className="p-3.5 bg-white/10 rounded-2xl border border-white/10 text-center">
+                <p className="text-2xl font-black text-emerald-400 tabular-nums">
+                  {jobPosts.filter(j => j.status === 'active').length}
+                </p>
+                <p className="text-[11px] text-slate-300 font-medium">Active Vacancies</p>
+              </div>
+            </div>
+          </div>
 
           {/* Search Bar Capsule Card */}
-          <div className="pt-4">
-            <div className="bg-white rounded-3xl sm:rounded-full p-2.5 sm:p-2 shadow-xl shadow-slate-200/60 border border-slate-200/80 flex flex-col sm:flex-row items-center gap-2 sm:gap-0 transition-all">
+          <div className="pt-2">
+            <div className="bg-white rounded-2xl sm:rounded-full p-2.5 sm:p-2 shadow-xl shadow-slate-950/20 border border-slate-200/90 flex flex-col sm:flex-row items-center gap-2 sm:gap-0 transition-all">
               
               {/* Field 1: Keywords */}
               <div className="flex-1 flex items-center gap-3 px-4 py-2 sm:py-1.5 w-full">
                 <Search className="w-4 h-4 text-slate-400 shrink-0" />
                 <input 
                   type="text"
-                  placeholder="Jobs title or keywords"
+                  placeholder="Job title, keywords, or skills..."
                   value={searchQuery}
                   onChange={(e) => {
                     setSearchQuery(e.target.value);
@@ -302,7 +321,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
               </div>
 
               {/* Vertical Divider */}
-              <div className="hidden sm:block w-px h-8 bg-slate-200/80" />
+              <div className="hidden sm:block w-px h-8 bg-slate-200" />
 
               {/* Field 2: Location */}
               <div className="flex-1 flex items-center gap-2.5 px-4 py-2 sm:py-1.5 w-full relative">
@@ -315,7 +334,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                   }}
                   className="w-full text-xs sm:text-sm text-slate-700 bg-transparent focus:outline-none cursor-pointer pr-6 appearance-none font-medium"
                 >
-                  <option value="">All location</option>
+                  <option value="">All Barangays</option>
                   {ROXAS_BARANGAYS.map(b => (
                     <option key={b} value={b}>Brgy. {b}, Roxas</option>
                   ))}
@@ -324,7 +343,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
               </div>
 
               {/* Vertical Divider */}
-              <div className="hidden sm:block w-px h-8 bg-slate-200/80" />
+              <div className="hidden sm:block w-px h-8 bg-slate-200" />
 
               {/* Field 3: Category */}
               <div className="flex-1 flex items-center gap-2.5 px-4 py-2 sm:py-1.5 w-full relative">
@@ -337,7 +356,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                   }}
                   className="w-full text-xs sm:text-sm text-slate-700 bg-transparent focus:outline-none cursor-pointer pr-6 appearance-none font-medium"
                 >
-                  <option value="">All categories</option>
+                  <option value="">All Categories</option>
                   {JOB_CATEGORIES.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -350,18 +369,18 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-slate-800 transition-colors cursor-pointer shrink-0"
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors cursor-pointer shrink-0"
                   title="Clear search parameters"
                 >
                   Clear
                 </button>
               )}
 
-              {/* Search Pill Button (Emerald green, matching image.png) */}
+              {/* Search Pill Button */}
               <button
                 type="button"
                 onClick={() => setCurrentPage(1)}
-                className="w-full sm:w-auto px-7 py-3 bg-[#00875a] hover:bg-[#00704a] text-white font-bold text-xs sm:text-sm rounded-2xl sm:rounded-full transition-all shadow-md shadow-emerald-700/20 active:scale-95 cursor-pointer shrink-0 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-7 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl sm:rounded-full transition-all shadow-sm active:scale-95 cursor-pointer shrink-0 flex items-center justify-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-600"
               >
                 <span>Search</span>
               </button>
@@ -370,11 +389,11 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
           </div>
 
           {/* Quick Filters toggle for Mobile */}
-          <div className="pt-2 lg:hidden flex items-center justify-center">
+          <div className="pt-1 lg:hidden flex items-center justify-center">
             <button
               type="button"
               onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
               <span>{showMobileFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}</span>
@@ -391,29 +410,29 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* ---------------------------------------------------- */}
-          {/* LEFT COLUMN: FILTER SIDEBAR (Matches image.png)      */}
+          {/* LEFT COLUMN: FILTER SIDEBAR                          */}
           {/* ---------------------------------------------------- */}
           <aside className={`lg:col-span-3 space-y-7 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-6">
+            <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs space-y-6">
               
               {/* Header */}
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <h2 className="text-base font-bold text-slate-900 tracking-tight">
-                  Filter
+                  Filter Vacancies
                 </h2>
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 rounded px-1"
                 >
-                  Reset
+                  Reset all
                 </button>
               </div>
 
-              {/* 1. JOB TYPE (Checkboxes from image.png) */}
+              {/* 1. JOB TYPE */}
               <div className="space-y-3">
                 <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                  JOB TYPE
+                  Job Type
                 </h3>
                 <div className="space-y-2.5">
                   {[
@@ -433,7 +452,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggleJobType(label)}
-                          className="w-4 h-4 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-[#00875a]"
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
                         />
                         <span className={checked ? 'font-bold text-slate-900' : ''}>
                           {label}
@@ -444,10 +463,10 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                 </div>
               </div>
 
-              {/* 2. SALARY (Side by side Min & Max from image.png) */}
+              {/* 2. SALARY */}
               <div className="space-y-3 pt-2 border-t border-slate-100">
                 <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                  SALARY (₱/mo)
+                  Monthly Salary (₱)
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="relative">
@@ -457,7 +476,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                         setMinSalaryFilter(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      className="w-full text-xs py-2 pl-3 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none font-medium cursor-pointer"
+                      className="w-full text-xs py-2 pl-3 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none font-medium cursor-pointer"
                     >
                       <option value="0">Min</option>
                       <option value="10000">₱10,000</option>
@@ -475,7 +494,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                         setMaxSalaryFilter(Number(e.target.value));
                         setCurrentPage(1);
                       }}
-                      className="w-full text-xs py-2 pl-3 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 appearance-none font-medium cursor-pointer"
+                      className="w-full text-xs py-2 pl-3 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none font-medium cursor-pointer"
                     >
                       <option value="0">Max</option>
                       <option value="20000">₱20,000</option>
@@ -488,10 +507,10 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                 </div>
               </div>
 
-              {/* 3. EXPERIENCE LEVEL (Checkboxes from image.png) */}
+              {/* 3. EXPERIENCE LEVEL */}
               <div className="space-y-3 pt-2 border-t border-slate-100">
                 <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                  EXPERIENCE LEVEL
+                  Experience Level
                 </h3>
                 <div className="space-y-2.5">
                   {[
@@ -511,7 +530,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggleExperienceLevel(level)}
-                          className="w-4 h-4 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-[#00875a]"
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
                         />
                         <span className={checked ? 'font-bold text-slate-900' : ''}>
                           {level}
@@ -522,10 +541,10 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                 </div>
               </div>
 
-              {/* 4. CAREER LEVEL (Checkboxes from image.png) */}
+              {/* 4. CAREER LEVEL */}
               <div className="space-y-3 pt-2 border-t border-slate-100">
                 <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                  CAREER LEVEL
+                  Career Level
                 </h3>
                 <div className="space-y-2.5">
                   {[
@@ -545,7 +564,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                           type="checkbox"
                           checked={checked}
                           onChange={() => toggleCareerLevel(career)}
-                          className="w-4 h-4 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer accent-[#00875a]"
+                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
                         />
                         <span className={checked ? 'font-bold text-slate-900' : ''}>
                           {career}
@@ -560,27 +579,27 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
           </aside>
 
           {/* ---------------------------------------------------- */}
-          {/* RIGHT COLUMN: JOB LISTINGS (Matches image.png)        */}
+          {/* RIGHT COLUMN: JOB LISTINGS                           */}
           {/* ---------------------------------------------------- */}
           <section className="lg:col-span-9 space-y-4">
             
-            {/* Top Summary Bar (Count, View Mode, Sorting from image.png) */}
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200/80 shadow-2xs">
+            {/* Top Summary Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-slate-200/90 shadow-xs">
               
-              {/* Total Jobs Count (e.g., 1,251 jobs in image.png) */}
+              {/* Total Jobs Count */}
               <div className="flex items-center gap-2">
-                <span className="text-sm font-black text-slate-900 tracking-tight">
-                  {filteredJobs.length.toLocaleString()} jobs
+                <span className="text-sm font-black text-slate-900 tracking-tight tabular-nums">
+                  {filteredJobs.length.toLocaleString()} vacancies available
                 </span>
                 {currentSeekerProfile && (
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                  <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
                     <Sparkles className="w-3 h-3 text-emerald-600" />
                     <span>Decision Tree Match Active</span>
                   </span>
                 )}
               </div>
 
-              {/* View Mode Toggle and Sort Dropdown (Matches image.png header) */}
+              {/* View Mode Toggle and Sort Dropdown */}
               <div className="flex items-center gap-4">
                 
                 {/* Grid / List View Toggle Icons */}
@@ -588,9 +607,9 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                   <button
                     type="button"
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    className={`p-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                       viewMode === 'grid' 
-                        ? 'bg-white text-slate-900 shadow-xs' 
+                        ? 'bg-white text-slate-900 shadow-xs font-bold' 
                         : 'text-slate-400 hover:text-slate-700'
                     }`}
                     title="Grid layout view"
@@ -601,9 +620,9 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                   <button
                     type="button"
                     onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                    className={`p-1.5 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
                       viewMode === 'list' 
-                        ? 'bg-white text-slate-900 shadow-xs' 
+                        ? 'bg-white text-slate-900 shadow-xs font-bold' 
                         : 'text-slate-400 hover:text-slate-700'
                     }`}
                     title="List layout view"
@@ -613,20 +632,20 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                   </button>
                 </div>
 
-                {/* Sort Dropdown (Sort by Newest from image.png) */}
+                {/* Sort Dropdown */}
                 <div className="flex items-center gap-1.5 text-xs">
-                  <span className="text-slate-400 font-medium hidden sm:inline">Sort by:</span>
+                  <span className="text-slate-400 font-medium hidden sm:inline">Sort:</span>
                   <div className="relative">
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as any)}
-                      className="text-xs font-bold text-slate-800 bg-transparent pr-5 py-1 focus:outline-none cursor-pointer appearance-none"
+                      className="text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 pr-6 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none"
                     >
-                      <option value="newest">Newest</option>
+                      <option value="newest">Newest First</option>
                       {currentSeekerProfile && <option value="match">Highest Match %</option>}
                       <option value="deadline">Application Deadline</option>
                     </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-0 top-1.5 pointer-events-none" />
+                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2 top-2.5 pointer-events-none" />
                   </div>
                 </div>
 
@@ -636,7 +655,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
 
             {/* Empty State */}
             {filteredJobs.length === 0 ? (
-              <div className="bg-white p-12 rounded-3xl border border-slate-200 text-center space-y-3">
+              <div className="bg-white p-12 rounded-3xl border border-slate-200/90 text-center space-y-3">
                 <Briefcase className="w-12 h-12 text-slate-300 mx-auto" />
                 <h3 className="text-base font-bold text-slate-800">
                   {jobPosts.length === 0 ? 'No Job Vacancies Available Yet' : 'No matching vacancies found'}
@@ -650,7 +669,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="px-4 py-2 bg-[#00875a] hover:bg-[#00704a] text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-600"
                   >
                     Clear All Filters
                   </button>
@@ -658,7 +677,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
               </div>
             ) : (
 
-              /* Job Cards List (Matches visual presentation in image.png) */
+              /* Job Cards List */
               <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 gap-4" : "space-y-3"}>
                 {paginatedJobs.map(({ job, matchScore, theme, initial, daysLeft }) => {
                   const isBookmarked = bookmarkedJobIds.includes(job.id);
@@ -670,15 +689,22 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                     <div
                       key={job.id}
                       onClick={() => onNavigate('job-detail', { jobId: job.id })}
-                      className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer relative group space-y-3.5"
+                      className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 hover:border-slate-300 hover:shadow-md transition-all cursor-pointer relative group space-y-3.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          onNavigate('job-detail', { jobId: job.id });
+                        }
+                      }}
                     >
                       {/* Top Row: Logo, Title, Subtitle, Badges & Bookmark */}
                       <div className="flex items-start justify-between gap-4">
                         
                         <div className="flex items-start gap-4 min-w-0">
                           
-                          {/* Squircle Company Brand Logo (Matches image.png icons) */}
-                          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${job.companyLogo ? 'bg-slate-50' : theme.bg} flex items-center justify-center font-serif font-black text-xl sm:text-2xl shadow-xs shrink-0 overflow-hidden`}>
+                          {/* Squircle Company Brand Logo */}
+                          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${job.companyLogo ? 'bg-slate-50' : theme.bg} flex items-center justify-center font-serif font-black text-xl sm:text-2xl shadow-xs shrink-0 overflow-hidden border border-slate-200/80`}>
                             {job.companyLogo ? (
                               <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover" />
                             ) : (
@@ -689,43 +715,43 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                           {/* Titles & Meta */}
                           <div className="min-w-0 space-y-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-[#00875a] transition-colors leading-tight line-clamp-1">
+                              <h3 className="font-bold text-slate-900 text-base sm:text-lg group-hover:text-indigo-600 transition-colors leading-tight line-clamp-1">
                                 {job.title}
                               </h3>
                               {job.companyVerified && (
                                 <span title="PESO Verified Employer" className="inline-flex">
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-500 fill-emerald-100 shrink-0" />
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                                 </span>
                               )}
                             </div>
 
-                            {/* Subtitle: "by [Company] in [Category]" from image.png */}
+                            {/* Subtitle: "by [Company] in [Category]" */}
                             <p className="text-xs text-slate-500 font-medium">
-                              by <span className="font-semibold text-slate-800">{job.companyName}</span> in <span className="text-[#00875a] font-semibold">{job.category}</span>
+                              by <span className="font-semibold text-slate-800">{job.companyName}</span> in <span className="text-indigo-600 font-semibold">{job.category}</span>
                             </p>
 
-                            {/* Badges Row (Matches image.png: Work Setup, Location, Salary) */}
+                            {/* Badges Row */}
                             <div className="flex items-center gap-2 flex-wrap pt-1.5">
                               {/* 1. Job Type Badge */}
-                              <span className="px-3 py-0.5 rounded-full text-xs font-semibold bg-indigo-50/90 text-indigo-700 border border-indigo-100">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/60">
                                 {job.employmentType}
                               </span>
 
                               {/* 2. Location Badge */}
-                              <span className="px-3 py-0.5 rounded-full text-xs font-medium text-slate-600 bg-slate-100 flex items-center gap-1">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-medium text-slate-600 bg-slate-100 border border-slate-200/60 flex items-center gap-1">
                                 <MapPin className="w-3 h-3 text-slate-400" />
                                 <span>{job.workLocation || 'Roxas, Oriental Mindoro'}</span>
                               </span>
 
                               {/* 3. Salary Badge */}
-                              <span className="px-3 py-0.5 rounded-full text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 flex items-center gap-1">
+                              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-emerald-800 bg-emerald-50 border border-emerald-200/60 flex items-center gap-1 tabular-nums">
                                 <Banknote className="w-3.5 h-3.5 text-emerald-600" />
                                 <span>{job.salaryRange}</span>
                               </span>
 
                               {/* 4. AI Match Score Badge (if seeker) */}
                               {currentSeekerProfile && (
-                                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200 inline-flex items-center gap-1">
+                                <span className="px-2.5 py-0.5 rounded-full text-xs font-bold text-amber-900 bg-amber-50 border border-amber-200/60 inline-flex items-center gap-1 tabular-nums">
                                   <Sparkles className="w-3 h-3 text-amber-600" />
                                   <span>{matchScore}% Match</span>
                                 </span>
@@ -751,7 +777,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                                 type: 'info'
                               });
                             }}
-                            className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer"
+                            className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                             title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
                           >
                             <Heart className={`w-5 h-5 transition-colors ${
@@ -761,9 +787,9 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                             }`} />
                           </button>
 
-                          {/* "56 days left to apply" from image.png */}
+                          {/* Days left */}
                           <div className="text-right">
-                            <span className="text-xs text-slate-400 font-medium">
+                            <span className="text-xs text-slate-400 font-medium tabular-nums">
                               {daysLeft > 0 ? `${daysLeft} days left to apply` : 'Open for applications'}
                             </span>
                           </div>
@@ -778,17 +804,17 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                             e.stopPropagation();
                             onNavigate('job-detail', { jobId: job.id });
                           }}
-                          className="p-3 bg-blue-50/70 border border-blue-200/90 rounded-2xl space-y-2 hover:border-blue-400 transition-colors mt-2"
+                          className="p-3 bg-indigo-50/50 border border-indigo-200/70 rounded-2xl space-y-2 hover:border-indigo-400 transition-colors mt-2"
                         >
                           <div className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse" />
-                              <span className="font-bold text-blue-950 uppercase tracking-wider text-[10px]">
-                                Ongoing Application Tracking
+                              <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse" />
+                              <span className="font-bold text-indigo-950 uppercase tracking-wider text-[10px]">
+                                Application Status Active
                               </span>
                             </div>
                             <span className="text-[10px] font-bold text-indigo-700 bg-white px-2 py-0.5 rounded-md border border-indigo-200">
-                              Active Application · Click to Monitor
+                              Click to View Details
                             </span>
                           </div>
                           <ApplicationTrackingBar 
@@ -804,7 +830,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
               </div>
             )}
 
-            {/* Pagination Row (Matches image.png bottom pagination pills) */}
+            {/* Pagination Row */}
             {totalPages > 1 && (
               <div className="pt-6 flex items-center justify-center gap-2">
                 
@@ -812,7 +838,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                   type="button"
                   onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                   disabled={currentPage === 1}
-                  className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   title="Previous page"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -826,9 +852,9 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                       key={pageNum}
                       type="button"
                       onClick={() => setCurrentPage(pageNum)}
-                      className={`w-9 h-9 rounded-full text-xs font-bold transition-all cursor-pointer ${
+                      className={`w-9 h-9 rounded-full text-xs font-bold transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 tabular-nums ${
                         isActive
-                          ? 'bg-[#00875a] text-white shadow-sm'
+                          ? 'bg-slate-900 text-white shadow-xs'
                           : 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
                       }`}
                     >
@@ -841,7 +867,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                   type="button"
                   onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                   disabled={currentPage === totalPages}
-                  className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+                  className="w-9 h-9 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-800 disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
                   title="Next page"
                 >
                   <ChevronRight className="w-4 h-4" />

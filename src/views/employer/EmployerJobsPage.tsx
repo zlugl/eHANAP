@@ -25,7 +25,8 @@ import {
   BarChart3,
   XCircle,
   Building2,
-  Sparkles
+  Sparkles,
+  Flame
 } from 'lucide-react';
 
 interface EmployerJobsPageProps {
@@ -105,13 +106,13 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6 font-body">
       
       {/* Top Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-bold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="text-xs font-semibold bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full">
               Vacancies & Postings Management
             </span>
             <span className="text-xs text-slate-500 font-semibold">
@@ -130,7 +131,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
         <div className="flex items-center gap-2.5">
           <button
             onClick={() => setShowSalaryChart(!showSalaryChart)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               showSalaryChart 
                 ? 'bg-blue-50 border-blue-300 text-blue-700' 
                 : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
@@ -142,7 +143,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
 
           <button
             onClick={onOpenPostJobModal}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
             <Plus className="w-4 h-4" />
             <span>Post New Vacancy</span>
@@ -154,36 +155,36 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
       {/* Metric Cards Row */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Active Openings</p>
+          <p className="text-xs font-semibold text-slate-500">Active Openings</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-slate-900">{activeJobs.length}</span>
+            <span className="text-2xl font-black text-slate-900 tabular-nums">{activeJobs.length}</span>
             <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">Hiring Now</span>
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Accepting applications</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Received</p>
+          <p className="text-xs font-semibold text-slate-500">Total Received</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-blue-600">{myApps.length}</span>
+            <span className="text-2xl font-black text-blue-600 tabular-nums">{myApps.length}</span>
             <Users className="w-4 h-4 text-blue-500" />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Applicants across all jobs</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Closed / Filled</p>
+          <p className="text-xs font-semibold text-slate-500">Closed / Filled</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-slate-700">{closedJobs.length}</span>
+            <span className="text-2xl font-black text-slate-700 tabular-nums">{closedJobs.length}</span>
             <CheckCircle2 className="w-4 h-4 text-slate-400" />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Positions concluded</p>
         </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Listings</p>
+          <p className="text-xs font-semibold text-slate-500">Total Listings</p>
           <div className="flex items-baseline justify-between mt-1">
-            <span className="text-2xl font-black text-slate-900">{myJobs.length}</span>
+            <span className="text-2xl font-black text-slate-900 tabular-nums">{myJobs.length}</span>
             <Briefcase className="w-4 h-4 text-indigo-500" />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Cumulative career posts</p>
@@ -192,7 +193,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
 
       {/* Salary Benchmark Collapsible Section */}
       {showSalaryChart && (
-        <div className="bg-white p-6 rounded-3xl border border-blue-200 shadow-sm animate-in fade-in duration-300">
+        <div className="bg-white p-6 rounded-3xl border border-blue-200 shadow-sm motion-safe:animate-in motion-safe:fade-in duration-300">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
@@ -232,7 +233,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
         <div className="flex items-center gap-1.5 overflow-x-auto w-full md:w-auto pb-1 md:pb-0 text-xs">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl font-bold transition-colors shrink-0 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'all'
                 ? 'bg-blue-600 text-white shadow-2xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -242,7 +243,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
           </button>
           <button
             onClick={() => setStatusFilter('active')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl font-bold transition-colors shrink-0 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'active'
                 ? 'bg-emerald-600 text-white shadow-2xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -252,7 +253,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
           </button>
           <button
             onClick={() => setStatusFilter('closed')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl font-bold transition-colors shrink-0 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
               statusFilter === 'closed'
                 ? 'bg-slate-700 text-white shadow-2xs'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -263,7 +264,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
           {pendingJobs.length > 0 && (
             <button
               onClick={() => setStatusFilter('pending_approval')}
-              className={`px-3 py-1.5 rounded-xl font-bold transition-all shrink-0 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl font-bold transition-colors shrink-0 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                 statusFilter === 'pending_approval'
                   ? 'bg-amber-600 text-white shadow-2xs'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -287,7 +288,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
           </p>
           <button
             onClick={onOpenPostJobModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
             <Plus className="w-4 h-4" />
             <span>Post a Vacancy</span>
@@ -303,7 +304,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
             return (
               <div 
                 key={job.id} 
-                className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-blue-300 transition-all p-5 sm:p-6 space-y-4"
+                className="bg-white rounded-2xl border border-slate-200/90 shadow-2xs hover:border-blue-300 transition-colors p-5 sm:p-6 space-y-4"
               >
                 {/* Header Row */}
                 <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
@@ -314,7 +315,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                       </h2>
                       
                       {/* Status Badge */}
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         job.status === 'active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         job.status === 'closed' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
                         job.status === 'paused' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
@@ -324,8 +325,9 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                       </span>
 
                       {job.isUrgent && (
-                        <span className="text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full">
-                          🔥 Urgent Hiring
+                        <span className="text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 px-2 py-0.5 rounded-full inline-flex items-center gap-1">
+                          <Flame className="w-3.5 h-3.5 text-rose-600" />
+                          <span>Urgent Hiring</span>
                         </span>
                       )}
                     </div>
@@ -341,7 +343,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                     <select
                       value={job.status}
                       onChange={(e) => handleStatusChange(job.id, job.title, e.target.value as JobStatus)}
-                      className={`text-xs font-bold px-2.5 py-1 rounded-xl border transition-colors cursor-pointer ${
+                      className={`text-xs font-bold px-2.5 py-1 rounded-xl border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
                         job.status === 'active' ? 'bg-emerald-50 border-emerald-300 text-emerald-800' :
                         job.status === 'closed' ? 'bg-slate-100 border-slate-300 text-slate-700' :
                         'bg-amber-50 border-amber-300 text-amber-800'
@@ -383,7 +385,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                 {/* Skills tags */}
                 {job.skillsRequired && job.skillsRequired.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wide mr-1">Required Skills:</span>
+                    <span className="text-xs font-semibold text-slate-500 mr-1">Required Skills:</span>
                     {job.skillsRequired.slice(0, 5).map((skill, sIdx) => (
                       <span key={sIdx} className="text-[10px] font-semibold bg-white border border-slate-200 px-2 py-0.5 rounded-md text-slate-700">
                         {skill}
