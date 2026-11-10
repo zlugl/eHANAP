@@ -161,6 +161,47 @@ async function runVerification() {
     'AuthModal does not import or call useApp()'
   );
 
+  // -------------------------------------------------------------
+  // Suite 4: Modular Composite Provider & AppContext Refactoring
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 4] Modular Composite Provider & AppContext Refactoring');
+
+  // Barrel export verification
+  const barrelPath = path.join(rootDir, 'src/context/index.ts');
+  assert(fs.existsSync(barrelPath), 'src/context/index.ts exists on disk');
+
+  if (fs.existsSync(barrelPath)) {
+    const barrelContent = fs.readFileSync(barrelPath, 'utf-8');
+    assert(barrelContent.includes('ToastContext') && barrelContent.includes('useToast'), 'Barrel exports ToastContext and useToast');
+    assert(barrelContent.includes('NotificationContext') && barrelContent.includes('useNotification'), 'Barrel exports NotificationContext and useNotification');
+    assert(barrelContent.includes('AuthContext') && barrelContent.includes('useAuth'), 'Barrel exports AuthContext and useAuth');
+    assert(barrelContent.includes('AppContext') && barrelContent.includes('useApp'), 'Barrel exports AppContext and useApp');
+  }
+
+  // AppContext composition and line count verification
+  const appContextPath = path.join(rootDir, 'src/context/AppContext.tsx');
+  assert(fs.existsSync(appContextPath), 'src/context/AppContext.tsx exists');
+  const appContextContent = fs.readFileSync(appContextPath, 'utf-8');
+  const lineCount = appContextContent.split('\n').length;
+  console.log(`[INFO] Current AppContext.tsx line count: ${lineCount} (Baseline: 2,860 lines)`);
+
+  assert(
+    lineCount <= 2200,
+    `AppContext.tsx line count is reduced by at least 660 lines (Current: ${lineCount}, target <= 2,200)`
+  );
+  assert(
+    appContextContent.includes('ToastProvider') &&
+    appContextContent.includes('NotificationProvider') &&
+    appContextContent.includes('AuthProvider'),
+    'AppProvider composes ToastProvider, NotificationProvider, and AuthProvider'
+  );
+  assert(
+    appContextContent.includes('useToast') &&
+    appContextContent.includes('useNotification') &&
+    appContextContent.includes('useAuth'),
+    'AppContext delegates actions and state to sliced context hooks'
+  );
+
   console.log(`\n--- Verification Summary: ${passedTests}/${totalTests} tests passed ---`);
 }
 

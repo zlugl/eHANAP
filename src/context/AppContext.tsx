@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { ToastProvider, useToast } from './ToastContext';
+import { NotificationProvider, useNotification } from './NotificationContext';
+import { AuthProvider, useAuth } from './AuthContext';
 import { 
   User, 
   UserRole,
@@ -27,27 +30,15 @@ import {
   CandidateInvitation
 } from '../types';
 import { 
-  INITIAL_USERS, 
-  INITIAL_EMPLOYERS, 
-  INITIAL_JOB_SEEKERS, 
-  INITIAL_JOB_POSTS, 
-  INITIAL_APPLICATIONS, 
-  INITIAL_INTERVIEWS, 
-  INITIAL_NOTIFICATIONS, 
-  INITIAL_AUDIT_LOGS, 
-  INITIAL_ANNOUNCEMENTS,
-  INITIAL_JOB_SUBSCRIPTIONS,
-  INITIAL_BOOKMARKED_JOB_IDS,
-  INITIAL_COMPANY_REVIEWS,
-  INITIAL_CONVERSATIONS,
-  INITIAL_CHAT_MESSAGES,
-  INITIAL_PROFILE_VIEWS
+  INITIAL_USERS, INITIAL_EMPLOYERS, INITIAL_JOB_SEEKERS, INITIAL_JOB_POSTS, INITIAL_APPLICATIONS, 
+  INITIAL_INTERVIEWS, INITIAL_NOTIFICATIONS, INITIAL_AUDIT_LOGS, INITIAL_ANNOUNCEMENTS,
+  INITIAL_JOB_SUBSCRIPTIONS, INITIAL_BOOKMARKED_JOB_IDS, INITIAL_COMPANY_REVIEWS,
+  INITIAL_CONVERSATIONS, INITIAL_CHAT_MESSAGES, INITIAL_PROFILE_VIEWS
 } from '../data/mockData';
 import { 
   INITIAL_REFERRAL_SLIPS, 
   INITIAL_LRA_EVENTS 
 } from '../data/pesoLguData';
-import { DEMO_ACCOUNTS, DemoAccountMeta, getDemoAccountByEmail, PRIMARY_DEMO_ACCOUNTS } from '../data/demoAccounts';
 import { calculateDecisionTreeMatch } from '../utils/decisionTree';
 import { evaluateResumeForAts } from '../utils/atsEngine';
 import {
@@ -61,11 +52,6 @@ import {
   ensureDemoAccountsExistInSupabase,
   seedDemoDataToSupabase,
   testSupabaseConnection,
-  signInWithSupabase,
-  signUpWithSupabase,
-  signOutWithSupabase,
-  onSupabaseAuthStateChange,
-  signInWithSupabaseOAuth,
 } from '../services/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { storageAdapter } from '../lib/storageAdapter';
@@ -73,8 +59,7 @@ import {
   isProfileComplete, 
   isSeekerProfileComplete, 
   isEmployerProfileComplete, 
-  markProfileCompletedInStorage, 
-  clearProfileCompletedInStorage 
+  markProfileCompletedInStorage,
 } from '../utils/routeGuards';
 
 // Supabase-exclusive persistence wrapper: automatically saves records to PostgreSQL via Supabase
@@ -205,26 +190,45 @@ interface AppContextType {
   hasInvitedCandidate: (jobId: string, seekerId: string) => boolean;
 }
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+const AppCoreContext = createContext<AppContextType | undefined>(undefined);
 
-export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [users, setUsers] = useState<User[]>(() => {
-    const saved = storageAdapter.getStoredUsers([]);
-    if (saved && Array.isArray(saved) && saved.length > 0) {
-      const map = new Map<string, User>();
-      INITIAL_USERS.forEach(u => map.set(u.id, u));
-      saved.forEach((u: User) => {
-        // Strictly enforce single official LGU/PESO administrator account
-        if (u.role === 'admin' && u.id !== 'user-peso-admin-01' && u.email?.toLowerCase() !== 'peso.admin@roxas.gov.ph') {
-          return;
-        }
-        map.set(u.id, u);
-      });
-      return Array.from(map.values());
-    }
-    return INITIAL_USERS;
-  });
-  const [currentUser, setCurrentUser] = useState<User | null>(null); // Starts in GUEST / Not Logged In state
+const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const auth = useAuth();
+  const notif = useNotification();
+  const toast = useToast();
+
+  const {
+    currentUser,
+    setCurrentUser,
+    users,
+    setUsers,
+    switchUserRole,
+    switchDemoRole,
+    loginAs,
+    continueWithGoogle,
+    logout,
+    registerUser,
+    sendOtp,
+    verifyOtp,
+    recoverPassword,
+  } = auth;
+
+  const {
+    notifications,
+    setNotifications,
+    addNotification,
+    markNotificationRead,
+    markAllNotificationsRead,
+    deleteNotification,
+    clearAllNotifications,
+  } = notif;
+
+  const {
+    activeToast,
+    showToast,
+    dismissToast,
+  } = toast;
+
   const [employers, setEmployers] = useState<EmployerProfile[]>(INITIAL_EMPLOYERS);
   const [jobSeekers, setJobSeekers] = useState<JobSeekerProfile[]>(() => {
     const saved = storageAdapter.getStoredJobSeekers([]);
@@ -239,13 +243,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [jobPosts, setJobPosts] = useState<JobPost[]>(INITIAL_JOB_POSTS);
   const [applications, setApplications] = useState<Application[]>(INITIAL_APPLICATIONS);
   const [interviews, setInterviews] = useState<Interview[]>(INITIAL_INTERVIEWS);
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
   const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>(INITIAL_ANNOUNCEMENTS);
   const [jobSubscriptions, setJobSubscriptions] = useState<JobAlertSubscription[]>(INITIAL_JOB_SUBSCRIPTIONS);
   const [referralSlips, setReferralSlips] = useState<PesoReferralSlip[]>(INITIAL_REFERRAL_SLIPS);
   const [localRecruitmentActivities, setLocalRecruitmentActivities] = useState<LocalRecruitmentActivity[]>(INITIAL_LRA_EVENTS);
-  const [activeToast, setActiveToast] = useState<ToastNotification | null>(null);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
@@ -270,12 +272,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [bookmarkedJobIds]);
 
   useEffect(() => {
-    if (users && users.length > 0) {
-      storageAdapter.setStoredUsers(users);
-    }
-  }, [users]);
-
-  useEffect(() => {
     if (jobSeekers && jobSeekers.length > 0) {
       storageAdapter.setStoredJobSeekers(jobSeekers);
     }
@@ -298,52 +294,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             console.log(`[Supabase] Connected to Roxas PostgreSQL database (${conn.latencyMs}ms). Initializing real-time listeners...`);
             setIsSupabaseConnected(true);
             await ensureDemoAccountsExistInSupabase();
-
-            // Listen to Supabase Auth state changes
-            const authSub = onSupabaseAuthStateChange((event, session) => {
-              if (session?.user?.email) {
-                const sessionEmail = session.user.email.toLowerCase();
-                setUsers((latestUsers) => {
-                  const match = latestUsers.find((u) => u.email.toLowerCase() === sessionEmail);
-                  if (match) {
-                    setCurrentUser(match);
-                  }
-                  return latestUsers;
-                });
-              }
-            });
-            unsubs.push(authSub.unsubscribe);
-
-            unsubs.push(
-              subscribeToSupabaseTable<User>(SUPABASE_TABLES.USERS, (data) => {
-                if (data && data.length > 0) {
-                  setUsers(prev => {
-                    const map = new Map<string, User>();
-                    prev.forEach(u => map.set(u.id, u));
-                    data.forEach(u => {
-                      if (u.role === 'admin' && u.id !== 'user-peso-admin-01' && u.email?.toLowerCase() !== 'peso.admin@roxas.gov.ph') {
-                        return;
-                      }
-                      const existing = map.get(u.id);
-                      const isCompleted = u.isProfileCompleted || existing?.isProfileCompleted || 
-                        storageAdapter.isProfileCompletedInStorage(u.id) ||
-                        (u.email ? storageAdapter.isProfileCompletedInStorage(u.email) : false);
-                      map.set(u.id, { ...u, isProfileCompleted: Boolean(isCompleted) });
-                    });
-                    return Array.from(map.values());
-                  });
-                  setCurrentUser(prev => {
-                    if (!prev) return null;
-                    const match = data.find(u => u.id === prev.id);
-                    if (!match) return prev;
-                    const completed = prev.isProfileCompleted || match.isProfileCompleted || 
-                      storageAdapter.isProfileCompletedInStorage(prev.id) ||
-                      (prev.email ? storageAdapter.isProfileCompletedInStorage(prev.email) : false);
-                    return { ...match, isProfileCompleted: Boolean(completed) };
-                  });
-                }
-              })
-            );
 
             unsubs.push(
               subscribeToSupabaseTable<EmployerProfile>(SUPABASE_TABLES.EMPLOYERS, (data) => {
@@ -396,12 +346,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             unsubs.push(
               subscribeToSupabaseTable<Interview>(SUPABASE_TABLES.INTERVIEWS, (data) => {
                 if (data && data.length > 0) setInterviews(data);
-              })
-            );
-
-            unsubs.push(
-              subscribeToSupabaseTable<NotificationItem>(SUPABASE_TABLES.NOTIFICATIONS, (data) => {
-                if (data && data.length > 0) setNotifications(data);
               })
             );
 
@@ -552,417 +496,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setAuditLogs(prev => [newLog, ...prev]);
     saveDocument(COLLECTIONS.AUDIT_LOGS, newLog);
-  };
-
-  // Switch Active Role / User
-  const switchUserRole = (userId: string | null) => {
-    if (!userId) {
-      setCurrentUser(null);
-      return;
-    }
-    const targetUser = users.find(u => u.id === userId);
-    if (targetUser) {
-      setCurrentUser(targetUser);
-    } else {
-      setCurrentUser(null);
-    }
-  };
-
-  // Login As (Authenticates against registered users)
-  const loginAs = (email: string, password?: string) => {
-    const cleanEmail = email.toLowerCase().trim();
-    
-    // Search in registered users state
-    let found = users.find(u => u.email.toLowerCase() === cleanEmail);
-
-    // If not found in dynamic state, check storageAdapter
-    if (!found) {
-      const savedUsers = storageAdapter.getStoredUsers([]);
-      const locUser = savedUsers.find((u: any) => u.email && u.email.toLowerCase() === cleanEmail);
-      if (locUser) {
-        found = locUser;
-        setUsers(prev => {
-          const map = new Map<string, User>();
-          prev.forEach(u => map.set(u.id, u));
-          map.set(locUser.id, locUser);
-          return Array.from(map.values());
-        });
-      }
-    }
-
-    // If not found in dynamic state, lookup demo accounts
-    if (!found) {
-      const demo = getDemoAccountByEmail(cleanEmail);
-      if (demo) {
-        found = {
-          id: demo.userId,
-          email: demo.email,
-          name: demo.name,
-          role: demo.role,
-          avatar: demo.avatar,
-          isAccountVerified: true,
-          createdAt: new Date().toISOString(),
-          password: demo.password
-        } as any;
-        setUsers(prev => [found!, ...prev]);
-        saveDocument(COLLECTIONS.USERS, found!);
-      }
-    }
-
-    if (!found) {
-      return { success: false, error: 'No account found with this email address. Please register for an account.' };
-    }
-
-    if (password && (found as any).password && (found as any).password !== password) {
-      return { success: false, error: 'Incorrect password. Please try again.' };
-    }
-
-    // Check if seeker profile is completed
-    const matchingSeeker = jobSeekers.find(s => 
-      s.userId === found!.id || 
-      s.id === found!.id || 
-      (s.email && s.email.toLowerCase() === cleanEmail)
-    );
-
-    const isSeekerProfileCompleted = isSeekerProfileComplete(found, matchingSeeker);
-
-    const matchingEmployer = employers.find(e => 
-      e.userId === found!.id || 
-      e.id === found!.id || 
-      (e.email && e.email.toLowerCase() === cleanEmail)
-    );
-
-    const isEmployerProfileCompleted = isEmployerProfileComplete(found, matchingEmployer);
-
-    if (found.role === 'job_seeker') {
-      (found as any).isProfileCompleted = isSeekerProfileCompleted;
-      if (isSeekerProfileCompleted) {
-        markProfileCompletedInStorage([found!.id, cleanEmail], 'job_seeker');
-      }
-    } else if (found.role === 'employer') {
-      (found as any).isProfileCompleted = isEmployerProfileCompleted;
-      if (isEmployerProfileCompleted) {
-        markProfileCompletedInStorage([found!.id, cleanEmail], 'employer');
-      }
-    }
-
-    setCurrentUser(found);
-    logAudit('LOGIN_SUCCESS', 'User', found.id, `User signed in as ${found.email} (${found.role})`);
-
-    // Dual-persistence session synchronization with Supabase Auth
-    if (isSupabaseConfigured()) {
-      signInWithSupabase(cleanEmail, password).catch(() => {});
-    }
-
-    return { 
-      success: true, 
-      user: found, 
-      isProfileCompleted: found.role === 'job_seeker' 
-        ? isSeekerProfileCompleted 
-        : (found.role === 'employer' ? isEmployerProfileCompleted : true),
-      seekerProfile: matchingSeeker,
-      employerProfile: matchingEmployer
-    };
-  };
-
-  // Instant 1-Click Demo Account Switcher for Thesis Defense
-  const switchDemoRole = (target: 'job_seeker' | 'employer' | 'admin' | string) => {
-    let email = '';
-    const cleanTarget = (target || '').trim().toLowerCase();
-
-    if (cleanTarget === 'job_seeker' || cleanTarget === 'seeker') {
-      email = 'juan.delacruz@jobseeker.ph';
-    } else if (cleanTarget === 'employer') {
-      email = 'puregold.roxas@employer.ph';
-    } else if (cleanTarget === 'admin') {
-      email = 'peso.admin@roxas.gov.ph';
-    } else {
-      const demo = DEMO_ACCOUNTS.find(
-        (a) => a.id.toLowerCase() === cleanTarget || a.email.toLowerCase() === cleanTarget || a.userId.toLowerCase() === cleanTarget
-      );
-      if (demo) {
-        email = demo.email;
-      } else {
-        email = target;
-      }
-    }
-
-    const res = loginAs(email, 'password123');
-    if (res.success && res.user) {
-      logAudit('DEMO_ROLE_SWITCH', 'User', res.user.id, `1-Click switched active persona to ${res.user.name} (${res.user.role})`);
-      showToast({
-        title: `Persona: ${res.user.role === 'admin' ? 'PESO Admin' : res.user.role === 'employer' ? 'Employer' : 'Job Seeker'}`,
-        message: `Switched to ${res.user.name} (${res.user.email}).`,
-        type: 'status',
-      });
-      return { success: true, user: res.user, role: res.user.role };
-    }
-
-    return { success: false, error: res.error || 'Failed to switch demo account.' };
-  };
-
-  // Google OAuth Authentication via Supabase
-  const continueWithGoogle = async (intendedRole: UserRole = 'job_seeker') => {
-    try {
-      const res = await signInWithSupabaseOAuth('google');
-      if (!res.success) {
-        return { success: false, error: res.error || 'Failed to authenticate with Google.' };
-      }
-
-      // If browser OAuth redirect URL was returned
-      if (res.data?.url && typeof window !== 'undefined') {
-        storageAdapter.setItem('ehanap_oauth_intended_role', intendedRole);
-        window.location.href = res.data.url;
-        return { success: true };
-      }
-
-      const googleUser = res.data?.user;
-      if (!googleUser || !googleUser.email) {
-        return { success: false, error: 'Could not retrieve Google account information.' };
-      }
-      
-      const email = googleUser.email.toLowerCase().trim();
-      const existingUser = users.find(u => u.email.toLowerCase() === email);
-      
-      if (existingUser) {
-        // Existing user login -> preserve their exact system role
-        setCurrentUser(existingUser);
-        logAudit('GOOGLE_AUTH_LOGIN', 'User', existingUser.id, `Signed in via Google OAuth as ${existingUser.email} (${existingUser.role})`);
-        
-        const matchingSeeker = jobSeekers.find(s => s.userId === existingUser.id || (s.email && s.email.toLowerCase() === email));
-        const matchingEmployer = employers.find(e => e.userId === existingUser.id || (e.email && e.email.toLowerCase() === email));
-
-        const isCompleted = existingUser.role === 'job_seeker'
-          ? isSeekerProfileComplete(existingUser, matchingSeeker)
-          : existingUser.role === 'employer'
-          ? isEmployerProfileComplete(existingUser, matchingEmployer)
-          : true;
-
-        return {
-          success: true,
-          isNewUser: false,
-          user: existingUser,
-          seekerProfile: matchingSeeker,
-          employerProfile: matchingEmployer,
-          isProfileCompleted: isCompleted,
-        };
-      } else {
-        const metadata = googleUser.user_metadata || {};
-        const name = metadata.full_name || metadata.name || googleUser.displayName || email.split('@')[0];
-        const newUserId = `user-${Date.now()}`;
-        const avatarUrl = metadata.avatar_url || googleUser.photoURL || undefined;
-        
-        if (intendedRole === 'employer') {
-          // Clear any stale local flags for this new account
-          clearProfileCompletedInStorage([newUserId, email], 'employer');
-
-          // Create new Employer account
-          const newUser: User = {
-            id: newUserId,
-            email,
-            name,
-            role: 'employer',
-            isProfileCompleted: false, // NEW account must complete profile setup
-            createdAt: new Date().toISOString(),
-            avatar: avatarUrl,
-          };
-
-          const newEmpId = `emp-${Date.now()}`;
-          const newEmp: EmployerProfile = {
-            id: newEmpId,
-            userId: newUserId,
-            companyName: name || 'Business Establishment',
-            representativeName: name || 'Authorized Representative',
-            contactNumber: '',
-            email,
-            address: 'Roxas, Oriental Mindoro',
-            municipality: 'Roxas',
-            industry: 'Information Technology',
-            companyDescription: '',
-            status: 'pending',
-            isProfileCompleted: false, // NEW account must complete setup wizard
-            logoUrl: avatarUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
-            createdAt: new Date().toISOString(),
-          };
-
-          setUsers(prev => [...prev, newUser]);
-          setEmployers(prev => [...prev, newEmp]);
-          setCurrentUser(newUser);
-
-          saveDocument(COLLECTIONS.USERS, newUser);
-          saveDocument(COLLECTIONS.EMPLOYERS, newEmp);
-
-          logAudit('GOOGLE_AUTH_REGISTER', 'User', newUserId, `New Employer account registered via Google OAuth for ${email}`);
-
-          return {
-            success: true,
-            isNewUser: true,
-            isProfileCompleted: false,
-            user: newUser,
-            employerProfile: newEmp,
-          };
-        } else {
-          // Clear any stale local flags for this new account
-          clearProfileCompletedInStorage([newUserId, email], 'job_seeker');
-
-          // Brand new Google user -> create real Job Seeker account
-          const nameParts = name.trim().split(/\s+/);
-          const firstName = nameParts[0] || 'Job';
-          const lastName = nameParts.slice(1).join(' ') || 'Seeker';
-          
-          const newUser: User = {
-            id: newUserId,
-            email,
-            name,
-            role: 'job_seeker',
-            isProfileCompleted: false, // NEW account must complete profile setup
-            createdAt: new Date().toISOString(),
-            avatar: avatarUrl,
-          };
-          
-          const newSeekerId = `seeker-${Date.now()}`;
-          const newSeeker: JobSeekerProfile = {
-            id: newSeekerId,
-            userId: newUserId,
-            firstName,
-            lastName,
-            dateOfBirth: '2000-01-01',
-            email,
-            contactNumber: '',
-            address: 'Bagumbayan, Roxas',
-            municipality: 'Roxas',
-            profilePicture: avatarUrl,
-            professionalSummary: 'Job seeker registered via Google on eHANAP Roxas.',
-            educationalAttainment: "Bachelor's Degree",
-            primaryDegree: '',
-            technicalSkills: [],
-            softSkills: ['Communication', 'Teamwork'],
-            education: [],
-            workExperience: [],
-            certifications: [],
-            resumes: [],
-            isProfileCompleted: false, // NEW account must complete profile setup
-            employmentStatus: 'unemployed',
-            updatedAt: new Date().toISOString(),
-          };
-          
-          // Save to Supabase & local state
-          setUsers(prev => [...prev, newUser]);
-          setJobSeekers(prev => [...prev, newSeeker]);
-          setCurrentUser(newUser);
-          
-          saveDocument(COLLECTIONS.USERS, newUser);
-          saveDocument(COLLECTIONS.JOB_SEEKERS, newSeeker);
-          
-          logAudit('GOOGLE_AUTH_REGISTER', 'User', newUserId, `New Job Seeker account registered via Google OAuth for ${email}`);
-          
-          return {
-            success: true,
-            isNewUser: true,
-            isProfileCompleted: false,
-            user: newUser,
-            seekerProfile: newSeeker,
-          };
-        }
-      }
-    } catch (err: any) {
-      console.warn('Google sign-in notice:', err?.message || err);
-      return { success: false, error: err?.message || 'Failed to authenticate with Google.' };
-    }
-  };
-
-  // Logout
-  const logout = () => {
-    if (isSupabaseConfigured()) {
-      signOutWithSupabase().catch(() => {});
-    }
-    setCurrentUser(null);
-  };
-
-  // OTP & Password Recovery State
-  const otpStore = useRef<Map<string, { code: string; expiresAt: number }>>(new Map());
-
-  const sendOtp = (identifier: string) => {
-    const cleanId = identifier.trim().toLowerCase();
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 mins
-    otpStore.current.set(cleanId, { code, expiresAt });
-
-    try {
-      sessionStorage.setItem(`otp_${cleanId}`, JSON.stringify({ code, expiresAt }));
-    } catch {
-      // quiet fallback
-    }
-
-    logAudit('OTP_GENERATED', 'Security', cleanId, `Generated verification OTP for ${cleanId}`);
-
-    showToast({
-      title: '🔐 Verification Code Dispatched',
-      message: `Your 6-digit verification code is: ${code} (Valid for 10 minutes).`,
-    });
-
-    return { success: true, code };
-  };
-
-  const verifyOtp = (identifier: string, code: string) => {
-    const cleanId = identifier.trim().toLowerCase();
-    let stored = otpStore.current.get(cleanId);
-
-    if (!stored) {
-      try {
-        const raw = sessionStorage.getItem(`otp_${cleanId}`);
-        if (raw) stored = JSON.parse(raw);
-      } catch {
-        // quiet fallback
-      }
-    }
-
-    // Support demo bypass code '123456' or exact matching OTP
-    if (code.trim() === '123456' || (stored && stored.code === code.trim() && Date.now() <= stored.expiresAt)) {
-      otpStore.current.delete(cleanId);
-      try { sessionStorage.removeItem(`otp_${cleanId}`); } catch {}
-
-      // Activate user account if matching user exists
-      const targetUser = users.find(u => u.email.toLowerCase() === cleanId || (u.phone && u.phone.includes(cleanId)));
-      if (targetUser) {
-        const updatedUser = { ...targetUser, isAccountVerified: true };
-        setUsers(prev => prev.map(u => u.id === targetUser.id ? updatedUser : u));
-        saveDocument(COLLECTIONS.USERS, updatedUser);
-
-        // Update seeker profile if applicable
-        const seeker = jobSeekers.find(s => s.userId === targetUser.id);
-        if (seeker) {
-          const updatedSeeker = { ...seeker, isAccountVerified: true };
-          setJobSeekers(prev => prev.map(s => s.id === seeker.id ? updatedSeeker : s));
-          saveDocument(COLLECTIONS.JOB_SEEKERS, updatedSeeker);
-        }
-      }
-
-      logAudit('OTP_VERIFIED', 'Security', cleanId, `Account verified successfully.`);
-      return { success: true };
-    }
-
-    if (stored && Date.now() > stored.expiresAt) {
-      return { success: false, error: 'Verification code has expired. Please request a new code.' };
-    }
-
-    return { success: false, error: 'Invalid verification code. Please check the code sent to your email/mobile.' };
-  };
-
-  const recoverPassword = (identifier: string, code: string, newPassword: string) => {
-    const verification = verifyOtp(identifier, code);
-    if (!verification.success) {
-      return verification;
-    }
-
-    const cleanId = identifier.trim().toLowerCase();
-    const user = users.find(u => u.email.toLowerCase() === cleanId || (u.phone && u.phone.includes(cleanId)));
-    if (!user) {
-      return { success: false, error: 'No account found with this email or mobile number.' };
-    }
-
-    logAudit('PASSWORD_RECOVERED', 'Security', user.id, `Password reset successfully via OTP verification.`);
-    return { success: true };
   };
 
   // Verify Employer (Admin Action)
@@ -1149,15 +682,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // If this seeker is the currently active user, show toast notification immediately
         if (currentUser?.id === seeker.userId) {
-          setActiveToast({
-            id: `toast-${Date.now()}`,
+          showToast({
             title: `High Match Vacancy Available!`,
             message: `${job.companyName} posted "${job.title}" (${Math.round(matchResult.overallMatch)}% Match). Apply now!`,
             jobId: job.id,
             companyName: job.companyName,
             municipality: job.municipality,
             category: job.category,
-            createdAt: new Date().toISOString(),
           });
         }
       }
@@ -2218,204 +1749,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
-  // Notifications
-  const addNotification = (notifData: {
-    recipientId: string;
-    recipientRole?: UserRole;
-    title: string;
-    message: string;
-    type?: 'info' | 'success' | 'warning' | 'action' | string;
-    link?: string;
-    actionUrl?: string;
-  }) => {
-    const validTypes: ('info' | 'success' | 'warning' | 'action')[] = ['info', 'success', 'warning', 'action'];
-    const resolvedType: 'info' | 'success' | 'warning' | 'action' = 
-      validTypes.includes(notifData.type as any) 
-        ? (notifData.type as any) 
-        : 'info';
-
-    const notif: NotificationItem = {
-      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-      recipientId: notifData.recipientId,
-      recipientRole: notifData.recipientRole || 'job_seeker',
-      title: notifData.title,
-      message: notifData.message,
-      type: resolvedType,
-      read: false,
-      createdAt: new Date().toISOString(),
-      link: notifData.link || notifData.actionUrl || '/seeker/dashboard',
-    };
-    setNotifications(prev => [notif, ...prev]);
-    saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
-  };
-
-  const markNotificationRead = (notificationId: string) => {
-    setNotifications(prev => prev.map(n => {
-      if (n.id === notificationId) {
-        const updated = { ...n, read: true };
-        updateDocument(COLLECTIONS.NOTIFICATIONS, notificationId, { read: true });
-        return updated;
-      }
-      return n;
-    }));
-  };
-
-  const markAllNotificationsRead = (recipientId: string) => {
-    setNotifications(prev => prev.map(n => {
-      if (n.recipientId === recipientId) {
-        updateDocument(COLLECTIONS.NOTIFICATIONS, n.id, { read: true });
-        return { ...n, read: true };
-      }
-      return n;
-    }));
-  };
-
-  const deleteNotification = (notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId));
-    deleteDocument(COLLECTIONS.NOTIFICATIONS, notificationId);
-  };
-
-  const clearAllNotifications = (recipientId: string) => {
-    const userEmailStr = (currentUser?.email || '').toLowerCase();
-    const seekerId = currentSeekerProfile?.id;
-    const seekerUserId = currentSeekerProfile?.userId;
-
-    setNotifications(prev => prev.filter(n => {
-      const isTarget = 
-        n.recipientId === recipientId || 
-        n.recipientId === currentUser?.id ||
-        (userEmailStr && n.recipientId?.toLowerCase() === userEmailStr) ||
-        (seekerId && n.recipientId === seekerId) ||
-        (seekerUserId && n.recipientId === seekerUserId) ||
-        (!n.recipientId && n.recipientRole === currentUser?.role);
-      if (isTarget) {
-        deleteDocument(COLLECTIONS.NOTIFICATIONS, n.id);
-        return false;
-      }
-      return true;
-    }));
-  };
-
-  // User Registration
-  const registerUser = (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => {
-    if (userData.role === 'admin') {
-      return { 
-        success: false, 
-        error: 'The LGU/PESO municipal oversight is restricted to a single authorized administrator account (peso.admin@roxas.gov.ph). Registering additional administrative accounts is disabled.' 
-      };
-    }
-
-    const existing = users.find(u => u.email.toLowerCase() === userData.email.toLowerCase());
-    if (existing) {
-      return { success: false, error: 'An account with this email address already exists.' };
-    }
-
-    const newUserId = `user-${Date.now()}`;
-    const cleanRegEmail = userData.email.toLowerCase().trim();
-
-    // Clear any stale local flags for this newly registered account
-    clearProfileCompletedInStorage([newUserId, cleanRegEmail], 'job_seeker');
-    clearProfileCompletedInStorage([newUserId, cleanRegEmail], 'employer');
-
-    const newUser: User = {
-      ...userData,
-      id: newUserId,
-      email: cleanRegEmail,
-      isProfileCompleted: false, // NEW account must complete setup wizard
-      createdAt: new Date().toISOString(),
-      ...(extraProfile?.password ? { password: extraProfile.password } : {}),
-    };
-
-    setUsers(prev => [...prev, newUser]);
-    saveDocument(COLLECTIONS.USERS, newUser);
-
-    if (userData.role === 'job_seeker') {
-      const newSeeker: JobSeekerProfile = {
-        id: `seeker-${Date.now()}`,
-        userId: newUserId,
-        firstName: extraProfile.firstName || 'New',
-        lastName: extraProfile.lastName || 'Seeker',
-        dateOfBirth: extraProfile.dateOfBirth || '2000-01-01',
-        email: userData.email,
-        contactNumber: extraProfile.contactNumber || '',
-        address: extraProfile.address || (extraProfile.barangay ? `Brgy. ${extraProfile.barangay}, Roxas, Oriental Mindoro` : ''),
-        municipality: extraProfile.municipality || 'Roxas',
-        professionalSummary: extraProfile.professionalSummary || 'Job seeker registered on eHANAP Oriental Mindoro.',
-        educationalAttainment: extraProfile.educationalAttainment || "Bachelor's Degree",
-        primaryDegree: extraProfile.primaryDegree || '',
-        technicalSkills: extraProfile.technicalSkills || [],
-        softSkills: extraProfile.softSkills || ['Communication'],
-        education: extraProfile.education || (extraProfile.school || extraProfile.primaryDegree ? [{
-          id: `edu-${Date.now()}`,
-          degreeCourse: extraProfile.primaryDegree || '',
-          school: extraProfile.school || 'Higher Education Institution',
-          yearGraduated: new Date().getFullYear(),
-          educationalAttainment: extraProfile.educationalAttainment || "Bachelor's Degree",
-        }] : []),
-        workExperience: extraProfile.workExperience || (extraProfile.workExperienceYears > 0 ? [{
-          id: `exp-${Date.now()}`,
-          company: 'Previous Employer',
-          position: 'Staff / Specialist',
-          startDate: `${new Date().getFullYear() - Math.max(1, Math.round(extraProfile.workExperienceYears))}`,
-          endDate: 'Present',
-          isCurrent: true,
-          responsibilities: 'Relevant vocational and professional experience.',
-          yearsOfExperience: Number(extraProfile.workExperienceYears),
-        }] : []),
-        certifications: extraProfile.certifications || [],
-        resumes: extraProfile.resumes || [],
-        activeResumeId: extraProfile.activeResumeId || undefined,
-        isProfileCompleted: false, // Must complete profile setup wizard first
-        updatedAt: new Date().toISOString(),
-      };
-      setJobSeekers(prev => [...prev, newSeeker]);
-      saveDocument(COLLECTIONS.JOB_SEEKERS, newSeeker);
-    } else if (userData.role === 'employer') {
-      const newEmp: EmployerProfile = {
-        id: `emp-${Date.now()}`,
-        userId: newUserId,
-        companyName: extraProfile.companyName || userData.name,
-        representativeName: extraProfile.representativeName || userData.name,
-        contactNumber: extraProfile.contactNumber || '',
-        email: userData.email,
-        address: extraProfile.address || '',
-        municipality: extraProfile.municipality || 'Calapan City',
-        industry: extraProfile.industry || 'Business Services',
-        companyDescription: extraProfile.companyDescription || 'Registered Employer in Oriental Mindoro.',
-        status: 'pending', // Requires PESO verification
-        isProfileCompleted: false, // Must complete setup wizard first
-        businessPermitNo: extraProfile.businessPermitNo || '',
-        dtiSecRegistration: extraProfile.dtiSecRegistration || '',
-        createdAt: new Date().toISOString(),
-      };
-      setEmployers(prev => [...prev, newEmp]);
-      saveDocument(COLLECTIONS.EMPLOYERS, newEmp);
-
-      // Notify Admin of pending employer
-      const adminUser = users.find(u => u.role === 'admin');
-      if (adminUser) {
-        const notif: NotificationItem = {
-          id: `notif-${Date.now()}`,
-          recipientId: adminUser.id,
-          recipientRole: 'admin',
-          title: 'New Employer Registration Pending Verification',
-          message: `${newEmp.companyName} (${newEmp.municipality}) submitted registration for PESO review.`,
-          type: 'warning',
-          read: false,
-          createdAt: new Date().toISOString(),
-          link: '/admin/verifications',
-        };
-        setNotifications(n => [notif, ...n]);
-        saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
-      }
-    }
-
-    setCurrentUser(newUser);
-    logAudit('USER_REGISTERED', 'User', newUserId, `Registered new ${userData.role} account`);
-
-    return { success: true, user: newUser };
-  };
-
   // Check job subscriptions and notify matching job seekers
   const checkJobSubscriptionsAndNotify = (newJob: JobPost) => {
     jobSubscriptions.filter(s => s.isActive).forEach(sub => {
@@ -2446,31 +1779,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
 
         if (sub.isToastAlertEnabled) {
-          setActiveToast({
-            id: `toast-${Date.now()}`,
+          showToast({
             title: `Matching Job Vacancy Opened!`,
             message: `${newJob.companyName} published "${newJob.title}" in ${newJob.municipality} matching your "${sub.title}" criteria.`,
             jobId: newJob.id,
             companyName: newJob.companyName,
             municipality: newJob.municipality,
             category: newJob.category,
-            createdAt: new Date().toISOString(),
           });
         }
       }
     });
-  };
-
-  const showToast = (toast: Omit<ToastNotification, 'id' | 'createdAt'>) => {
-    setActiveToast({
-      ...toast,
-      id: `toast-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-    });
-  };
-
-  const dismissToast = () => {
-    setActiveToast(null);
   };
 
   const addJobSubscription = (subData: Omit<JobAlertSubscription, 'id' | 'createdAt'>): JobAlertSubscription => {
@@ -2576,12 +1895,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setChatMessages([]);
     setCompanyReviews([]);
     setProfileViews([]);
-    setActiveToast({
-      id: 'toast-reset-demo',
+    showToast({
       title: 'Demo Accounts Loaded',
       message: 'Active demo accounts for PESO Admin, Puregold, Tech, Agriculture, and Retail Saleslady ready.',
       type: 'success',
-      timestamp: new Date().toISOString()
     });
   };
 
@@ -2763,7 +2080,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   return (
-    <AppContext.Provider
+    <AppCoreContext.Provider
       value={{
         currentUser,
         currentEmployerProfile,
@@ -2847,12 +2164,28 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }}
     >
       {children}
-    </AppContext.Provider>
+    </AppCoreContext.Provider>
+  );
+};
+
+export const AppContext = AppCoreContext;
+
+export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  return (
+    <ToastProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <AppCoreProvider>
+            {children}
+          </AppCoreProvider>
+        </AuthProvider>
+      </NotificationProvider>
+    </ToastProvider>
   );
 };
 
 export const useApp = () => {
-  const context = useContext(AppContext);
+  const context = useContext(AppCoreContext);
   if (!context) {
     throw new Error('useApp must be used within an AppProvider');
   }
