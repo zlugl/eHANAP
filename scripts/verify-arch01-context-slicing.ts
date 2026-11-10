@@ -111,6 +111,56 @@ async function runVerification() {
     'NotificationDrawer consumes useNotification() directly'
   );
 
+  // -------------------------------------------------------------
+  // Suite 3: Auth & Session Context (AuthContext)
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 3] Auth & Session Context (AuthContext)');
+
+  const authContextPath = path.join(rootDir, 'src/context/AuthContext.tsx');
+  assert(fs.existsSync(authContextPath), 'src/context/AuthContext.tsx exists on disk');
+
+  if (fs.existsSync(authContextPath)) {
+    const authContent = fs.readFileSync(authContextPath, 'utf-8');
+    assert(authContent.includes('export const AuthContext'), 'AuthContext is exported');
+    assert(authContent.includes('export const AuthProvider'), 'AuthProvider is exported');
+    assert(authContent.includes('export const useAuth'), 'useAuth hook is exported');
+    assert(authContent.includes('currentUser'), 'AuthContext provides currentUser state');
+    assert(authContent.includes('currentRole'), 'AuthContext provides currentRole state');
+    assert(authContent.includes('switchDemoRole'), 'AuthContext provides switchDemoRole action');
+    assert(authContent.includes('loginAs'), 'AuthContext provides loginAs action');
+    assert(authContent.includes('continueWithGoogle'), 'AuthContext provides continueWithGoogle action');
+    assert(authContent.includes('logout'), 'AuthContext provides logout action');
+    assert(authContent.includes('registerUser'), 'AuthContext provides registerUser action');
+    assert(authContent.includes('sendOtp'), 'AuthContext provides sendOtp action');
+    assert(authContent.includes('verifyOtp'), 'AuthContext provides verifyOtp action');
+    assert(authContent.includes('recoverPassword'), 'AuthContext provides recoverPassword action');
+
+    // Dynamically test AuthContext exports
+    const authModule = await import('../src/context/AuthContext.js').catch(() =>
+      import('../src/context/AuthContext.tsx')
+    );
+    assert(typeof authModule.AuthProvider === 'function', 'AuthProvider is a React component');
+    assert(typeof authModule.useAuth === 'function', 'useAuth is a valid hook');
+  }
+
+  // Consumer verification: AuthModal
+  const authModalPath = path.join(rootDir, 'src/views/AuthModal.tsx');
+  assert(fs.existsSync(authModalPath), 'AuthModal.tsx exists');
+  const authModalContent = fs.readFileSync(authModalPath, 'utf-8');
+  assert(
+    authModalContent.includes("from '../context/AuthContext'") ||
+    authModalContent.includes('from "../context/AuthContext"'),
+    'AuthModal imports from AuthContext'
+  );
+  assert(
+    authModalContent.includes('useAuth()'),
+    'AuthModal consumes useAuth() directly'
+  );
+  assert(
+    !authModalContent.includes('useApp()'),
+    'AuthModal does not import or call useApp()'
+  );
+
   console.log(`\n--- Verification Summary: ${passedTests}/${totalTests} tests passed ---`);
 }
 

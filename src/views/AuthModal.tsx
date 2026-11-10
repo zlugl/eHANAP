@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { isProfileComplete } from '../utils/routeGuards';
 import { 
   X, 
@@ -89,11 +90,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     loginAs, 
     registerUser, 
     continueWithGoogle, 
-    showToast,
     sendOtp,
     verifyOtp,
     recoverPassword 
-  } = useApp();
+  } = useAuth();
+  const { showToast } = useToast();
 
   // Mode: 'login' | 'register'
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
