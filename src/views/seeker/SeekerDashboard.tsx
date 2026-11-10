@@ -84,7 +84,10 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
     employers,
     applications,
     interviews,
-    referralSlips
+    referralSlips,
+    bookmarkedJobIds,
+    toggleBookmarkJob,
+    isJobBookmarked
   } = useApp();
 
   // State
@@ -107,16 +110,6 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
   // Filter criteria
   const [filterWorkSetup, setFilterWorkSetup] = useState<'all' | 'Remote' | 'On-site' | 'Hybrid'>('all');
   const [filterJobType, setFilterJobType] = useState<'all' | 'Full-Time' | 'Part-Time' | 'Contract'>('all');
-
-  // Bookmarks persistence
-  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('seeker_bookmarked_jobs');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
 
   // Decision Tree match score evaluator for Seeker Job Feed
   const getJobMatchScore = (jobId: string): { score: number; label: string } => {
@@ -218,16 +211,12 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
 
   const toggleBookmark = (jobId: string, jobTitle: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const exists = bookmarkedIds.includes(jobId);
-    const next = exists ? bookmarkedIds.filter(id => id !== jobId) : [...bookmarkedIds, jobId];
-    setBookmarkedIds(next);
-    try {
-      localStorage.setItem('seeker_bookmarked_jobs', JSON.stringify(next));
-    } catch {}
+    const wasBookmarked = isJobBookmarked(jobId);
+    toggleBookmarkJob(jobId);
     showToast({
-      title: exists ? 'Removed from Bookmarks' : 'Saved to Bookmarks',
-      message: exists ? `"${jobTitle}" was removed from your saved list.` : `"${jobTitle}" has been saved to your bookmarks.`,
-      type: exists ? 'info' : 'success'
+      title: wasBookmarked ? 'Removed from Bookmarks' : 'Saved to Bookmarks',
+      message: wasBookmarked ? `"${jobTitle}" was removed from your saved list.` : `"${jobTitle}" has been saved to your bookmarks.`,
+      type: wasBookmarked ? 'info' : 'success'
     });
   };
 
@@ -313,7 +302,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
         job={viewingJob}
         onBack={() => setViewingJob(null)}
         onNavigate={onNavigate}
-        isBookmarked={bookmarkedIds.includes(viewingJob.id)}
+        isBookmarked={isJobBookmarked(viewingJob.id)}
         onToggleBookmark={toggleBookmark}
         onSelectOtherJob={(ojId) => {
           const nextJob = registeredDisplayJobs.find(j => j.id === ojId);
@@ -451,7 +440,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
               </div>
             ) : (
               filteredSuggested.map((job) => {
-                const isBookmarked = bookmarkedIds.includes(job.id);
+                const isBookmarked = isJobBookmarked(job.id);
                 const match = getJobMatchScore(job.id);
                 return (
                   <div
@@ -609,7 +598,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
               </div>
             ) : (
               filteredRecent.map((job) => {
-                const isBookmarked = bookmarkedIds.includes(job.id);
+                const isBookmarked = isJobBookmarked(job.id);
                 const match = getJobMatchScore(job.id);
                 return (
                   <div

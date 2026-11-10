@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '../context/AppContext';
 import { JobOfferView } from '../components/JobOfferView';
 
@@ -9,28 +9,24 @@ interface JobDetailPageProps {
 }
 
 export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, onNavigate, onOpenAuth }) => {
-  const { jobPosts, employers, applications, currentUser, showToast } = useApp();
-
-  const [bookmarkedIds, setBookmarkedIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('seeker_bookmarked_jobs');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
+  const { 
+    jobPosts, 
+    employers, 
+    applications, 
+    currentUser, 
+    showToast,
+    bookmarkedJobIds,
+    toggleBookmarkJob,
+    isJobBookmarked
+  } = useApp();
 
   const toggleBookmark = (jId: string, jTitle: string) => {
-    const exists = bookmarkedIds.includes(jId);
-    const next = exists ? bookmarkedIds.filter(id => id !== jId) : [...bookmarkedIds, jId];
-    setBookmarkedIds(next);
-    try {
-      localStorage.setItem('seeker_bookmarked_jobs', JSON.stringify(next));
-    } catch {}
+    const wasBookmarked = isJobBookmarked(jId);
+    toggleBookmarkJob(jId);
     showToast({
-      title: exists ? 'Removed from Bookmarks' : 'Saved to Bookmarks',
-      message: exists ? `"${jTitle}" was removed from your saved list.` : `"${jTitle}" has been saved to your bookmarks.`,
-      type: exists ? 'info' : 'success'
+      title: wasBookmarked ? 'Removed from Bookmarks' : 'Saved to Bookmarks',
+      message: wasBookmarked ? `"${jTitle}" was removed from your saved list.` : `"${jTitle}" has been saved to your bookmarks.`,
+      type: wasBookmarked ? 'info' : 'success'
     });
   };
 
@@ -87,7 +83,7 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, onNavigate,
       job={displayJob}
       onBack={() => onNavigate(currentUser?.role === 'job_seeker' ? 'seeker-dashboard' : 'jobs')}
       onNavigate={onNavigate}
-      isBookmarked={bookmarkedIds.includes(job.id)}
+      isBookmarked={isJobBookmarked(job.id)}
       onToggleBookmark={toggleBookmark}
       onSelectOtherJob={(ojId) => onNavigate('job-detail', { jobId: ojId })}
     />

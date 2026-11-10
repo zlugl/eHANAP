@@ -193,6 +193,25 @@ assert(isEmployerProfileComplete(incompleteEmployer as any, incompleteEmployerPr
 clearProfileCompletedInStorage([incompleteEmployer.id, incompleteEmployer.email], 'employer');
 assert(isEmployerProfileComplete(incompleteEmployer as any, incompleteEmployerProf as any) === false, 'Employer evaluates as false after clearProfileCompletedInStorage');
 
+// -------------------------------------------------------------
+// Suite 6: Cross-Component Bookmark Synchronization
+// -------------------------------------------------------------
+console.log('\n>>> [Suite 6] Cross-Component Bookmark Synchronization');
+
+const jobDetailContent = fs.readFileSync(path.resolve(process.cwd(), 'src/views/JobDetailPage.tsx'), 'utf-8');
+const seekerDashboardContent = fs.readFileSync(path.resolve(process.cwd(), 'src/views/seeker/SeekerDashboard.tsx'), 'utf-8');
+const appContextContent = fs.readFileSync(path.resolve(process.cwd(), 'src/context/AppContext.tsx'), 'utf-8');
+
+assert(!jobDetailContent.includes('seeker_bookmarked_jobs'), 'JobDetailPage.tsx does not use rogue seeker_bookmarked_jobs key');
+assert(!jobDetailContent.includes('const [bookmarkedIds, setBookmarkedIds]'), 'JobDetailPage.tsx has retired local bookmarkedIds state in favor of AppContext');
+assert(jobDetailContent.includes('toggleBookmarkJob'), 'JobDetailPage.tsx routes bookmark actions through AppContext.toggleBookmarkJob');
+
+assert(!seekerDashboardContent.includes('seeker_bookmarked_jobs'), 'SeekerDashboard.tsx does not use rogue seeker_bookmarked_jobs key');
+assert(!seekerDashboardContent.includes('const [bookmarkedIds, setBookmarkedIds]'), 'SeekerDashboard.tsx has retired local bookmarkedIds state in favor of AppContext');
+
+assert(appContextContent.includes('storageAdapter.getBookmarks'), 'AppContext.tsx hydrates bookmarks via storageAdapter.getBookmarks');
+assert(appContextContent.includes('storageAdapter.setBookmarks'), 'AppContext.tsx persists bookmarks via storageAdapter.setBookmarks');
+
 // Print summary
 console.log('\n================================================================');
 console.log(`ARCH-03 Verification Summary: ${passedTests}/${totalTests} tests passed`);

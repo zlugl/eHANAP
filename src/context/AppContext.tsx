@@ -76,6 +76,7 @@ import {
   onSupabaseAuthStateChange,
 } from '../services/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { storageAdapter } from '../lib/storageAdapter';
 import { auth } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
@@ -280,12 +281,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Color UI State
   const [bookmarkedJobIds, setBookmarkedJobIds] = useState<string[]>(() => {
-    try {
-      const saved = localStorage.getItem('ehanap_bookmarks');
-      return saved ? JSON.parse(saved) : INITIAL_BOOKMARKED_JOB_IDS;
-    } catch {
-      return INITIAL_BOOKMARKED_JOB_IDS;
-    }
+    return storageAdapter.getBookmarks(INITIAL_BOOKMARKED_JOB_IDS);
   });
   const [conversations, setConversations] = useState<ChatConversation[]>(INITIAL_CONVERSATIONS);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT_MESSAGES);
@@ -309,11 +305,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [invitations]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem('ehanap_bookmarks', JSON.stringify(bookmarkedJobIds));
-    } catch (e) {
-      console.warn('Failed to save bookmarks to localStorage', e);
-    }
+    storageAdapter.setBookmarks(bookmarkedJobIds);
   }, [bookmarkedJobIds]);
 
   useEffect(() => {
