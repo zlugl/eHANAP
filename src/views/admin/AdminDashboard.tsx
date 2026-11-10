@@ -11,6 +11,8 @@ import {
 } from 'recharts';
 import { useApp } from '../../context/AppContext';
 import { ROXAS_MUNICIPALITY, ROXAS_BARANGAYS } from '../../data/mockData';
+import { PesoReferralSlipModal } from '../../components/admin/PesoReferralSlipModal';
+import { PesoReferralSlip } from '../../types';
 import { 
   ShieldCheck, 
   ShieldAlert, 
@@ -63,6 +65,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [announcementText, setAnnouncementText] = useState('');
   const [announcementAudience, setAnnouncementAudience] = useState<'all' | 'job_seeker' | 'employer'>('all');
   const [announcementSuccess, setAnnouncementSuccess] = useState(false);
+
+  // Referral Modal & Barangay View States
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+  const [selectedSlipForModal, setSelectedSlipForModal] = useState<PesoReferralSlip | null>(null);
+  const [barangayViewMode, setBarangayViewMode] = useState<'top' | 'all'>('top');
 
   // The Exact PESO Roxas Metrics as mandated by specification:
   // 1. Registered Job Seekers (College, High School, OSY)
@@ -162,6 +169,59 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     return sorted[0]?.skill || 'Bookkeeping';
   }, [skillGapData]);
 
+  // Barangay-Level Employment & Placement Distribution across Roxas
+  const barangayEmploymentData = useMemo(() => {
+    const placedSeekerIds = new Set([
+      ...applications.filter(a => a.currentStatus === 'hired').map(a => a.jobSeekerId),
+      ...referralSlips.filter(r => r.status === 'hired' || r.status === 'hired_on_the_spot').map(r => r.jobSeekerId)
+    ]);
+
+    const data = ROXAS_BARANGAYS.map(brgy => {
+      const brgySeekers = jobSeekers.filter(s => 
+        (s.barangay && s.barangay.toLowerCase() === brgy.toLowerCase()) ||
+        (s.address && s.address.toLowerCase().includes(brgy.toLowerCase()))
+      );
+      const registered = brgySeekers.length;
+      const placed = brgySeekers.filter(s => 
+        placedSeekerIds.has(s.id) || 
+        s.employmentStatus === 'hired' || 
+        s.employmentStatus === 'hired_on_the_spot'
+      ).length;
+      const active = Math.max(0, registered - placed);
+      const placementRate = registered > 0 ? Math.round((placed / registered) * 100) : 0;
+
+      return {
+        barangay: brgy,
+        "Registered Seekers": registered,
+        "Placed Workers": placed,
+        active,
+        placementRate
+      };
+    });
+
+    const sorted = [...data].sort((a, b) => b["Registered Seekers"] - a["Registered Seekers"]);
+    return barangayViewMode === 'top' ? sorted.slice(0, 8) : sorted;
+  }, [jobSeekers, applications, referralSlips, barangayViewMode]);
+
+  // Industry Demand Aggregation from Active Job Postings
+  const industryDemandData = useMemo(() => {
+    const map: Record<string, { vacancies: number; postings: number }> = {};
+    jobPosts.forEach(post => {
+      const ind = post.industry || 'General Commerce';
+      if (!map[ind]) map[ind] = { vacancies: 0, postings: 0 };
+      map[ind].vacancies += (post.vacanciesCount || 1);
+      if (post.status === 'active') {
+        map[ind].postings += 1;
+      }
+    });
+
+    return Object.entries(map).map(([industry, val]) => ({
+      industry,
+      "Available Vacancies": val.vacancies,
+      "Active Postings": val.postings
+    })).sort((a, b) => b["Available Vacancies"] - a["Available Vacancies"]);
+  }, [jobPosts]);
+
   const handleVerify = (employerId: string, status: 'verified' | 'rejected') => {
     verifyEmployer(employerId, status);
     showToast({
@@ -207,6 +267,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
         {/* Primary Operational Action Buttons */}
         <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => {
+              setSelectedSlipForModal(null);
+              setIsReferralModalOpen(true);
+            }}
+            className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 cursor-pointer"
+          >
+            <FileCheck className="w-4 h-4 text-emerald-200" />
+            <span>Issue Referral Slip</span>
+          </button>
+
           <button
             onClick={() => onNavigate('admin-job-matching')}
             className="px-3.5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl shadow-sm transition-all flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 cursor-pointer"
@@ -529,6 +600,173 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         </div>
       </div>
 
+      {/* Municipal Labor Analytics: Barangay Distribution & Industry Demand Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Barangay-Level Employment Distribution (Recharts) */}
+        <div className="lg:col-span-7 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md border border-amber-200">
+                  Municipal Geospatial Labor Map
+                </span>
+                <span className="text-[10px] font-bold text-slate-400">20 Roxas Barangays</span>
+              </div>
+              <h3 className="text-base font-black text-slate-900 mt-1 flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-amber-600" />
+                Barangay Employment & Placement Distribution
+              </h3>
+              <p className="text-xs text-slate-500">
+                Tracking workforce registration versus confirmed placements per Roxas barangay.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs shrink-0">
+              <button
+                onClick={() => setBarangayViewMode('top')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase transition-all cursor-pointer ${
+                  barangayViewMode === 'top' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                Top 8
+              </button>
+              <button
+                onClick={() => setBarangayViewMode('all')}
+                className={`px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase transition-all cursor-pointer ${
+                  barangayViewMode === 'all' ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                All 20
+              </button>
+            </div>
+          </div>
+
+          <div className="h-72 w-full pt-1">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={barangayEmploymentData}
+                margin={{ top: 10, right: 20, left: -10, bottom: 25 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="barangay" 
+                  angle={-25} 
+                  textAnchor="end" 
+                  interval={0} 
+                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
+                  height={40}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10, fill: '#64748b' }} 
+                  allowDecimals={false}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#0f172a', 
+                    borderRadius: '12px', 
+                    border: 'none', 
+                    color: '#fff', 
+                    fontSize: '11px',
+                    boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.3)'
+                  }} 
+                />
+                <Legend 
+                  verticalAlign="top" 
+                  align="right" 
+                  wrapperStyle={{ fontSize: '11px', paddingBottom: '8px' }} 
+                />
+                <Bar 
+                  dataKey="Registered Seekers" 
+                  fill="#f59e0b" 
+                  radius={[6, 6, 0, 0]} 
+                  barSize={18}
+                />
+                <Bar 
+                  dataKey="Placed Workers" 
+                  fill="#10b981" 
+                  radius={[6, 6, 0, 0]} 
+                  barSize={18}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 border-t border-slate-100 text-[11px]">
+            <div className="p-2.5 bg-slate-50 rounded-xl text-center">
+              <span className="text-[10px] text-slate-400 block font-bold uppercase">Top Seeker Brgy</span>
+              <span className="font-bold text-slate-900 truncate block">{barangayEmploymentData[0]?.barangay || 'Bagumbayan'}</span>
+            </div>
+            <div className="p-2.5 bg-slate-50 rounded-xl text-center">
+              <span className="text-[10px] text-slate-400 block font-bold uppercase">Placements</span>
+              <span className="font-black text-emerald-600 block">{hiredSeekers + hotsCount} Hired</span>
+            </div>
+            <div className="p-2.5 bg-slate-50 rounded-xl text-center">
+              <span className="text-[10px] text-slate-400 block font-bold uppercase">Active Seekers</span>
+              <span className="font-black text-amber-600 block">{Math.max(0, totalJobSeekers - hiredSeekers)}</span>
+            </div>
+            <div className="p-2.5 bg-slate-50 rounded-xl text-center">
+              <span className="text-[10px] text-slate-400 block font-bold uppercase">Coverage</span>
+              <span className="font-bold text-slate-900 block">100% (20 Brgys)</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Industry Demand Distribution */}
+        <div className="lg:col-span-5 bg-white p-6 rounded-3xl border border-slate-200/90 shadow-sm space-y-4 flex flex-col justify-between">
+          <div className="space-y-1 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-blue-50 text-blue-800 px-2 py-0.5 rounded-md border border-blue-200">
+                Industry Labor Absorption
+              </span>
+            </div>
+            <h3 className="text-base font-black text-slate-900 mt-1 flex items-center gap-2">
+              <Building2 className="w-4 h-4 text-blue-600" />
+              Municipal Industry Demand Breakdown
+            </h3>
+            <p className="text-xs text-slate-500">
+              Vacancies distribution by major economic sectors in Roxas.
+            </p>
+          </div>
+
+          <div className="space-y-3 py-1">
+            {industryDemandData.slice(0, 5).map((item, index) => {
+              const totalVacs = activeJobVacancies.reduce((acc, j) => acc + (j.vacanciesCount || 1), 0) || 1;
+              const pct = Math.round((item["Available Vacancies"] / totalVacs) * 100);
+              return (
+                <div key={item.industry} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-bold text-slate-800 truncate max-w-[200px]">{item.industry}</span>
+                    <span className="text-slate-600 font-mono font-bold tabular-nums">
+                      {item["Available Vacancies"]} slots ({pct}%)
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        index === 0 ? 'bg-indigo-600' : index === 1 ? 'bg-blue-500' : index === 2 ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${Math.min(100, Math.max(10, pct))}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="p-3 bg-indigo-50/70 border border-indigo-200/80 rounded-2xl text-xs space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-bold text-indigo-950">Top Absorbing Sector:</span>
+              <span className="font-black text-indigo-700">{industryDemandData[0]?.industry || 'Retail & Supermarket'}</span>
+            </div>
+            <p className="text-[10px] text-indigo-900/80">
+              MSMEs and regional chains constitute the primary employment generators in the municipality.
+            </p>
+          </div>
+        </div>
+
+      </div>
+
       {/* Grid: Pending Employer Verification Queue + Jobs Monitoring Feed */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         
@@ -683,32 +921,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
           {/* Quick Municipal Placement Activity Snippet */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3 shadow-2xs">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
               <h3 className="text-xs font-bold text-slate-900 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
                 Recent Roxas Employment Placements & Referral Endorsements
               </h3>
-              <button
-                onClick={() => onNavigate('admin-reports')}
-                className="text-xs font-bold text-amber-800 hover:underline"
-              >
-                Full Analytics →
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedSlipForModal(null);
+                    setIsReferralModalOpen(true);
+                  }}
+                  className="px-2.5 py-1 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300 rounded-lg text-[10px] font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <FileCheck className="w-3 h-3 text-emerald-600" />
+                  <span>+ Issue Slip</span>
+                </button>
+                <button
+                  onClick={() => onNavigate('admin-reports')}
+                  className="text-xs font-bold text-amber-800 hover:underline"
+                >
+                  Full Analytics →
+                </button>
+              </div>
             </div>
 
-            {applications.filter(a => a.currentStatus === 'hired').length === 0 && referralSlips.filter(r => r.status === 'hired' || r.status === 'hired_on_the_spot').length === 0 ? (
+            {applications.filter(a => a.currentStatus === 'hired').length === 0 && referralSlips.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-4">No candidate placements recorded yet in Roxas.</p>
             ) : (
               <div className="space-y-2 text-xs">
-                {referralSlips.filter(r => r.status === 'hired' || r.status === 'hired_on_the_spot').slice(0, 3).map(slip => (
-                  <div key={slip.id} className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-slate-900">{slip.jobSeekerName}</p>
-                      <p className="text-[11px] text-slate-600">Placed as <strong className="text-slate-800">{slip.jobTitle}</strong> at {slip.employerName}</p>
+                {referralSlips.slice(0, 4).map(slip => (
+                  <div key={slip.id} className="p-3 bg-emerald-50/60 border border-emerald-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-[10px] font-bold text-emerald-900 bg-emerald-100 px-1.5 py-0.2 rounded border border-emerald-300">
+                          {slip.referralNumber || slip.slipNumber || 'REF-ROXAS'}
+                        </span>
+                        <p className="font-bold text-slate-900 text-xs">{slip.jobSeekerName}</p>
+                      </div>
+                      <p className="text-[11px] text-slate-600">
+                        Placed as <strong className="text-slate-800">{slip.jobTitle}</strong> at {slip.employerName}
+                      </p>
                     </div>
-                    <span className="text-[10px] font-black bg-emerald-200 text-emerald-950 px-2 py-0.5 rounded uppercase">
-                      {slip.status.replace(/_/g, ' ')}
-                    </span>
+
+                    <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
+                      <span className="text-[10px] font-black bg-emerald-200 text-emerald-950 px-2 py-0.5 rounded uppercase">
+                        {slip.status.replace(/_/g, ' ')}
+                      </span>
+                      <button
+                        onClick={() => {
+                          setSelectedSlipForModal(slip);
+                          setIsReferralModalOpen(true);
+                        }}
+                        className="px-2 py-1 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded text-[10px] font-bold cursor-pointer transition-colors"
+                      >
+                        Print Slip
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -829,6 +1098,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
         </div>
 
       </div>
+
+      {/* Official PESO Referral Slip Modal */}
+      <PesoReferralSlipModal
+        isOpen={isReferralModalOpen}
+        onClose={() => {
+          setIsReferralModalOpen(false);
+          setSelectedSlipForModal(null);
+        }}
+        existingSlip={selectedSlipForModal}
+      />
 
     </div>
   );

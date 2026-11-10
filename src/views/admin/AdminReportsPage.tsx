@@ -1,6 +1,18 @@
 import React, { useState, useMemo } from 'react';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
+} from 'recharts';
 import { useApp } from '../../context/AppContext';
-import { ORIENTAL_MINDORO_MUNICIPALITIES } from '../../data/mockData';
+import { ORIENTAL_MINDORO_MUNICIPALITIES, ROXAS_BARANGAYS } from '../../data/mockData';
+import { PesoReferralSlipModal } from '../../components/admin/PesoReferralSlipModal';
+import { PesoReferralSlip } from '../../types';
 import { 
   BarChart3, 
   TrendingUp, 
@@ -57,6 +69,8 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
   const [selectedMunicipality, setSelectedMunicipality] = useState<string>('all');
   const [selectedTimeframe, setSelectedTimeframe] = useState<string>('q1');
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+  const [selectedSlipForModal, setSelectedSlipForModal] = useState<PesoReferralSlip | null>(null);
 
   // Key system metrics
   const totalApplications = applications.length;
@@ -124,6 +138,47 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
     }).sort((a, b) => b.demanded - a.demanded);
   }, [jobPosts, jobSeekers]);
 
+  // Compute Barangay Labor & Placement Distribution for all 20 Roxas Barangays
+  const barangayData = useMemo(() => {
+    const placedSeekerIds = new Set([
+      ...applications.filter(a => a.currentStatus === 'hired').map(a => a.jobSeekerId),
+      ...referralSlips.filter(r => r.status === 'hired' || r.status === 'hired_on_the_spot').map(r => r.jobSeekerId)
+    ]);
+
+    return ROXAS_BARANGAYS.map(brgy => {
+      const brgySeekers = jobSeekers.filter(s => 
+        (s.barangay && s.barangay.toLowerCase() === brgy.toLowerCase()) ||
+        (s.address && s.address.toLowerCase().includes(brgy.toLowerCase()))
+      );
+      const registered = brgySeekers.length;
+      const placed = brgySeekers.filter(s => 
+        placedSeekerIds.has(s.id) || 
+        s.employmentStatus === 'hired' || 
+        s.employmentStatus === 'hired_on_the_spot'
+      ).length;
+      const active = Math.max(0, registered - placed);
+      const rate = registered > 0 ? Math.round((placed / registered) * 100) : 0;
+      const collegeCount = brgySeekers.filter(s => 
+        s.educationCategory === 'College Graduate' || s.educationalAttainment?.toLowerCase().includes('bachelor')
+      ).length;
+      const hsOsyCount = brgySeekers.filter(s => 
+        s.educationCategory === 'High School Graduate' || s.educationCategory === 'Out-of-School Youth'
+      ).length;
+
+      return {
+        barangay: brgy,
+        registered,
+        placed,
+        active,
+        rate,
+        collegeCount,
+        hsOsyCount,
+        "Registered Seekers": registered,
+        "Placed Workers": placed
+      };
+    }).sort((a, b) => b.registered - a.registered);
+  }, [jobSeekers, applications, referralSlips]);
+
   // Function to export CSV
   const handleExportCSV = (reportName: string) => {
     let csvContent = 'data:text/csv;charset=utf-8,';
@@ -143,6 +198,16 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
       employers.forEach(e => {
         csvContent += `"${e.companyName}","${e.industry}","${e.municipality}","${e.representativeName}","${e.status}","${e.contactNumber}","${e.email}"\r\n`;
       });
+    } else if (activeReportTab === 'municipality' || reportName.includes('Barangay')) {
+      csvContent += 'Barangay,Municipality,Registered Seekers,College Graduates,High School & OSY,Placed Workers,Active Seekers,Placement Rate\r\n';
+      barangayData.forEach(b => {
+        csvContent += `"${b.barangay}","Roxas",${b.registered},${b.collegeCount},${b.hsOsyCount},${b.placed},${b.active},"${b.rate}%"\r\n`;
+      });
+    } else if (activeReportTab === 'placements' || reportName.includes('Placement')) {
+      csvContent += 'Slip Number,Job Seeker Name,Target Employer,Position,Date Issued,Result Status\r\n';
+      referralSlips.forEach(r => {
+        csvContent += `"${r.referralNumber || r.slipNumber}","${r.jobSeekerName}","${r.employerName}","${r.jobTitle}","${r.dateIssued}","${r.status}"\r\n`;
+      });
     } else {
       csvContent += 'Job Title,Company,Municipality,Employment Type,Vacancies,Min Education,Deadline\r\n';
       jobPosts.forEach(j => {
@@ -153,7 +218,7 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `PESO_Oriental_Mindoro_${reportName}_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `PESO_Roxas_${reportName}_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -309,6 +374,18 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
         >
           <Flame className="w-4 h-4 text-amber-300" />
           <span>Placements & HOTS</span>
+        </button>
+
+        <button
+          onClick={() => setActiveReportTab('municipality')}
+          className={`px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 ${
+            activeReportTab === 'municipality'
+              ? 'bg-indigo-600 text-white shadow-xs'
+              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+          }`}
+        >
+          <MapPin className="w-4 h-4 text-emerald-400" />
+          <span>Barangay Distribution</span>
         </button>
       </div>
 
@@ -863,19 +940,20 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
                     <th className="py-3 px-4">Position</th>
                     <th className="py-3 px-4">Date Issued</th>
                     <th className="py-3 px-4">Result Status</th>
+                    <th className="py-3 px-4 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {referralSlips.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                      <td colSpan={7} className="py-8 text-center text-slate-400">
                         No referral slips or direct placements recorded yet.
                       </td>
                     </tr>
                   ) : (
                     referralSlips.map(slip => (
                       <tr key={slip.id} className="hover:bg-slate-50">
-                        <td className="py-3 px-4 font-mono font-bold text-slate-900">{slip.slipNumber}</td>
+                        <td className="py-3 px-4 font-mono font-bold text-slate-900">{slip.referralNumber || slip.slipNumber || 'REF-ROXAS'}</td>
                         <td className="py-3 px-4 font-semibold text-slate-900">{slip.jobSeekerName}</td>
                         <td className="py-3 px-4 text-slate-700">{slip.employerName}</td>
                         <td className="py-3 px-4 font-medium text-slate-800">{slip.jobTitle}</td>
@@ -884,16 +962,149 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
                           <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
                             slip.status === 'hired' || slip.status === 'hired_on_the_spot'
                               ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                              : slip.status === 'under_review'
+                              : slip.status === 'under_review' || slip.status === 'issued'
                               ? 'bg-amber-100 text-amber-800 border border-amber-300'
                               : 'bg-slate-100 text-slate-700'
                           }`}>
                             {slip.status.replace(/_/g, ' ')}
                           </span>
                         </td>
+                        <td className="py-3 px-4 text-right">
+                          <button
+                            onClick={() => {
+                              setSelectedSlipForModal(slip);
+                              setIsReferralModalOpen(true);
+                            }}
+                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-[10px] font-bold cursor-pointer transition-colors"
+                          >
+                            Print Slip
+                          </button>
+                        </td>
                       </tr>
                     ))
                   )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barangay Labor & Employment Distribution Tab */}
+      {activeReportTab === 'municipality' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/90 shadow-xs space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-emerald-600" />
+                <h2 className="text-lg font-black text-slate-900">Roxas Barangay Labor & Employment Distribution</h2>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                Geospatial breakdown of workforce registration, educational attainment, and placement outcomes across all 20 Roxas barangays.
+              </p>
+            </div>
+
+            <button
+              onClick={() => handleExportCSV('Barangay_Labor_Distribution')}
+              className="px-3.5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <Download className="w-4 h-4 text-emerald-400" />
+              <span>Export Barangay CSV</span>
+            </button>
+          </div>
+
+          {/* Barangay Chart */}
+          <div className="h-72 w-full pt-2">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={barangayData.slice(0, 10)}
+                margin={{ top: 10, right: 20, left: -10, bottom: 25 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis 
+                  dataKey="barangay" 
+                  angle={-25} 
+                  textAnchor="end" 
+                  interval={0} 
+                  tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }}
+                  height={40}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10, fill: '#64748b' }} 
+                  allowDecimals={false}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: '#0f172a', 
+                    borderRadius: '12px', 
+                    border: 'none', 
+                    color: '#fff', 
+                    fontSize: '11px' 
+                  }} 
+                />
+                <Legend 
+                  verticalAlign="top" 
+                  align="right" 
+                  wrapperStyle={{ fontSize: '11px', paddingBottom: '8px' }} 
+                />
+                <Bar 
+                  dataKey="Registered Seekers" 
+                  fill="#f59e0b" 
+                  radius={[6, 6, 0, 0]} 
+                  barSize={20}
+                />
+                <Bar 
+                  dataKey="Placed Workers" 
+                  fill="#10b981" 
+                  radius={[6, 6, 0, 0]} 
+                  barSize={20}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Comprehensive 20 Barangays Table */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                Full 20-Barangay Labor Ledger (Municipality of Roxas)
+              </h3>
+              <span className="text-xs text-slate-500 font-semibold">
+                Total Registered: {jobSeekers.length} Seekers • Placed: {hiredCount}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-slate-700 font-bold uppercase text-[10px]">
+                    <th className="py-3 px-4">Barangay</th>
+                    <th className="py-3 px-4">Municipality</th>
+                    <th className="py-3 px-4 text-center">College Grads</th>
+                    <th className="py-3 px-4 text-center">HS / OSY</th>
+                    <th className="py-3 px-4 text-center">Registered Pool</th>
+                    <th className="py-3 px-4 text-center">Placed Workers</th>
+                    <th className="py-3 px-4 text-right">Placement Rate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {barangayData.map(row => (
+                    <tr key={row.barangay} className="hover:bg-slate-50">
+                      <td className="py-3 px-4 font-bold text-slate-900">{row.barangay}</td>
+                      <td className="py-3 px-4 text-slate-600">Roxas, Oriental Mindoro</td>
+                      <td className="py-3 px-4 text-center font-medium text-slate-700">{row.collegeCount}</td>
+                      <td className="py-3 px-4 text-center font-medium text-slate-700">{row.hsOsyCount}</td>
+                      <td className="py-3 px-4 text-center font-bold text-amber-900 bg-amber-50/50">{row.registered}</td>
+                      <td className="py-3 px-4 text-center font-bold text-emerald-800 bg-emerald-50/50">{row.placed}</td>
+                      <td className="py-3 px-4 text-right font-mono font-bold text-slate-800">
+                        <span className={`px-2 py-0.5 rounded text-[10px] ${
+                          row.rate >= 50 ? 'bg-emerald-100 text-emerald-800' : row.rate > 0 ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {row.rate}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -1076,6 +1287,16 @@ export const AdminReportsPage: React.FC<AdminReportsPageProps> = ({ onNavigate }
           </div>
         </div>
       )}
+
+      {/* Official PESO Referral Slip Modal */}
+      <PesoReferralSlipModal
+        isOpen={isReferralModalOpen}
+        onClose={() => {
+          setIsReferralModalOpen(false);
+          setSelectedSlipForModal(null);
+        }}
+        existingSlip={selectedSlipForModal}
+      />
 
     </div>
   );

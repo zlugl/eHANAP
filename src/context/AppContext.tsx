@@ -19,6 +19,7 @@ import {
   JobStatus,
   PesoReferralSlip,
   LocalRecruitmentActivity,
+  LraCandidate,
   ChatMessage,
   ChatConversation,
   CompanyReview,
@@ -170,9 +171,12 @@ interface AppContextType {
   updateReferralSlipStatus: (slipId: string, status: PesoReferralSlip['status'], isHots?: boolean) => void;
   encodeWalkInJobSeeker: (seekerData: Partial<JobSeekerProfile> & { firstName: string; lastName: string; contactNumber: string }) => JobSeekerProfile;
   assessJobSeekerWalkIn: (seekerId: string, assessmentData: { practicalSkills?: string[]; tradeCertifications?: string[]; geographicMobility?: 'local_only' | 'provincial' | 'willing_to_relocate'; willingToRelocateForVisitingCompanies?: boolean; walkInAssessmentNotes?: string; assessedByOfficer?: string }) => void;
-  createLraEvent: (eventData: Omit<LocalRecruitmentActivity, 'id' | 'createdAt' | 'registeredApplicantsCount' | 'hotsCount' | 'interviewsConductedCount'>) => LocalRecruitmentActivity;
+  createLraEvent: (eventData: Omit<LocalRecruitmentActivity, 'id' | 'createdAt' | 'registeredApplicantsCount' | 'hotsCount' | 'interviewsConductedCount'> & Partial<LocalRecruitmentActivity>) => LocalRecruitmentActivity;
   updateLraEvent: (eventId: string, updates: Partial<LocalRecruitmentActivity>) => void;
   logHotsApplicant: (lraId: string, applicantName: string, position: string, employerId?: string, notes?: string) => void;
+  nominateCandidateToLra: (lraId: string, seekerId: string, targetPosition?: string, notes?: string) => void;
+  removeCandidateFromLra: (lraId: string, seekerId: string) => void;
+  updateLraCandidateStatus: (lraId: string, seekerId: string, status: LraCandidate['status'], notes?: string) => void;
 
   addNotification: (notifData: {
     recipientId: string;
@@ -2206,24 +2210,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // Local Recruitment Activity (LRA) Coordination
-  const createLraEvent = (eventData: Omit<LocalRecruitmentActivity, 'id' | 'createdAt' | 'registeredApplicantsCount' | 'hotsCount' | 'interviewsConductedCount'>): LocalRecruitmentActivity => {
+  const createLraEvent = (eventData: Omit<LocalRecruitmentActivity, 'id' | 'createdAt' | 'registeredApplicantsCount' | 'hotsCount' | 'interviewsConductedCount'> & Partial<LocalRecruitmentActivity>): LocalRecruitmentActivity => {
+    const defaultPositions = eventData.targetPositions || eventData.vacancies || ['General Staff'];
+    const defaultVenue = eventData.eventVenue || eventData.venue || 'Roxas Municipal Gymnasium, Bagumbayan, Roxas';
+    const defaultDate = eventData.eventDate || eventData.startDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const defaultSlots = eventData.totalVacancies || eventData.totalSlotsAvailable || 50;
+    const defaultApplicantTypes = eventData.targetApplicantTypes || (eventData.targetApplicantType ? eventData.targetApplicantType : ['High School Graduate', 'College Graduate']);
+
     const newLra: LocalRecruitmentActivity = {
       ...eventData,
       id: `lra-${Date.now()}`,
-      registeredApplicantsCount: 0,
+      eventTitle: eventData.eventTitle || eventData.eventName || `LRA: ${eventData.companyName}`,
+      eventName: eventData.eventName || eventData.eventTitle || `LRA: ${eventData.companyName}`,
+      eventVenue: defaultVenue,
+      venue: defaultVenue,
+      eventDate: defaultDate,
+      startDate: eventData.startDate || defaultDate,
+      endDate: eventData.endDate || defaultDate,
+      targetPositions: defaultPositions,
+      vacancies: defaultPositions,
+      totalVacancies: defaultSlots,
+      totalSlotsAvailable: defaultSlots,
+      targetApplicantTypes: defaultApplicantTypes,
+      targetApplicantType: defaultApplicantTypes,
+      willingnessToRelocateRequired: eventData.willingnessToRelocateRequired ?? false,
+      status: eventData.status || 'scheduled',
+      announcementPublished: eventData.announcementPublished ?? true,
+      isPubliclyAnnounced: eventData.isPubliclyAnnounced ?? true,
+      registeredApplicantsCount: eventData.nominatedCandidates?.length || 0,
       hotsCount: 0,
+      hotsApplicantsCount: 0,
       interviewsConductedCount: 0,
+      nominatedCandidateIds: eventData.nominatedCandidateIds || [],
+      nominatedCandidates: eventData.nominatedCandidates || [],
       createdAt: new Date().toISOString()
     };
 
     setLocalRecruitmentActivities(prev => [newLra, ...prev]);
     saveDocument(COLLECTIONS.LRA_EVENTS, newLra);
 
-    if (newLra.announcementPublished) {
+    if (newLra.announcementPublished || newLra.isPubliclyAnnounced) {
       const announcement: SystemAnnouncement = {
         id: `ann-${Date.now()}`,
         title: `📢 Upcoming Local Recruitment Activity: ${newLra.companyName}`,
-        content: `PESO Roxas invites qualified job seekers to the Local Recruitment Activity by ${newLra.companyName} on ${newLra.eventDate || (newLra as any).startDate || 'upcoming date'} at ${newLra.eventVenue || (newLra as any).venue || 'Roxas Municipal Gymnasium'}. Positions: ${(newLra.targetPositions || (newLra as any).vacancies || []).join(', ')}.`,
+        content: `PESO Roxas invites qualified job seekers to the Local Recruitment Activity by ${newLra.companyName} on ${new Date(defaultDate).toLocaleDateString()} at ${defaultVenue}. Positions: ${defaultPositions.join(', ')}.`,
         targetRole: 'job_seeker',
         datePosted: new Date().toISOString(),
         isImportant: true
@@ -2232,11 +2262,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       saveDocument(COLLECTIONS.ANNOUNCEMENTS, announcement);
     }
 
-    logAudit('CREATE_LRA_EVENT', 'LocalRecruitmentActivity', newLra.id, `Scheduled LRA for ${newLra.companyName} on ${newLra.eventDate}.`);
+    logAudit('CREATE_LRA_EVENT', 'LocalRecruitmentActivity', newLra.id, `Scheduled LRA for ${newLra.companyName} on ${defaultDate}.`);
 
     showToast({
       title: 'LRA Event Scheduled',
-      message: `Recruitment activity for ${newLra.companyName} created.`,
+      message: `Recruitment activity for ${newLra.companyName} created and announced.`,
       type: 'success'
     });
 
@@ -2256,6 +2286,179 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     logAudit('UPDATE_LRA_EVENT', 'LocalRecruitmentActivity', eventId, `Updated LRA parameters.`);
   };
 
+  const nominateCandidateToLra = (lraId: string, seekerId: string, targetPosition?: string, notes?: string) => {
+    const seeker = jobSeekers.find(s => s.id === seekerId);
+    if (!seeker) {
+      showToast({
+        title: 'Seeker Not Found',
+        message: 'Could not find candidate profile to nominate.',
+        type: 'alert'
+      });
+      return;
+    }
+
+    setLocalRecruitmentActivities(prev => prev.map(ev => {
+      if (ev.id === lraId) {
+        const existingCandidateIds = ev.nominatedCandidateIds || (ev.nominatedCandidates?.map(c => c.seekerId) || []);
+        if (existingCandidateIds.includes(seekerId)) {
+          showToast({
+            title: 'Candidate Already Nominated',
+            message: `${seeker.firstName} ${seeker.lastName} is already in the candidate pool for this LRA drive.`,
+            type: 'alert'
+          });
+          return ev;
+        }
+
+        const candidateEntry: LraCandidate = {
+          seekerId,
+          seekerName: `${seeker.firstName} ${seeker.lastName}`,
+          seekerContact: seeker.contactNumber,
+          seekerBarangay: seeker.barangay || seeker.municipality || 'Roxas',
+          educationalAttainment: seeker.educationalAttainment,
+          targetPosition: targetPosition || ev.targetPositions?.[0] || ev.vacancies?.[0] || 'Applicant',
+          nominatedAt: new Date().toISOString(),
+          status: 'nominated',
+          notes: notes || 'Nominated by PESO Roxas for LRA candidate pool.'
+        };
+
+        const updatedNominatedCandidates = [...(ev.nominatedCandidates || []), candidateEntry];
+        const updatedNominatedIds = [...existingCandidateIds, seekerId];
+        const newCount = updatedNominatedCandidates.length;
+
+        const updated: LocalRecruitmentActivity = {
+          ...ev,
+          nominatedCandidateIds: updatedNominatedIds,
+          nominatedCandidates: updatedNominatedCandidates,
+          registeredApplicantsCount: newCount
+        };
+
+        saveDocument(COLLECTIONS.LRA_EVENTS, updated);
+
+        // Notify seeker of nomination
+        addNotification({
+          recipientId: seeker.userId || seeker.id,
+          recipientRole: 'job_seeker',
+          title: `📢 PESO Nomination: ${ev.companyName} Recruitment Drive`,
+          message: `PESO Roxas has officially nominated your profile for the Local Recruitment Activity with ${ev.companyName} for position "${candidateEntry.targetPosition}".`,
+          type: 'action',
+          link: 'lra'
+        });
+
+        logAudit('NOMINATE_LRA_CANDIDATE', 'LocalRecruitmentActivity', lraId, `Nominated candidate ${seeker.firstName} ${seeker.lastName} to ${ev.companyName} LRA pool.`);
+
+        showToast({
+          title: 'Candidate Nominated to LRA Pool',
+          message: `${seeker.firstName} ${seeker.lastName} added to candidate pool for ${ev.companyName}.`,
+          type: 'success'
+        });
+
+        return updated;
+      }
+      return ev;
+    }));
+  };
+
+  const removeCandidateFromLra = (lraId: string, seekerId: string) => {
+    setLocalRecruitmentActivities(prev => prev.map(ev => {
+      if (ev.id === lraId) {
+        const updatedCandidates = (ev.nominatedCandidates || []).filter(c => c.seekerId !== seekerId);
+        const updatedIds = (ev.nominatedCandidateIds || []).filter(id => id !== seekerId);
+        const updated: LocalRecruitmentActivity = {
+          ...ev,
+          nominatedCandidateIds: updatedIds,
+          nominatedCandidates: updatedCandidates,
+          registeredApplicantsCount: updatedCandidates.length
+        };
+        saveDocument(COLLECTIONS.LRA_EVENTS, updated);
+        logAudit('REMOVE_LRA_CANDIDATE', 'LocalRecruitmentActivity', lraId, `Removed candidate ${seekerId} from LRA pool.`);
+        showToast({
+          title: 'Candidate Removed',
+          message: 'Candidate was removed from the LRA pool.',
+          type: 'status'
+        });
+        return updated;
+      }
+      return ev;
+    }));
+  };
+
+  const updateLraCandidateStatus = (lraId: string, seekerId: string, status: LraCandidate['status'], notes?: string) => {
+    setLocalRecruitmentActivities(prev => prev.map(ev => {
+      if (ev.id === lraId) {
+        let isNowHots = false;
+        let position = '';
+        const updatedCandidates = (ev.nominatedCandidates || []).map(c => {
+          if (c.seekerId === seekerId) {
+            if (status === 'hired_on_the_spot' && c.status !== 'hired_on_the_spot') {
+              isNowHots = true;
+              position = c.targetPosition || 'Hired Candidate';
+            }
+            return {
+              ...c,
+              status,
+              notes: notes || c.notes
+            };
+          }
+          return c;
+        });
+
+        const newHotsCount = isNowHots ? (ev.hotsCount || 0) + 1 : (ev.hotsCount || 0);
+
+        const updated: LocalRecruitmentActivity = {
+          ...ev,
+          nominatedCandidates: updatedCandidates,
+          hotsCount: newHotsCount,
+          hotsApplicantsCount: newHotsCount,
+          interviewsConductedCount: status === 'for_interview' 
+            ? (ev.interviewsConductedCount || 0) + 1 
+            : ev.interviewsConductedCount
+        };
+
+        saveDocument(COLLECTIONS.LRA_EVENTS, updated);
+
+        // If HOTS, update job seeker employment status
+        if (isNowHots) {
+          const seeker = jobSeekers.find(s => s.id === seekerId);
+          if (seeker) {
+            setJobSeekers(prevSeekers => prevSeekers.map(sk => {
+              if (sk.id === seekerId) {
+                const updatedSeeker: JobSeekerProfile = {
+                  ...sk,
+                  employmentStatus: 'hired_on_the_spot',
+                  currentEmployer: ev.companyName,
+                  hiredPosition: position,
+                  hiredAt: new Date().toISOString()
+                };
+                saveDocument(COLLECTIONS.JOB_SEEKERS, updatedSeeker);
+                return updatedSeeker;
+              }
+              return sk;
+            }));
+
+            addNotification({
+              recipientId: seeker.userId || seeker.id,
+              recipientRole: 'job_seeker',
+              title: `🎉 Congratulations! Hired-On-The-Spot: ${ev.companyName}`,
+              message: `You were officially recorded as Hired-On-The-Spot for the position "${position}" during the ${ev.companyName} Local Recruitment Activity.`,
+              type: 'success'
+            });
+          }
+        }
+
+        logAudit('UPDATE_LRA_CANDIDATE_STATUS', 'LocalRecruitmentActivity', lraId, `Candidate ${seekerId} status updated to ${status}.`);
+
+        showToast({
+          title: 'Candidate Status Updated',
+          message: `LRA Candidate status changed to ${status.replace(/_/g, ' ')}.`,
+          type: 'success'
+        });
+
+        return updated;
+      }
+      return ev;
+    }));
+  };
+
   const logHotsApplicant = (lraId: string, applicantName: string, position: string, employerId?: string, notes?: string) => {
     // 1. Increment HOTS in LRA event
     setLocalRecruitmentActivities(prev => prev.map(ev => {
@@ -2263,6 +2466,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const updated = {
           ...ev,
           hotsCount: (ev.hotsCount || 0) + 1,
+          hotsApplicantsCount: (ev.hotsCount || 0) + 1,
           interviewsConductedCount: Math.max(ev.interviewsConductedCount || 0, (ev.hotsCount || 0) + 1)
         };
         saveDocument(COLLECTIONS.LRA_EVENTS, updated);
@@ -2904,6 +3108,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         createLraEvent,
         updateLraEvent,
         logHotsApplicant,
+        nominateCandidateToLra,
+        removeCandidateFromLra,
+        updateLraCandidateStatus,
         addNotification,
         markNotificationRead,
         markAllNotificationsRead,

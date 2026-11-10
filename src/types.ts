@@ -199,6 +199,7 @@ export interface SkillAssessment {
   id: string;
   title: string;
   category: string;
+  industry?: string;
   description: string;
   durationMinutes: number;
   difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
@@ -324,6 +325,7 @@ export interface JobPost {
   companyVerified: boolean;
   title: string;
   category: string;
+  industry?: string;
   description: string;
   responsibilities: string[];
   employmentType: 'Full-time' | 'Part-time' | 'Contract' | 'Temporary' | 'Internship';
@@ -361,6 +363,7 @@ export interface JobPost {
 export interface PesoReferralSlip {
   id: string; // Unique ID
   referralNumber: string; // e.g. PESO-RXS-REF-2026-0042
+  slipNumber?: string; // Compatibility alias for referralNumber
   dateIssued: string;
   validUntil: string;
   
@@ -398,6 +401,18 @@ export interface PesoReferralSlip {
   createdAt: string;
 }
 
+export interface LraCandidate {
+  seekerId: string;
+  seekerName: string;
+  seekerContact?: string;
+  seekerBarangay?: string;
+  educationalAttainment?: string;
+  targetPosition?: string;
+  nominatedAt: string;
+  status: 'nominated' | 'screened' | 'for_interview' | 'hired_on_the_spot' | 'not_hired';
+  notes?: string;
+}
+
 export interface LocalRecruitmentActivity {
   id: string;
   companyName: string;
@@ -421,6 +436,28 @@ export interface LocalRecruitmentActivity {
   interviewsConductedCount: number;
   notes?: string;
   createdAt: string;
+
+  // Candidate Nomination & Pool Allocation
+  nominatedCandidateIds?: string[];
+  nominatedCandidates?: LraCandidate[];
+
+  // Form & View Compatibility Aliases
+  eventName?: string;
+  startDate?: string;
+  endDate?: string;
+  venue?: string;
+  vacancies?: string[];
+  totalSlotsAvailable?: number;
+  targetApplicantType?: ('College Graduate' | 'High School Graduate' | 'Out-of-School Youth' | 'Skilled/TESDA')[];
+  coordinatorName?: string;
+  coordinatorContact?: string;
+  hasLetterOfIntent?: boolean;
+  hasMayorsPermit?: boolean;
+  hasDoleRegistration?: boolean;
+  isDmwPoeaLicensed?: boolean;
+  isPubliclyAnnounced?: boolean;
+  remarks?: string;
+  hotsApplicantsCount?: number;
 }
 
 export interface MatchResult {

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { LocalRecruitmentActivity, JobSeekerProfile } from '../../types';
+import { LocalRecruitmentActivity, JobSeekerProfile, JobPost } from '../../types';
 import { 
   Calendar, 
   MapPin, 
@@ -17,8 +17,13 @@ import {
   X,
   Share2,
   Printer,
-  Sparkles
+  Sparkles,
+  UserPlus,
+  Trash2,
+  Filter,
+  Check
 } from 'lucide-react';
+import { PesoReferralSlipModal } from '../../components/admin/PesoReferralSlipModal';
 
 interface AdminLraPageProps {
   onNavigate: (view: string, params?: any) => void;
@@ -30,7 +35,11 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
     createLraEvent, 
     updateLraEvent, 
     logHotsApplicant, 
+    nominateCandidateToLra,
+    removeCandidateFromLra,
+    updateLraCandidateStatus,
     jobSeekers,
+    jobPosts,
     showToast 
   } = useApp();
 
@@ -40,6 +49,22 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
   const [selectedHotsSeekerId, setSelectedHotsSeekerId] = useState('');
   const [hotsPosition, setHotsPosition] = useState('');
   const [hotsSalary, setHotsSalary] = useState('');
+
+  // Search & Status Filter
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'scheduled' | 'ongoing' | 'completed'>('all');
+
+  // Candidate Nomination Modal State
+  const [isNominateModalOpen, setIsNominateModalOpen] = useState(false);
+  const [selectedNominateEvent, setSelectedNominateEvent] = useState<LocalRecruitmentActivity | null>(null);
+  const [nominateSeekerId, setNominateSeekerId] = useState('');
+  const [nominatePosition, setNominatePosition] = useState('');
+  const [nominateNotes, setNominateNotes] = useState('');
+
+  // Referral Slip Modal State
+  const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+  const [referralInitialSeeker, setReferralInitialSeeker] = useState<JobSeekerProfile | null>(null);
+  const [referralInitialJob, setReferralInitialJob] = useState<JobPost | null>(null);
 
   // New Event Form State
   const [eventName, setEventName] = useState('');
@@ -129,10 +154,62 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
     setHotsSalary('');
   };
 
+  const handleNominateSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedNominateEvent || !nominateSeekerId) {
+      showToast({
+        title: 'Selection Required',
+        message: 'Please choose a candidate to nominate to the LRA pool.',
+        type: 'alert'
+      });
+      return;
+    }
+
+    const defaultPosition = selectedNominateEvent.targetPositions?.[0] || selectedNominateEvent.vacancies?.[0] || 'LRA Applicant';
+    nominateCandidateToLra(
+      selectedNominateEvent.id,
+      nominateSeekerId,
+      nominatePosition || defaultPosition,
+      nominateNotes
+    );
+
+    setIsNominateModalOpen(false);
+    setNominateSeekerId('');
+    setNominatePosition('');
+    setNominateNotes('');
+  };
+
+  const handleOpenReferralSlipForCandidate = (candidate: any, event: LocalRecruitmentActivity) => {
+    const seeker = jobSeekers.find(s => s.id === candidate.seekerId) || null;
+    setReferralInitialSeeker(seeker);
+
+    const matchedJob = jobPosts.find(j => 
+      j.companyName.toLowerCase().includes(event.companyName.toLowerCase()) ||
+      event.companyName.toLowerCase().includes(j.companyName.toLowerCase())
+    ) || jobPosts[0] || null;
+
+    setReferralInitialJob(matchedJob);
+    setIsReferralModalOpen(true);
+  };
+
+  // Filtered Activities
+  const filteredActivities = useMemo(() => {
+    return localRecruitmentActivities.filter(ev => {
+      const title = ((ev as any).eventName || ev.eventTitle || '').toLowerCase();
+      const company = (ev.companyName || '').toLowerCase();
+      const origin = (ev.companyOrigin || '').toLowerCase();
+      const query = searchQuery.toLowerCase().trim();
+
+      const matchesSearch = !query || title.includes(query) || company.includes(query) || origin.includes(query);
+      const matchesStatus = statusFilter === 'all' || ev.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [localRecruitmentActivities, searchQuery, statusFilter]);
+
   // Metrics
   const totalLras = localRecruitmentActivities.length;
-  const totalSlots = localRecruitmentActivities.reduce((acc, curr) => acc + (curr.totalSlotsAvailable || 0), 0);
-  const totalHots = localRecruitmentActivities.reduce((acc, curr) => acc + (curr.hotsApplicantsCount || 0), 0);
+  const totalSlots = localRecruitmentActivities.reduce((acc, curr) => acc + (curr.totalSlotsAvailable || curr.totalVacancies || 0), 0);
+  const totalHots = localRecruitmentActivities.reduce((acc, curr) => acc + (curr.hotsApplicantsCount || curr.hotsCount || 0), 0);
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-sans">
@@ -199,14 +276,50 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
         </div>
       </div>
 
+      {/* Search & Filter Bar */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 text-xs">
+        <div className="relative flex-1">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search visiting company, LRA event title, or origin..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl bg-slate-50 focus:bg-white text-slate-900 font-medium focus:ring-2 focus:ring-amber-500 focus:outline-none"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-1">Status:</span>
+          {(['all', 'scheduled', 'ongoing', 'completed'] as const).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setStatusFilter(tab)}
+              className={`px-3 py-1.5 rounded-xl font-bold uppercase text-[10px] transition-colors cursor-pointer ${
+                statusFilter === tab
+                  ? 'bg-amber-500 text-slate-950 shadow-xs font-black'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* LRA Events Listing */}
       <div className="space-y-4">
-        <h2 className="font-bold text-slate-900 text-sm">
-          Active & Scheduled Recruitment Activities
-        </h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-bold text-slate-900 text-sm">
+            Active & Scheduled Recruitment Activities ({filteredActivities.length})
+          </h2>
+          <span className="text-xs text-slate-500">
+            Coordinated with PESO-LGU Roxas
+          </span>
+        </div>
 
         <div className="space-y-4">
-          {localRecruitmentActivities.map(event => (
+          {filteredActivities.map(event => (
             <div
               key={event.id}
               className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4 hover:border-amber-400 transition-all"
@@ -240,6 +353,17 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedNominateEvent(event);
+                      setIsNominateModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  >
+                    <UserPlus className="w-4 h-4 text-indigo-200" />
+                    <span>Nominate Candidates</span>
+                  </button>
+
                   <button
                     onClick={() => {
                       setSelectedEvent(event);
@@ -345,12 +469,141 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
                   ))}
                 </div>
               </div>
+
+              {/* Roxas Candidate Pool & Nominations Roster */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden bg-slate-50/60 mt-2">
+                <div className="p-3.5 bg-slate-100/80 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200 flex items-center justify-center text-indigo-600">
+                      <Users className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                        <span>Roxas Candidate Pool & Allocations</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-100 text-indigo-800">
+                          {event.nominatedCandidates?.length || 0} Candidates
+                        </span>
+                      </h4>
+                      <p className="text-[10px] text-slate-500">
+                        Pre-screened Roxas labor pool allocated for {event.companyName}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setSelectedNominateEvent(event);
+                      setIsNominateModalOpen(true);
+                    }}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>+ Nominate Candidate</span>
+                  </button>
+                </div>
+
+                {(!event.nominatedCandidates || event.nominatedCandidates.length === 0) ? (
+                  <div className="p-6 text-center text-slate-400 text-xs">
+                    <p>No candidates nominated for this recruitment drive yet.</p>
+                    <button
+                      onClick={() => {
+                        setSelectedNominateEvent(event);
+                        setIsNominateModalOpen(true);
+                      }}
+                      className="mt-2 text-indigo-600 hover:text-indigo-700 font-bold underline text-xs cursor-pointer"
+                    >
+                      Click here to nominate qualified Roxas residents
+                    </button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-100/50 text-slate-600 font-bold uppercase text-[9px]">
+                          <th className="py-2.5 px-3">Candidate</th>
+                          <th className="py-2.5 px-3">Barangay</th>
+                          <th className="py-2.5 px-3">Educational Attainment</th>
+                          <th className="py-2.5 px-3">Allocated Position</th>
+                          <th className="py-2.5 px-3">Status</th>
+                          <th className="py-2.5 px-3 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-200/80 bg-white">
+                        {event.nominatedCandidates.map(candidate => (
+                          <tr key={candidate.seekerId} className="hover:bg-slate-50/80 transition-colors">
+                            <td className="py-2.5 px-3 font-bold text-slate-900">
+                              <div>{candidate.seekerName}</div>
+                              <div className="text-[10px] text-slate-400 font-normal">{candidate.seekerContact}</div>
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-700 font-medium">
+                              {candidate.seekerBarangay || 'Roxas'}
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-700">
+                              {candidate.educationalAttainment || 'Registered Resident'}
+                            </td>
+                            <td className="py-2.5 px-3 font-semibold text-indigo-950">
+                              {candidate.targetPosition || 'General Vacancy'}
+                            </td>
+                            <td className="py-2.5 px-3">
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                                candidate.status === 'hired_on_the_spot'
+                                  ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                  : candidate.status === 'for_interview'
+                                  ? 'bg-blue-100 text-blue-900 border border-blue-300'
+                                  : candidate.status === 'screened'
+                                  ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}>
+                                {candidate.status.replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right space-x-1 whitespace-nowrap">
+                              {candidate.status !== 'for_interview' && candidate.status !== 'hired_on_the_spot' && (
+                                <button
+                                  onClick={() => updateLraCandidateStatus(event.id, candidate.seekerId, 'for_interview')}
+                                  title="Advance to Interview"
+                                  className="px-2 py-1 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 rounded text-[10px] font-bold cursor-pointer"
+                                >
+                                  Interview
+                                </button>
+                              )}
+                              {candidate.status !== 'hired_on_the_spot' && (
+                                <button
+                                  onClick={() => updateLraCandidateStatus(event.id, candidate.seekerId, 'hired_on_the_spot')}
+                                  title="Mark as Hired-On-The-Spot"
+                                  className="px-2 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded text-[10px] font-bold cursor-pointer"
+                                >
+                                  HOTS
+                                </button>
+                              )}
+                              <button
+                                onClick={() => handleOpenReferralSlipForCandidate(candidate, event)}
+                                title="Issue PESO Referral Slip"
+                                className="px-2 py-1 bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 rounded text-[10px] font-bold cursor-pointer"
+                              >
+                                Referral Slip
+                              </button>
+                              <button
+                                onClick={() => removeCandidateFromLra(event.id, candidate.seekerId)}
+                                title="Remove from LRA pool"
+                                className="p-1 text-slate-400 hover:text-rose-600 rounded cursor-pointer"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 inline" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
             </div>
           ))}
 
-          {localRecruitmentActivities.length === 0 && (
+          {filteredActivities.length === 0 && (
             <div className="bg-white p-12 text-center rounded-2xl border border-slate-200">
-              <p className="text-xs text-slate-500">No LRA recruitment activities scheduled yet.</p>
+              <p className="text-xs text-slate-500">No recruitment activities match your search or filter.</p>
             </div>
           )}
         </div>
@@ -631,6 +884,106 @@ export const AdminLraPage: React.FC<AdminLraPageProps> = ({ onNavigate }) => {
           </div>
         </div>
       )}
+
+      {/* Nominate Candidate to LRA Pool Modal */}
+      {isNominateModalOpen && selectedNominateEvent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden my-8 animate-in fade-in duration-200">
+            <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-5 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <UserPlus className="w-5 h-5 text-indigo-400" />
+                <div>
+                  <h3 className="font-bold text-white text-base">
+                    Nominate Candidate to LRA Pool
+                  </h3>
+                  <p className="text-[11px] text-slate-300">
+                    Allocating candidate for: {selectedNominateEvent.companyName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsNominateModalOpen(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleNominateSubmit} className="p-6 space-y-4 text-xs">
+              <div>
+                <label className="block font-bold text-slate-900 mb-1">Select Registered Roxas Job Seeker *</label>
+                <select
+                  value={nominateSeekerId}
+                  onChange={e => setNominateSeekerId(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-medium text-slate-900"
+                  required
+                >
+                  <option value="">-- Choose Candidate from Registered Pool --</option>
+                  {jobSeekers
+                    .filter(s => !(selectedNominateEvent.nominatedCandidateIds || []).includes(s.id))
+                    .map(s => (
+                      <option key={s.id} value={s.id}>
+                        {s.firstName} {s.lastName} ({s.educationCategory || s.educationalAttainment}) — Brgy. {s.barangay || s.municipality || 'Roxas'}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  Only candidates not yet in this LRA pool are listed.
+                </p>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-900 mb-1">Target Vacancy Position *</label>
+                <select
+                  value={nominatePosition}
+                  onChange={e => setNominatePosition(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white font-medium text-slate-900"
+                >
+                  <option value="">-- Select Event Position --</option>
+                  {(selectedNominateEvent.vacancies || selectedNominateEvent.targetPositions || ['General Vacancy']).map(pos => (
+                    <option key={pos} value={pos}>{pos}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-bold text-slate-900 mb-1">Nomination Remarks / Notes</label>
+                <textarea
+                  rows={2}
+                  value={nominateNotes}
+                  onChange={e => setNominateNotes(e.target.value)}
+                  placeholder="e.g. Recommended by PESO for technical capabilities; resident of Roxas."
+                  className="w-full p-2 border border-slate-200 rounded-xl text-slate-900"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsNominateModalOpen(false)}
+                  className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-xl shadow-md cursor-pointer"
+                >
+                  Confirm Candidate Nomination
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Official PESO Referral Slip Modal */}
+      <PesoReferralSlipModal
+        isOpen={isReferralModalOpen}
+        onClose={() => setIsReferralModalOpen(false)}
+        initialSeeker={referralInitialSeeker}
+        initialJobPost={referralInitialJob}
+      />
 
     </div>
   );

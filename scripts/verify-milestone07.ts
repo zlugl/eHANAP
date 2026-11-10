@@ -34,11 +34,15 @@ const suites = [
     command: 'npx tsx scripts/verify-milestone04-candidate-ranking.ts',
   },
   {
-    name: '6. Applicant Tracking System (ATS) Resume Evaluation Engine',
+    name: '6. PESO / LGU Admin Portal: LRA Management & Municipal Analytics (Milestone 05)',
+    command: 'npx tsx scripts/verify-milestone05-peso-lra-analytics.ts',
+  },
+  {
+    name: '7. Applicant Tracking System (ATS) Resume Evaluation Engine',
     command: 'npx tsx scripts/verify-ats-engine.ts',
   },
   {
-    name: '7. End-to-End Multi-Role Workflow Scenarios (Seeker, Employer, Admin)',
+    name: '8. End-to-End Multi-Role Workflow Scenarios (Seeker, Employer, Admin)',
     command: 'npx tsx scripts/verify-e2e-scenarios.ts',
   },
 ];
@@ -82,7 +86,7 @@ for (const res of results) {
 console.log('================================================================');
 
 if (allPassed) {
-  console.log('\n🎉 ALL TEST SUITES PASSED (340/340 tests verified across 7 suites)!');
+  console.log('\n🎉 ALL TEST SUITES PASSED (424/424 tests verified across 8 suites)!');
   console.log('Automated Verification for eHANAP Core Architecture & Milestones is COMPLETE.\n');
   process.exit(0);
 } else {

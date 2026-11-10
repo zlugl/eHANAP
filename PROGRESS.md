@@ -15,7 +15,7 @@ Project tracking across database migration to Supabase, candidate ranking automa
 | **02 / Phase 2** | **Multi-Role Authentication, Authorization & Session Management** | **COMPLETED** | `milestone/02-auth-roles` | 80/80 tests passed in verify-milestone02-auth.ts; 217/217 total suite passing |
 | **03 / Phase 3** | **End-to-End Data Pipeline & Bidirectional Sync ("Pagbato ng Data")** | **COMPLETED** | `milestone/03-data-flow-sync` | 72/72 tests passed in verify-milestone03-data-flow.ts; 289/289 total suite passing |
 | **04 / Phase 4** | **Automated Candidate Ranking & Two-Way Compatibility Matching Engine** | **COMPLETED** | `milestone/04-candidate-ranking` | 51/51 tests passed in verify-milestone04-candidate-ranking.ts; 340/340 total suite passing |
-| **05 / Phase 5** | **PESO / LGU Admin Portal: LRA Management & Municipal Analytics** | **PLANNED** | `milestone/05-peso-lra-analytics` | LRA event management & live municipal metrics |
+| **05 / Phase 5** | **PESO / LGU Admin Portal: LRA Management & Municipal Analytics** | **COMPLETED** | `milestone/05-peso-lra-analytics` | 84/84 tests passed in verify-milestone05-peso-lra-analytics.ts; 424/424 total suite passing |
 | **06 / Phase 6** | **UI / UX Modernization & Hallmark Editorial Redesign** | **COMPLETED** | `milestone/06-ui-ux-polish` | All sub-phases 06.1–06.6 verified; 0 errors |
 | **07 / Phase 7** | **Platform Hardening, End-to-End Testing & Thesis Defense Readiness** | **COMPLETED** | `milestone/07-defense-readiness` | Full automated test suite (137/137 passed) & presentation runbook |
 
@@ -211,23 +211,41 @@ Project tracking across database migration to Supabase, candidate ranking automa
 ---
 
 ### Milestone 05: PESO / LGU Admin Portal: LRA Management & Municipal Analytics
-- **Status**: Planned
+- **Status**: Completed
+- **Completed On**: 2026-11-10
 - **Target Branch**: `milestone/05-peso-lra-analytics`
+- **Verification**: `npx tsx scripts/verify-milestone05-peso-lra-analytics.ts` (84/84 passed), `npm test` (424/424 passed across 8 suites), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
 
 #### Deliverables & Implementation:
 1. **Local Recruitment Activity (LRA) Module**:
-   - LRA event creation and management for external employers recruiting in Roxas (e.g., Puregold Calapan).
-   - Roxas candidate nomination and pool allocation.
+   - Comprehensive LRA event management in `AdminLraPage.tsx` supporting external visiting employers recruiting in Roxas (e.g., Puregold Calapan, Batangas Port Logistics).
+   - Candidate pool nomination modal and table allowing administrators to select unallocated Roxas job seekers, review contact and educational attainment, and designate target positions.
+   - Built candidate lifecycle actions: `Screen`, `Interview`, `Hired On The Spot (HOTS)`, `Referral Slip`, and `Remove`.
+   - Candidate status updates trigger automatic real-time audit logging (`NOMINATE_LRA_CANDIDATE`, `UPDATE_LRA_CANDIDATE_STATUS`) and instant seeker notifications.
+   - Upon HOTS confirmation: increments event HOTS tallies and automatically hydrates candidate profiles (`employmentStatus: 'hired_on_the_spot'`, `currentEmployer`, `hiredPosition`, `hiredAt`) for live municipal labor accounting.
 2. **Municipal Labor Analytics Dashboard**:
-   - Total Job Seekers, Verified Roxas Employers, Active Vacancies, and Placement Counts.
-   - Barangay-level employment distribution and industry demand charts.
-   - Printable PESO Referral Slip generator.
+   - Live municipal labor metrics computed across Roxas database records: Total Job Seekers by educational attainment (College, High School, OSY), Verified Roxas Employers, Active Vacancies, and Hired/Placement tallies.
+   - Interactive Recharts bar charts in `AdminDashboard.tsx` and `AdminReportsPage.tsx` displaying:
+     - **Barangay-Level Employment & Placement Distribution** across all 16 Roxas barangays (Bagumbayan, Cantil, Dangay, Happy Valley, Libertad, Mabuhay, Marugdug, Odiong, Paclasan, San Aquilino, San Isidro, San Jose, San Mariano, San Rafael, San Vicente, Victoria) with toggle between Top 8 and All 16 barangays.
+     - **Municipal Industry Demand Breakdown** visualizing vacancy counts across Roxas economic sectors (Customer Service & Retail, Information Technology, Agriculture & Fisheries, etc.).
+   - Full 16-barangay ledger table with automated CSV export (`Barangay_Labor_Distribution`) in `AdminReportsPage.tsx`.
+3. **Printable PESO Referral Slip Generator**:
+   - Built modal-driven PESO Referral Slip generator (`PesoReferralSlipModal.tsx`) integrated into `AdminLraPage.tsx`, `AdminDashboard.tsx`, and `AdminReportsPage.tsx`.
+   - Features standardized municipal referral numbers (`PESO-RXS-REF-YYYY-XXXX`), official Roxas seal & LGU header, candidate details, employer destination, 30-day validity window, printable CSS layout (`@media print`), and automated endorsement audit trail.
+4. **Automated Verification Suite (`scripts/verify-milestone05-peso-lra-analytics.ts`)**:
+   - Authored 84 unit and pipeline tests across 7 suites covering: LRA lifecycle, candidate nomination & pool allocation, HOTS tracking & seeker profile hydration, municipal labor metrics, 16-barangay distribution, industry demand breakdown, and printable PESO Referral Slip generation.
+   - Unified into master test runner (`scripts/verify-milestone07.ts`), elevating total automated test coverage to 424/424 passing tests.
 
 #### Definition of Done Checklist:
-- [ ] LRA creation, posting, and applicant tracking functional.
-- [ ] Municipal analytics reflect real database counts and trends.
-- [ ] PESO Referral Slip generator prints formatted document.
-- [ ] `npm run lint` passes with 0 errors.
+- [x] LRA creation, posting, and applicant tracking functional.
+- [x] Candidate nomination, pool allocation, and HOTS status progression verified.
+- [x] Municipal analytics reflect real database counts and trends (seekers, employers, vacancies, placements).
+- [x] Barangay-level employment distribution (16 Roxas barangays) and industry demand charts render accurately.
+- [x] PESO Referral Slip generator prints formatted official document with municipal tracking numbers.
+- [x] Automated test suite passes (84/84 tests verified).
+- [x] `npm test` passes (424/424 tests verified across 8 suites).
+- [x] `npm run lint` (`tsc --noEmit`) passes with 0 errors.
+- [x] `npm run build` succeeds cleanly.
 
 ---
 
