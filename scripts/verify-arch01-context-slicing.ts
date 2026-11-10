@@ -69,6 +69,48 @@ async function runVerification() {
     'JobMatchToastContainer does not import or call useApp()'
   );
 
+  // -------------------------------------------------------------
+  // Suite 2: Notification Context (NotificationContext)
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 2] Notification Context (NotificationContext)');
+
+  const notifContextPath = path.join(rootDir, 'src/context/NotificationContext.tsx');
+  assert(fs.existsSync(notifContextPath), 'src/context/NotificationContext.tsx exists on disk');
+
+  if (fs.existsSync(notifContextPath)) {
+    const notifContent = fs.readFileSync(notifContextPath, 'utf-8');
+    assert(notifContent.includes('export const NotificationContext'), 'NotificationContext is exported');
+    assert(notifContent.includes('export const NotificationProvider'), 'NotificationProvider is exported');
+    assert(notifContent.includes('export const useNotification'), 'useNotification hook is exported');
+    assert(notifContent.includes('notifications'), 'NotificationContext provides notifications list');
+    assert(notifContent.includes('addNotification'), 'NotificationContext provides addNotification action');
+    assert(notifContent.includes('markNotificationRead'), 'NotificationContext provides markNotificationRead action');
+    assert(notifContent.includes('markAllNotificationsRead'), 'NotificationContext provides markAllNotificationsRead action');
+    assert(notifContent.includes('deleteNotification'), 'NotificationContext provides deleteNotification action');
+    assert(notifContent.includes('clearAllNotifications'), 'NotificationContext provides clearAllNotifications action');
+
+    // Dynamically test NotificationContext exports
+    const notifModule = await import('../src/context/NotificationContext.js').catch(() =>
+      import('../src/context/NotificationContext.tsx')
+    );
+    assert(typeof notifModule.NotificationProvider === 'function', 'NotificationProvider is a React component');
+    assert(typeof notifModule.useNotification === 'function', 'useNotification is a valid hook');
+  }
+
+  // Consumer verification: NotificationDrawer
+  const notifDrawerPath = path.join(rootDir, 'src/components/NotificationDrawer.tsx');
+  assert(fs.existsSync(notifDrawerPath), 'NotificationDrawer.tsx exists');
+  const notifDrawerContent = fs.readFileSync(notifDrawerPath, 'utf-8');
+  assert(
+    notifDrawerContent.includes("from '../context/NotificationContext'") ||
+    notifDrawerContent.includes('from "../context/NotificationContext"'),
+    'NotificationDrawer imports from NotificationContext'
+  );
+  assert(
+    notifDrawerContent.includes('useNotification()'),
+    'NotificationDrawer consumes useNotification() directly'
+  );
+
   console.log(`\n--- Verification Summary: ${passedTests}/${totalTests} tests passed ---`);
 }
 

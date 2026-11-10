@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useNotification } from '../context/NotificationContext';
 import { NotificationItem } from '../types';
 import { 
   Bell, 
@@ -33,11 +34,13 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
     applications,
     interviews,
     referralSlips,
-    notifications, 
-    markNotificationRead, 
-    markAllNotificationsRead,
     showToast 
   } = useApp();
+  const {
+    notifications, 
+    markNotificationRead, 
+    markAllNotificationsRead 
+  } = useNotification();
   const [selectedNotif, setSelectedNotif] = useState<NotificationItem | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'status_updates' | 'system_alerts' | 'peso_broadcasts' | 'unread'>('all');
 
