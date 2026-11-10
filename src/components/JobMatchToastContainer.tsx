@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useToast } from '../context/ToastContext';
 import { Sparkles, X, Briefcase, MapPin, Building2, CheckCircle2, ArrowRight, AlertTriangle, Calendar, Info } from 'lucide-react';
 
 interface JobMatchToastContainerProps {
@@ -7,7 +7,7 @@ interface JobMatchToastContainerProps {
 }
 
 export const JobMatchToastContainer: React.FC<JobMatchToastContainerProps> = ({ onNavigate }) => {
-  const { activeToast, dismissToast } = useApp();
+  const { activeToast, dismissToast } = useToast();
 
   useEffect(() => {
     if (activeToast) {
