@@ -312,10 +312,22 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
           </div>
 
           {allRankedApplicants.length === 0 ? (
-            <div className="bg-white p-12 text-center rounded-2xl border border-slate-200">
-              <Users className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-              <p className="text-sm font-bold text-slate-700">No Applicants Received Yet</p>
-              <p className="text-xs text-slate-400 mt-1">Post a job vacancy to begin receiving ranked applicants from Oriental Mindoro.</p>
+            <div className="bg-white p-8 text-center rounded-2xl border border-slate-200 space-y-3">
+              <Sparkles className="w-8 h-8 text-indigo-500 mx-auto" />
+              <div>
+                <p className="text-sm font-bold text-slate-800">Explore Candidate Rankings</p>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  The automated Decision Tree engine has ranked registered job seekers for your vacancies. Proactively invite top talent to apply.
+                </p>
+              </div>
+              <button
+                onClick={() => onNavigate('employer-applicants')}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-emerald-300" />
+                <span>Open Candidate Ranking Roster</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           ) : (
             <div className="space-y-3">

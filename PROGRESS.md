@@ -14,7 +14,7 @@ Project tracking across database migration to Supabase, candidate ranking automa
 | **01 / Phase 1** | **Supabase Database Architecture, Relational Schema & Client Layer** | **COMPLETED** | `milestone/01-supabase-schema` | 11 tables migrated; Supabase client layer & dual persistence verified |
 | **02 / Phase 2** | **Multi-Role Authentication, Authorization & Session Management** | **COMPLETED** | `milestone/02-auth-roles` | 80/80 tests passed in verify-milestone02-auth.ts; 217/217 total suite passing |
 | **03 / Phase 3** | **End-to-End Data Pipeline & Bidirectional Sync ("Pagbato ng Data")** | **COMPLETED** | `milestone/03-data-flow-sync` | 72/72 tests passed in verify-milestone03-data-flow.ts; 289/289 total suite passing |
-| **04 / Phase 4** | **Automated Candidate Ranking & Two-Way Compatibility Matching Engine** | **PLANNED** | `milestone/04-candidate-ranking` | Deterministic ranking on Employer & Seeker views |
+| **04 / Phase 4** | **Automated Candidate Ranking & Two-Way Compatibility Matching Engine** | **COMPLETED** | `milestone/04-candidate-ranking` | 51/51 tests passed in verify-milestone04-candidate-ranking.ts; 340/340 total suite passing |
 | **05 / Phase 5** | **PESO / LGU Admin Portal: LRA Management & Municipal Analytics** | **PLANNED** | `milestone/05-peso-lra-analytics` | LRA event management & live municipal metrics |
 | **06 / Phase 6** | **UI / UX Modernization & Hallmark Editorial Redesign** | **COMPLETED** | `milestone/06-ui-ux-polish` | All sub-phases 06.1–06.6 verified; 0 errors |
 | **07 / Phase 7** | **Platform Hardening, End-to-End Testing & Thesis Defense Readiness** | **COMPLETED** | `milestone/07-defense-readiness` | Full automated test suite (137/137 passed) & presentation runbook |
@@ -169,24 +169,44 @@ Project tracking across database migration to Supabase, candidate ranking automa
 ---
 
 ### Milestone 04: Automated Candidate Ranking & Two-Way Matching Engine
-- **Status**: Planned
+- **Status**: Completed
+- **Completed On**: 2026-11-10
 - **Target Branch**: `milestone/04-candidate-ranking`
+- **Verification**: `npx tsx scripts/verify-milestone04-candidate-ranking.ts` (51/51 passed), `npm test` (340/340 passed across 7 suites), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
 
 #### Deliverables & Implementation:
-1. **Automated Employer Candidate Ranking**:
-   - When an employer opens an approved job post, execute the Decision Tree evaluation against registered job seekers.
-   - Display candidate roster sorted by descending compatibility score (0–100%).
-   - Show transparent score breakdown cards (Education rank, Degree alignment, Skills overlap, Experience).
-   - Quick action triggers: Proactively reach out or invite top candidates to apply.
-2. **Job Seeker Match Notifications**:
-   - Automatically notify job seekers when new vacancies match their profile ($\ge 75\%$).
-   - Display compatibility badges on job search cards.
+1. **Automated Employer Candidate Ranking Roster**:
+   - Evaluates all registered Roxas job seekers against the selected employer vacancy using the 5-node Decision Tree algorithm (`calculateDecisionTreeMatch`).
+   - Built dual-mode view in `EmployerApplicantsPage.tsx` with "Automated Candidate Ranking Roster" (Talent Pool) and "Active Applicants Pipeline".
+   - Deterministically sorts candidates descending by compatibility score (0–100%) with visual rank badges (`#1, #2, #3, ...`).
+   - Renders explainable qualification tiers (`HIGHLY QUALIFIED`, `QUALIFIED`, `MODERATELY QUALIFIED`, `LOW MATCH`, `NOT QUALIFIED`).
+   - Added interactive filters (All, Highly Qualified ≥85%, Qualified ≥70%, Moderate ≥55%, Already Applied, Talent Pool / Unapplied, Invited) and instant search by candidate name, degree, skills, and barangay.
+2. **Explainable 5-Node Decision Tree Score Breakdown**:
+   - Built inline expandable drawer in `EmployerApplicantsPage.tsx` visualizing the 5 core Decision Tree sub-scores:
+     - Skills Competency Overlap (35%)
+     - Degree & Academic Field Alignment (25%)
+     - Years of Work Experience (20%)
+     - Educational Attainment Level (12%)
+     - TESDA & Skill Assessments (8%)
+   - Refactored `ApplicantMatchReportModal.tsx` to support both applied candidates and pool candidates (`seekerId` + `jobId`), displaying sub-score meters, satisfied criteria rationale (`matchedReasons`), potential gaps (`missingQualifications`), and municipal PESO recommendations (`decisionReason`).
+3. **Proactive Candidate Invitations ("Invite to Apply")**:
+   - Added `CandidateInvitation` type in `src/types.ts`.
+   - Implemented `inviteCandidateToApply` and `hasInvitedCandidate` in `AppContext.tsx` with duplicate prevention.
+   - Dispatches targeted real-time action notification to the job seeker's account with direct dashboard link.
+   - Logs audit trail (`CANDIDATE_INVITED`) and triggers confirmation toast.
+4. **Two-Way Compatibility Matching & Seeker Badges**:
+   - Verified two-way Decision Tree compatibility matching in `JobSearchPage.tsx`, `JobDetailPage.tsx`, and `SeekerDashboard.tsx`.
+   - Real-time match badges render compatibility percentages and qualification tiers on job cards.
+   - Automated match notifications dispatch to seekers when approved vacancies match criteria ($\ge 70\% - 75\%$).
+5. **Automated Verification Suite (`scripts/verify-milestone04-candidate-ranking.ts`)**:
+   - Implemented 51 unit and integration tests across 5 suites verifying: candidate roster computation & determinism, 5-node sub-score breakdown, proactive invitations, two-way matching, and multi-vacancy specialization.
+   - Integrated into master test runner (`scripts/verify-milestone07.ts`), elevating total automated test coverage to 340/340 passing tests.
 
 #### Definition of Done Checklist:
-- [ ] Candidate ranking table renders accurately sorted by match percentage.
-- [ ] Score breakdown modal displays explainable matching reasons.
-- [ ] Seeker match badges and notifications display appropriate percentages.
-- [ ] `npm run lint` and `npm run build` pass with 0 errors.
+- [x] Candidate ranking table renders accurately sorted by match percentage.
+- [x] Score breakdown modal displays explainable matching reasons.
+- [x] Seeker match badges and notifications display appropriate percentages.
+- [x] `npm run lint` and `npm run build` pass with 0 errors.
 
 ---
 

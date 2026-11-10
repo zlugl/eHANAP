@@ -494,6 +494,20 @@ export interface Interview {
   createdAt: string;
 }
 
+export interface CandidateInvitation {
+  id: string;
+  jobId: string;
+  employerId: string;
+  companyName: string;
+  jobTitle: string;
+  jobSeekerId: string;
+  seekerName: string;
+  matchScore: number;
+  message?: string;
+  status: 'pending' | 'accepted' | 'declined';
+  sentAt: string;
+}
+
 export interface NotificationItem {
   id: string;
   recipientId: string;

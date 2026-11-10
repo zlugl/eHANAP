@@ -22,7 +22,8 @@ import {
   ChatMessage,
   ChatConversation,
   CompanyReview,
-  ProfileViewEvent
+  ProfileViewEvent,
+  CandidateInvitation
 } from '../types';
 import { 
   INITIAL_USERS, 
@@ -211,6 +212,11 @@ interface AppContextType {
   withdrawApplication: (applicationId: string, notes?: string) => void;
   updateJobSeekingStatus: (seekerId: string, status: 'actively_looking' | 'passively_looking' | 'not_looking') => void;
   updateNotificationPreferences: (seekerId: string, prefs: any) => void;
+
+  // Automated Candidate Ranking & Proactive Invitation Engine
+  invitations: CandidateInvitation[];
+  inviteCandidateToApply: (jobId: string, seekerId: string, customMessage?: string) => { success: boolean; message: string; invitation?: CandidateInvitation };
+  hasInvitedCandidate: (jobId: string, seekerId: string) => boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -281,6 +287,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT_MESSAGES);
   const [companyReviews, setCompanyReviews] = useState<CompanyReview[]>(INITIAL_COMPANY_REVIEWS);
   const [profileViews, setProfileViews] = useState<ProfileViewEvent[]>(INITIAL_PROFILE_VIEWS);
+  const [invitations, setInvitations] = useState<CandidateInvitation[]>(() => {
+    try {
+      const saved = localStorage.getItem('ehanap_invitations');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('ehanap_invitations', JSON.stringify(invitations));
+    } catch (e) {
+      console.warn('Failed to save invitations to localStorage', e);
+    }
+  }, [invitations]);
 
   useEffect(() => {
     try {
@@ -2751,6 +2773,86 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     updateJobSeekerProfile(seekerId, { notificationPreferences: prefs });
   };
 
+  const inviteCandidateToApply = (
+    jobId: string, 
+    seekerId: string, 
+    customMessage?: string
+  ): { success: boolean; message: string; invitation?: CandidateInvitation } => {
+    const job = jobPosts.find(j => j.id === jobId);
+    if (!job) {
+      return { success: false, message: 'Job posting not found.' };
+    }
+    const seeker = jobSeekers.find(s => s.id === seekerId);
+    if (!seeker) {
+      return { success: false, message: 'Candidate profile not found.' };
+    }
+
+    const alreadyInvited = invitations.some(inv => inv.jobId === jobId && inv.jobSeekerId === seekerId);
+    if (alreadyInvited) {
+      return { 
+        success: false, 
+        message: `${seeker.firstName} ${seeker.lastName} has already been invited to apply for this vacancy.` 
+      };
+    }
+
+    const match = calculateDecisionTreeMatch(seeker, job);
+    const score = Math.round(match.overallMatch);
+
+    const newInvitation: CandidateInvitation = {
+      id: `inv-${Date.now()}-${seeker.id}`,
+      jobId: job.id,
+      employerId: job.employerId,
+      companyName: job.companyName,
+      jobTitle: job.title,
+      jobSeekerId: seeker.id,
+      seekerName: `${seeker.firstName} ${seeker.lastName}`,
+      matchScore: score,
+      message: customMessage || `You have been selected as a top-matching candidate (${score}% compatibility) for "${job.title}". We invite you to apply!`,
+      status: 'pending',
+      sentAt: new Date().toISOString(),
+    };
+
+    setInvitations(prev => [newInvitation, ...prev]);
+
+    const inviteNotif: NotificationItem = {
+      id: `notif-invite-${Date.now()}-${seeker.id}`,
+      recipientId: seeker.userId,
+      recipientRole: 'job_seeker',
+      title: `Job Opportunity Invitation: ${job.title} (${score}% Match)`,
+      message: `${job.companyName} reviewed your credentials and invites you to apply for "${job.title}" in ${job.municipality || 'Roxas'} (${score}% Decision Tree compatibility)!`,
+      type: 'action',
+      read: false,
+      createdAt: new Date().toISOString(),
+      link: '/seeker/dashboard',
+    };
+
+    setNotifications(prev => [inviteNotif, ...prev]);
+    saveDocument(COLLECTIONS.NOTIFICATIONS, inviteNotif);
+
+    logAudit(
+      'CANDIDATE_INVITED', 
+      'JobPost', 
+      job.id, 
+      `Employer ${job.companyName} invited ${seeker.firstName} ${seeker.lastName} (${seeker.id}) to apply for ${job.title} (Match: ${score}%)`
+    );
+
+    showToast({
+      title: 'Candidate Invited',
+      message: `Direct job invitation dispatched to ${seeker.firstName} ${seeker.lastName} (${score}% Match).`,
+      type: 'success',
+    });
+
+    return {
+      success: true,
+      message: `Invitation successfully sent to ${seeker.firstName} ${seeker.lastName}.`,
+      invitation: newInvitation,
+    };
+  };
+
+  const hasInvitedCandidate = (jobId: string, seekerId: string): boolean => {
+    return invitations.some(inv => inv.jobId === jobId && inv.jobSeekerId === seekerId);
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -2828,6 +2930,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         withdrawApplication,
         updateJobSeekingStatus,
         updateNotificationPreferences,
+        invitations,
+        inviteCandidateToApply,
+        hasInvitedCandidate,
       }}
     >
       {children}
