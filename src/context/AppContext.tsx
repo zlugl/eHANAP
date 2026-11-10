@@ -205,7 +205,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     switchUserRole,
     switchDemoRole,
     loginAs,
-    continueWithGoogle,
+    continueWithGoogle, // Routes Google OAuth via signInWithSupabaseOAuth in AuthContext
     logout,
     registerUser,
     sendOtp,

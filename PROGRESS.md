@@ -19,7 +19,7 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
 | **1** | **ARCH-03** | **Storage Unification & Profile Invariant Encapsulation**<br>- Resolve `'seeker_bookmarked_jobs'` vs `'ehanap_bookmarks'` desync bug in `JobDetailPage.tsx` and `SeekerDashboard.tsx`.<br>- Encapsulate `isProfileComplete()` predicate in `src/utils/routeGuards.ts` replacing 26+ raw callsites.<br>- Introduce typed `storageAdapter.ts`. | **COMPLETED** | `refactor/arch-03-storage-unification` | 77/77 ARCH-03 tests + 424/424 regression tests passing; 0 lint errors; clean build |
 | **2** | **ARCH-06** | **Domain & Municipal Constants Extraction**<br>- Create `src/constants/municipal.ts` and `src/constants/jobCategories.ts`.<br>- Move `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS`, and `JOB_CATEGORIES` out of `src/data/mockData.ts`.<br>- Update all 16 consumer view imports. | **COMPLETED** | `refactor/arch-06-constants-extraction` | 95/95 ARCH-06 tests + 77/77 ARCH-03 tests + 424/424 regression tests passing; 0 lint errors; clean build |
 | **3** | **ARCH-02** | **Retire Dual Persistence & Eliminate Firebase**<br>- Migrate Google OAuth in `AppContext.tsx` to `supabase.auth.signInWithOAuth`.<br>- Direct all persistence operations exclusively to `supabaseService.ts`.<br>- Remove `firestoreService.ts`, `lib/firebase.ts`, and prune `firebase` package. | **COMPLETED** | `refactor/arch-02-retire-firebase` | 35/35 ARCH-02 tests + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build |
-| **4** | **ARCH-01a**| **Context Slicing: UI Feedback & Auth**<br>- Extract `ToastContext` and `NotificationContext` from `AppContext.tsx`.<br>- Extract `AuthContext` (session, demo role switcher, login/logout).<br>- Prevent full-app re-renders on toast/notification updates. | **PENDING** | `refactor/arch-01-context-slicing` | `AppContext.tsx` reduced; isolated toast/auth testing |
+| **4** | **ARCH-01a**| **Context Slicing: UI Feedback & Auth**<br>- Extract `ToastContext` and `NotificationContext` from `AppContext.tsx`.<br>- Extract `AuthContext` (session, demo role switcher, login/logout).<br>- Prevent full-app re-renders on toast/notification updates. | **COMPLETED** | `refactor/arch-01-context-slicing` | 57/57 ARCH-01a tests + 35/35 ARCH-02 + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build |
 | **5** | **ARCH-05** | **Route-Level Code-Splitting & Lazy Loading**<br>- Convert Admin and Employer routes to `React.lazy()` with Suspense fallbacks.<br>- Dynamic `import()` for `jspdf` and `html2canvas` in export modals. | **PENDING** | `refactor/arch-05-code-splitting` | Initial bundle size reduction; fast LCP |
 | **6** | **ARCH-07** | **Centralize Decision Tree Match Resolver**<br>- Implement `getOrCalculateMatch(seeker, job, cachedMatches)`.<br>- Memoize candidate ranking rosters; eliminate pairwise loops during render. | **PENDING** | `refactor/arch-07-match-resolver` | Deterministic score consistency; 0 render lag |
 | **7** | **ARCH-04** | **Mega-Component Decomposition**<br>- Split `Navbar.tsx` (1,456 lines) into role-specific navigation bars.<br>- Decompose `SeekerProfilePage.tsx` (2,905 lines) into child section tabs. | **PENDING** | `refactor/arch-04-component-decomposition` | High cohesion; zero merge-conflict hotspots |
@@ -127,6 +127,41 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
   - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (631 total verified assertions across suites).
   - `npm run lint` (`tsc --noEmit`): **0 errors**.
   - `npm run build`: **Clean production bundle created in 24s** (Vite + Node server).
+
+---
+
+### Work Package 4: ARCH-01a — Context Slicing (UI Feedback & Auth)
+- **Status:** [x] **COMPLETED**
+- **Branch:** `refactor/arch-01-context-slicing`
+- **Scope & Objectives Delivered:**
+  1. **UI Feedback Slicing (`src/context/ToastContext.tsx`, `src/components/JobMatchToastContainer.tsx`)**:
+     - Extracted `ToastContext`, `ToastProvider`, and `useToast()` hook.
+     - Centralized `activeToast`, dual-signature `showToast` (supporting both `{ title, message, type }` objects and legacy `(message, type)` invocations), and `dismissToast`.
+     - Connected `JobMatchToastContainer.tsx` directly to `useToast()`, eliminating all global re-renders across the rest of the application when toast notifications appear or dismiss.
+  2. **Notification Slicing (`src/context/NotificationContext.tsx`, `src/components/NotificationDrawer.tsx`)**:
+     - Extracted `NotificationContext`, `NotificationProvider`, and `useNotification()` hook.
+     - Isolated notification mutators: `addNotification`, `markNotificationRead`, `markAllNotificationsRead`, `deleteNotification`, and `clearAllNotifications`.
+     - Integrated real-time Supabase PostgreSQL table synchronization (`subscribeToSupabaseTable(SUPABASE_TABLES.NOTIFICATIONS)`) directly within `NotificationProvider`.
+     - Connected `NotificationDrawer.tsx` directly to `useNotification()`, decoupling high-frequency notification reads/clears from application state.
+  3. **Multi-Role Authentication & Session Slicing (`src/context/AuthContext.tsx`, `src/views/AuthModal.tsx`)**:
+     - Extracted `AuthContext`, `AuthProvider`, and `useAuth()` hook.
+     - Managed `currentUser`, `currentRole`, `users`, demo role switcher (`switchDemoRole`), `loginAs`, Google OAuth (`continueWithGoogle`), `logout`, `registerUser`, `sendOtp`, `verifyOtp`, and `recoverPassword`.
+     - Isolated Supabase Auth listener (`onSupabaseAuthStateChange`) and users table synchronization (`subscribeToSupabaseTable(SUPABASE_TABLES.USERS)`).
+     - Connected `AuthModal.tsx` directly to `useAuth()` and `useToast()`.
+  4. **Composite Provider Hierarchy & AppContext Modularization (`src/context/AppContext.tsx`, `src/context/index.ts`)**:
+     - Created `src/context/index.ts` barrel export cleanly exposing all sliced contexts, providers, hooks, and types.
+     - Composed provider hierarchy: `<ToastProvider>` -> `<NotificationProvider>` -> `<AuthProvider>` -> `<AppCoreProvider>`.
+     - Pruned 666+ lines of duplicate inlined state, listeners, and handlers from `src/context/AppContext.tsx` (reduced from 2,860 lines down to 2,194 lines).
+     - Maintained 100% backwards compatibility for `useApp()`, delegating directly to sliced contexts with zero breaking changes across all 48 consumer files.
+- **Verification Evidence:**
+  - `npx tsx scripts/verify-arch01-context-slicing.ts`: **57/57 tests passed** across 4 verification suites.
+  - `npx tsx scripts/verify-arch02-retire-firebase.ts`: **35/35 tests passed** across 5 verification suites.
+  - `npx tsx scripts/verify-arch03-storage-unification.ts`: **77/77 tests passed** across 7 verification suites.
+  - `npx tsx scripts/verify-arch06-constants-extraction.ts`: **95/95 tests passed** across 6 verification suites.
+  - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (688 total verified assertions across suites).
+  - `npm run lint` (`tsc --noEmit`): **0 errors**.
+  - `npm run build`: **Clean production bundle created in 32s** (Vite + Node server).
+
 
 
 
