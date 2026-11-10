@@ -1,360 +1,56 @@
-# eHANAP — Implementation Progress
+# eHANAP — Refactoring & Architecture Progress
 
-Project tracking across database migration to Supabase, candidate ranking automation, multi-role data flow synchronization, and UI polish as specified in [SPEC.md](SPEC.md).
-
----
-
-## Milestone Overview
-
-### Production Roadmap (Milestones 1–7)
-
-| Milestone / Phase | Description | Status | Target Branch | Verification |
-| :---------------: | ----------- | :----: | :-----------: | :----------: |
-| **00 / Baseline** | **Existing Application Baseline & Codebase Analysis** | **COMPLETED** | `main` | `tsc --noEmit` passing (0 errors) |
-| **01 / Phase 1** | **Supabase Database Architecture, Relational Schema & Client Layer** | **COMPLETED** | `milestone/01-supabase-schema` | 11 tables migrated; Supabase client layer & dual persistence verified |
-| **02 / Phase 2** | **Multi-Role Authentication, Authorization & Session Management** | **COMPLETED** | `milestone/02-auth-roles` | 80/80 tests passed in verify-milestone02-auth.ts; 217/217 total suite passing |
-| **03 / Phase 3** | **End-to-End Data Pipeline & Bidirectional Sync ("Pagbato ng Data")** | **COMPLETED** | `milestone/03-data-flow-sync` | 72/72 tests passed in verify-milestone03-data-flow.ts; 289/289 total suite passing |
-| **04 / Phase 4** | **Automated Candidate Ranking & Two-Way Compatibility Matching Engine** | **COMPLETED** | `milestone/04-candidate-ranking` | 51/51 tests passed in verify-milestone04-candidate-ranking.ts; 340/340 total suite passing |
-| **05 / Phase 5** | **PESO / LGU Admin Portal: LRA Management & Municipal Analytics** | **COMPLETED** | `milestone/05-peso-lra-analytics` | 84/84 tests passed in verify-milestone05-peso-lra-analytics.ts; 424/424 total suite passing |
-| **06 / Phase 6** | **UI / UX Modernization & Hallmark Editorial Redesign** | **COMPLETED** | `milestone/06-ui-ux-polish` | All sub-phases 06.1–06.6 verified; 0 errors |
-| **07 / Phase 7** | **Platform Hardening, End-to-End Testing & Thesis Defense Readiness** | **COMPLETED** | `milestone/07-defense-readiness` | Full automated test suite (137/137 passed) & presentation runbook |
+Tracking technical debt remediation, modularity extraction, and architectural hardening based on the production audit in [SPEC.md](SPEC.md).
 
 ---
 
-## Current Build & Verification Baseline
-
-- **TypeScript Compilation**: `npm run lint` (`tsc --noEmit`) passes with 0 errors.
-- **Frontend Stack**: React 19, Vite 6, Tailwind CSS v4, Motion, Lucide React, Recharts.
-- **Backend Stack**: Express 4 with TSX (`server.ts`).
-- **Database Status**: Legacy Firebase Firestore in place; preparing migration to Supabase PostgreSQL.
-
----
-
-## Milestone Details
-
-### Milestone 00: Existing Application Baseline & Codebase Analysis
-- **Status**: Completed
-- **Completed On**: 2026-11-09
-- **Verification**: `npm run lint` (`tsc --noEmit`) verified 0 errors.
-
-#### Deliverables & Implementation:
-1. Audited repository structure, packages, data models (`src/types.ts`), and services.
-2. Verified existing Decision Tree matching engine (`src/utils/decisionTree.ts`) and ATS parser logic (`src/utils/atsEngine.ts`).
-3. Cataloged existing user roles and mock datasets (`src/data/mockData.ts`, `src/data/pesoLguData.ts`).
-4. Established governing agent standards in `AGENT.md`, architecture roadmap in `SPEC.md`, and tracking in `PROGRESS.md`.
-
-#### Definition of Done Checklist:
-- [x] Codebase audited and verified to compile cleanly.
-- [x] Three user personas (Job Seeker, Employer, PESO Admin) mapped to project requirements.
-- [x] Core thesis feature (Automated Candidate Ranking) identified and protected as system invariant.
-- [x] Standard documentation structure (`AGENT.md`, `SPEC.md`, `PROGRESS.md`) established.
+## Baseline Verification
+- **Automated Test Suite**: 424/424 tests passing across 8 verification suites (`npm test`).
+- **Static Analysis**: `npm run lint` (`tsc --noEmit`) passes with 0 errors.
+- **Production Build**: `npm run build` bundles successfully.
+- **Milestones 00–07 Status**: **COMPLETED** (Baseline, Supabase Schema, Multi-Role Auth, Data Pipeline, Candidate Ranking, PESO LRA/Analytics, UI Polish, Thesis Defense Readiness).
 
 ---
 
-### Milestone 01: Supabase Database Architecture, Relational Schema & Client Layer
-- **Status**: Completed
-- **Completed On**: 2026-11-09
-- **Target Branch**: `milestone/01-supabase-schema`
-- **Verification**: `npx tsx scripts/verify-phase1-supabase.ts` (44/44 tests passed), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
+## Modularity & Structural Refactoring Roadmap (from SPEC.md)
 
-#### Deliverables & Implementation:
-1. **PostgreSQL Relational Schema**:
-   - Written SQL migration file `supabase/migrations/20261109000001_initial_ehanap_schema.sql` defining 11 core tables (+ 2 auxiliary tables):
-     - `users`, `employer_profiles`, `seeker_profiles`, `job_posts`, `applications`
-     - `candidate_matches`, `interviews`, `lra_events`, `peso_referral_slips`, `notifications`, `audit_logs`
-     - `system_announcements`, `job_alert_subscriptions`
-   - Included foreign keys, cascading deletions, B-tree and GIN indexes, CHECK constraints, and automatic `updated_at` trigger functions.
-   - Configured Row Level Security (RLS) policies and enabled Supabase Realtime publication broadcast on primary operational tables.
-2. **Supabase Client Layer**:
-   - Installed `@supabase/supabase-js` (`^2.119.0`).
-   - Implemented `src/lib/supabase.ts` with credential safety guards and offline demonstration fallback.
-   - Implemented `src/services/supabaseService.ts` providing typed CRUD operations, bidirectional snake_case/camelCase data transformers, realtime subscription listener, and health check.
-3. **Database Seed & Fallback**:
-   - Created SQL seed script `supabase/seed.sql` replicating initial Roxas accounts (PESO Admin, Puregold, Mindoro Tech, Agro-Farms, Boutique, and Job Seekers).
-   - Integrated dual-persistence and realtime sync in `AppContext.tsx` with resilient zero-data/localStorage fallback for demonstration stability.
-   - Provided `.env.example` and local `.env` configuration.
-   - Created automated verification test suite `scripts/verify-phase1-supabase.ts` (44/44 passed).
-
-#### Definition of Done Checklist:
-- [x] Supabase SQL migration script created and validated.
-- [x] Supabase client initialized and configured via `.env` variables.
-- [x] Database service layer (`supabaseService.ts`) implemented with TypeScript types.
-- [x] Offline fallback mechanism in place for demonstration stability.
-- [x] `npm run lint` passes with 0 errors.
+| Priority | ID | Refactoring Work Package | Status | Target Branch | Verification |
+| :---: | :---: | :--- | :---: | :---: | :--- |
+| **1** | **ARCH-03** | **Storage Unification & Profile Invariant Encapsulation**<br>- Resolve `'seeker_bookmarked_jobs'` vs `'ehanap_bookmarks'` desync bug in `JobDetailPage.tsx` and `SeekerDashboard.tsx`.<br>- Encapsulate `isProfileComplete()` predicate in `src/utils/routeGuards.ts` replacing 26+ raw callsites.<br>- Introduce typed `storageAdapter.ts`. | **COMPLETED** | `refactor/arch-03-storage-unification` | 77/77 ARCH-03 tests + 424/424 regression tests passing; 0 lint errors; clean build |
+| **2** | **ARCH-06** | **Domain & Municipal Constants Extraction**<br>- Create `src/constants/municipal.ts` and `src/constants/jobCategories.ts`.<br>- Move `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS`, and `JOB_CATEGORIES` out of `src/data/mockData.ts`.<br>- Update all 16 consumer view imports. | **PENDING** | `refactor/arch-06-constants-extraction` | `mockData.ts` isolated to seed records only; 0 lint errors |
+| **3** | **ARCH-02** | **Retire Dual Persistence & Eliminate Firebase**<br>- Migrate Google OAuth in `AppContext.tsx` to `supabase.auth.signInWithOAuth`.<br>- Direct all persistence operations exclusively to `supabaseService.ts`.<br>- Remove `firestoreService.ts`, `lib/firebase.ts`, and prune `firebase` package. | **PENDING** | `refactor/arch-02-retire-firebase` | Exclusive Supabase persistence; clean build without Firebase |
+| **4** | **ARCH-01a**| **Context Slicing: UI Feedback & Auth**<br>- Extract `ToastContext` and `NotificationContext` from `AppContext.tsx`.<br>- Extract `AuthContext` (session, demo role switcher, login/logout).<br>- Prevent full-app re-renders on toast/notification updates. | **PENDING** | `refactor/arch-01-context-slicing` | `AppContext.tsx` reduced; isolated toast/auth testing |
+| **5** | **ARCH-05** | **Route-Level Code-Splitting & Lazy Loading**<br>- Convert Admin and Employer routes to `React.lazy()` with Suspense fallbacks.<br>- Dynamic `import()` for `jspdf` and `html2canvas` in export modals. | **PENDING** | `refactor/arch-05-code-splitting` | Initial bundle size reduction; fast LCP |
+| **6** | **ARCH-07** | **Centralize Decision Tree Match Resolver**<br>- Implement `getOrCalculateMatch(seeker, job, cachedMatches)`.<br>- Memoize candidate ranking rosters; eliminate pairwise loops during render. | **PENDING** | `refactor/arch-07-match-resolver` | Deterministic score consistency; 0 render lag |
+| **7** | **ARCH-04** | **Mega-Component Decomposition**<br>- Split `Navbar.tsx` (1,456 lines) into role-specific navigation bars.<br>- Decompose `SeekerProfilePage.tsx` (2,905 lines) into child section tabs. | **PENDING** | `refactor/arch-04-component-decomposition` | High cohesion; zero merge-conflict hotspots |
+| **8** | **ARCH-08** | **Server Controller & Service Separation**<br>- Extract PDF/DOCX extractors to `server/services/documentParser.ts`.<br>- Extract Gemini resume parser to `server/services/aiResumeService.ts`. | **PENDING** | `refactor/arch-08-server-modularization` | Standalone unit testability of prompt schemas |
 
 ---
 
-### Milestone 02: Multi-Role Authentication, Authorization & Session Management
-- **Status**: Completed
-- **Completed On**: 2026-11-09
-- **Target Branch**: `milestone/02-auth-roles`
-- **Verification**: `npx tsx scripts/verify-milestone02-auth.ts` (80/80 passed), `npm test` (217/217 passed across 5 suites), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
+## Refactoring Work Package Details
 
-#### Deliverables & Implementation:
-1. **Supabase Auth Service Layer**:
-   - Implemented `signUpWithSupabase`, `signInWithSupabase`, `signOutWithSupabase`, `getSupabaseSession`, `getSupabaseUser`, and `onSupabaseAuthStateChange` in `src/services/supabaseService.ts`.
-   - Added graceful offline fallback mechanism ensuring zero crashes or unhandled promise errors during panel defense room connectivity drops.
-2. **Instant 1-Click Demo Persona Switcher**:
-   - Expanded `DEMO_ACCOUNTS` in `src/data/demoAccounts.ts` with dedicated Job Seeker personas (Juan Dela Cruz, BSCS graduate; Maria Santos, retail customer service) alongside Roxas Employers (Puregold, Mindoro Tech, Agro-Farms, Central Boutique) and the Municipal PESO Administrator.
-   - Built interactive 1-Click Role Switcher Pill in `Navbar.tsx` (desktop header, profile dropdown menu, and mobile drawer) allowing instant single-click switching between Seeker, Employer, and PESO Admin with complete session hydration.
-   - Added `switchDemoRole` in `AppContext.tsx` with automated audit logging (`DEMO_ROLE_SWITCHED`) and visual confirmation toast notifications.
-3. **Role Gatekeeping & Route Protection**:
-   - Implemented `src/utils/routeGuards.ts` categorizing system routes (`PUBLIC_ROUTES`, `SEEKER_ROUTES`, `EMPLOYER_ROUTES`, `ADMIN_ROUTES`).
-   - Integrated role protection guards in `handleNavigate` (`App.tsx`):
-     - Unauthenticated guests navigating to protected routes are intercepted and redirected with prompt to sign in or select a demo account.
-     - Authenticated users attempting cross-role route access (e.g., Seeker trying to access `admin-*` or `employer-*`) are strictly denied with an access restricted toast and redirected to their role home dashboard.
-   - Profile setup wizard enforcement: ensures incomplete seeker or employer profiles cannot bypass setup wizards before accessing protected views.
-4. **Automated Verification Suite (`scripts/verify-milestone02-auth.ts`)**:
-   - Implemented 80 unit and scenario tests verifying: Supabase Auth service methods, multi-role authentication & session hydration, 1-click demo persona switcher contract, route gatekeeping & role isolation, and profile wizard completion.
-   - Unified into master test runner (`scripts/verify-milestone07.ts`), elevating test coverage to 217/217 passing automated tests.
+### Work Package 1: ARCH-03 — Storage Unification & Profile Invariant Encapsulation
+- **Status:** [x] **COMPLETED**
+- **Branch:** `refactor/arch-03-storage-unification`
+- **Scope & Objectives Delivered:**
+  1. **Centralized Storage Adapter (`src/lib/storageAdapter.ts`)**:
+     - Introduced typed storage operations with namespace prefixing (`ehanap_`), safe JSON parsing/serialization, and in-memory SSR fallback.
+     - Implemented automatic migration of legacy `seeker_bookmarked_jobs` bookmarks into `ehanap_bookmarks` on retrieval.
+     - Exposed domain storage helpers: `getBookmarks`, `setBookmarks`, `isProfileCompletedInStorage`, `setProfileCompletedInStorage`, `removeProfileCompletedFromStorage`, `isEmployerCompletedInStorage`, `setEmployerCompletedInStorage`, `removeEmployerCompletedFromStorage`, `getStoredUsers`, `setStoredUsers`, `getStoredJobSeekers`, `setStoredJobSeekers`, `getStoredInvitations`, `setStoredInvitations`.
+  2. **Profile Completion Domain Predicates (`src/utils/routeGuards.ts`)**:
+     - Encapsulated `isSeekerProfileComplete(user, profile)`, `isEmployerProfileComplete(user, profile)`, and `isProfileComplete(user, profile)`.
+     - Added `markProfileCompletedInStorage` and `clearProfileCompletedInStorage` to batch update and purge cached storage flags.
+     - Centralized demo account rules (`poqiq75`) and admin bypass logic into pure domain predicates.
+  3. **Bookmark State Synchronization**:
+     - Connected `src/views/JobDetailPage.tsx` directly to `useApp()` (`bookmarkedJobIds`, `toggleBookmarkJob`, `isJobBookmarked`), retiring local component state and the conflicting `'seeker_bookmarked_jobs'` key.
+     - Connected `src/views/seeker/SeekerDashboard.tsx` to `useApp()` bookmark methods, ensuring bookmarks instantly sync between job search, detail view, seeker dashboard, and bookmarks drawer.
+     - Updated `src/context/AppContext.tsx` to route all bookmark hydration and persistence through `storageAdapter`.
+  4. **Elimination of Leaked Storage Primitives Across Presentation Views**:
+     - Migrated all raw `localStorage` calls across `src/App.tsx`, `src/components/Navbar.tsx`, `src/views/AuthModal.tsx`, `src/views/seeker/SeekerProfilePage.tsx`, `src/views/seeker/SeekerProfileSetupWizard.tsx`, `src/views/employer/EmployerProfileSetupWizard.tsx`, `src/utils/notificationUtils.ts`, and `src/context/AppContext.tsx`.
+     - Zero raw `localStorage` calls remain in the presentation layer. `src/lib/storageAdapter.ts` is the single source of truth for browser storage access.
+- **Verification Evidence:**
+  - `npx tsx scripts/verify-arch03-storage-unification.ts`: **77/77 tests passed** across 7 test suites.
+  - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (501 total verified assertions).
+  - `npm run lint` (`tsc --noEmit`): **0 errors**.
+  - `npm run build`: **Clean production bundle created**.
 
-#### Definition of Done Checklist:
-- [x] All three roles can log in and view their respective dashboards.
-- [x] Demo switcher operates seamlessly without manual credentials (1-click navbar pill and dropdown).
-- [x] Profiles persist and synchronize with Supabase (with resilient offline demo fallback).
-- [x] Strict role gatekeeping prevents unauthorized cross-role view navigation.
-- [x] `npm test` passes (217/217 tests verified).
-- [x] `npm run lint` (`tsc --noEmit`) passes with 0 errors.
-- [x] `npm run build` succeeds cleanly.
-
----
-
-### Milestone 03: End-to-End Data Pipeline & Bidirectional Sync ("Pagbato ng Data")
-- **Status**: Completed
-- **Completed On**: 2026-11-10
-- **Target Branch**: `milestone/03-data-flow-sync`
-- **Verification**: `npx tsx scripts/verify-milestone03-data-flow.ts` (72/72 passed), `npm test` (289/289 passed across 6 suites), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
-
-#### Deliverables & Implementation:
-1. **Job Post Approval Pipeline & Gatekeeping**:
-   - Employer creates job post $\to$ saved with `pending_approval` status; employer receives immediate confirmation toast.
-   - PESO Admin dashboard and provincial vacancy monitor reflect pending counts in real-time (`pendingJobVacancies`).
-   - PESO Admin reviews post with compliance notes $\to$ approves/rejects/returns for compliance $\to$ status transitions to `active`.
-   - Active posts immediately appear on Job Seeker search feeds and dashboard feeds; pending/rejected posts remain strictly hidden from public feeds.
-   - Dual-persistence deletion wrapper (`deleteDocument`) ensures deleted job postings or records propagate to Supabase PostgreSQL (`job_posts`) and Firestore.
-2. **Automated Candidate Matching & Match Alert Notifications ("Pagbato sa Seekers")**:
-   - Upon PESO job approval, Decision Tree evaluation automatically executes across all registered job seekers in Roxas.
-   - Precomputes and caches candidate match records (`matchResult`, scores, reasons, and missing qualifications) in Supabase `candidate_matches` table.
-   - Candidates satisfying threshold compatibility ($\ge 70\%$) receive instant real-time Match Alert notifications and active toast prompts.
-   - Job alert subscriptions matching criteria receive targeted notifications.
-3. **Application Lifecycle Pipeline & Transparent Tracking**:
-   - Job Seeker applies with selected resume and optional cover note $\to$ immutable Decision Tree snapshot and ATS evaluation created $\to$ application record saved with `submitted` / `ats_screened` status.
-   - Employer user immediately receives real-time alert with candidate name, target position, and match score percentage.
-   - Employer advances candidate through recruitment stages (`under_review` $\to$ `for_interview` $\to$ `hired`):
-     - Each transition records audit history (`updatedAt`, `updatedBy`, `notes`).
-     - Job Seeker receives instant notifications on every status progression.
-     - Four-stage visual application tracking bar reflects the live candidate state.
-   - Upon final `hired` decision:
-     - Seeker profile is automatically hydrated with `employmentStatus: 'hired'`, `currentEmployer: job.companyName`, `hiredPosition: job.title`, and `hiredAt` timestamp for municipal LGU placement analytics.
-     - Seeker receives congratulations notification.
-4. **Interview Scheduling & Bidirectional Response Synchronization**:
-   - Employer schedules face-to-face or virtual interview with date, time, and Roxas venue.
-   - Built-in conflict detector prevents double-booking interview slots for both applicant and employer.
-   - Job Seeker receives interview invitation alert with direct link to interview manager.
-   - Job Seeker response (`accepted` $\leftrightarrow$ `declined`) automatically dispatches real-time confirmation back to the employer.
-5. **Automated Verification Suite (`scripts/verify-milestone03-data-flow.ts`)**:
-   - Implemented 72 unit and pipeline tests across 6 dedicated test suites.
-   - Integrated into master test runner (`scripts/verify-milestone07.ts`), bringing total automated test coverage to 289/289 passing tests.
-
-#### Definition of Done Checklist:
-- [x] Job submission, PESO approval, and seeker visibility verified end-to-end.
-- [x] Application submission, employer review, and status update verified end-to-end.
-- [x] Automated Decision Tree match alerts and Supabase `candidate_matches` caching verified.
-- [x] Interview scheduling, conflict detection, and bidirectional response sync verified.
-- [x] Zero unhandled null/undefined exceptions during data flow.
-- [x] `npm test` passes (289/289 tests verified across 6 suites).
-- [x] `npm run lint` (`tsc --noEmit`) passes with 0 errors.
-- [x] `npm run build` succeeds cleanly.
-
----
-
-### Milestone 04: Automated Candidate Ranking & Two-Way Matching Engine
-- **Status**: Completed
-- **Completed On**: 2026-11-10
-- **Target Branch**: `milestone/04-candidate-ranking`
-- **Verification**: `npx tsx scripts/verify-milestone04-candidate-ranking.ts` (51/51 passed), `npm test` (340/340 passed across 7 suites), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
-
-#### Deliverables & Implementation:
-1. **Automated Employer Candidate Ranking Roster**:
-   - Evaluates all registered Roxas job seekers against the selected employer vacancy using the 5-node Decision Tree algorithm (`calculateDecisionTreeMatch`).
-   - Built dual-mode view in `EmployerApplicantsPage.tsx` with "Automated Candidate Ranking Roster" (Talent Pool) and "Active Applicants Pipeline".
-   - Deterministically sorts candidates descending by compatibility score (0–100%) with visual rank badges (`#1, #2, #3, ...`).
-   - Renders explainable qualification tiers (`HIGHLY QUALIFIED`, `QUALIFIED`, `MODERATELY QUALIFIED`, `LOW MATCH`, `NOT QUALIFIED`).
-   - Added interactive filters (All, Highly Qualified ≥85%, Qualified ≥70%, Moderate ≥55%, Already Applied, Talent Pool / Unapplied, Invited) and instant search by candidate name, degree, skills, and barangay.
-2. **Explainable 5-Node Decision Tree Score Breakdown**:
-   - Built inline expandable drawer in `EmployerApplicantsPage.tsx` visualizing the 5 core Decision Tree sub-scores:
-     - Skills Competency Overlap (35%)
-     - Degree & Academic Field Alignment (25%)
-     - Years of Work Experience (20%)
-     - Educational Attainment Level (12%)
-     - TESDA & Skill Assessments (8%)
-   - Refactored `ApplicantMatchReportModal.tsx` to support both applied candidates and pool candidates (`seekerId` + `jobId`), displaying sub-score meters, satisfied criteria rationale (`matchedReasons`), potential gaps (`missingQualifications`), and municipal PESO recommendations (`decisionReason`).
-3. **Proactive Candidate Invitations ("Invite to Apply")**:
-   - Added `CandidateInvitation` type in `src/types.ts`.
-   - Implemented `inviteCandidateToApply` and `hasInvitedCandidate` in `AppContext.tsx` with duplicate prevention.
-   - Dispatches targeted real-time action notification to the job seeker's account with direct dashboard link.
-   - Logs audit trail (`CANDIDATE_INVITED`) and triggers confirmation toast.
-4. **Two-Way Compatibility Matching & Seeker Badges**:
-   - Verified two-way Decision Tree compatibility matching in `JobSearchPage.tsx`, `JobDetailPage.tsx`, and `SeekerDashboard.tsx`.
-   - Real-time match badges render compatibility percentages and qualification tiers on job cards.
-   - Automated match notifications dispatch to seekers when approved vacancies match criteria ($\ge 70\% - 75\%$).
-5. **Automated Verification Suite (`scripts/verify-milestone04-candidate-ranking.ts`)**:
-   - Implemented 51 unit and integration tests across 5 suites verifying: candidate roster computation & determinism, 5-node sub-score breakdown, proactive invitations, two-way matching, and multi-vacancy specialization.
-   - Integrated into master test runner (`scripts/verify-milestone07.ts`), elevating total automated test coverage to 340/340 passing tests.
-
-#### Definition of Done Checklist:
-- [x] Candidate ranking table renders accurately sorted by match percentage.
-- [x] Score breakdown modal displays explainable matching reasons.
-- [x] Seeker match badges and notifications display appropriate percentages.
-- [x] `npm run lint` and `npm run build` pass with 0 errors.
-
----
-
-### Milestone 05: PESO / LGU Admin Portal: LRA Management & Municipal Analytics
-- **Status**: Completed
-- **Completed On**: 2026-11-10
-- **Target Branch**: `milestone/05-peso-lra-analytics`
-- **Verification**: `npx tsx scripts/verify-milestone05-peso-lra-analytics.ts` (84/84 passed), `npm test` (424/424 passed across 8 suites), `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
-
-#### Deliverables & Implementation:
-1. **Local Recruitment Activity (LRA) Module**:
-   - Comprehensive LRA event management in `AdminLraPage.tsx` supporting external visiting employers recruiting in Roxas (e.g., Puregold Calapan, Batangas Port Logistics).
-   - Candidate pool nomination modal and table allowing administrators to select unallocated Roxas job seekers, review contact and educational attainment, and designate target positions.
-   - Built candidate lifecycle actions: `Screen`, `Interview`, `Hired On The Spot (HOTS)`, `Referral Slip`, and `Remove`.
-   - Candidate status updates trigger automatic real-time audit logging (`NOMINATE_LRA_CANDIDATE`, `UPDATE_LRA_CANDIDATE_STATUS`) and instant seeker notifications.
-   - Upon HOTS confirmation: increments event HOTS tallies and automatically hydrates candidate profiles (`employmentStatus: 'hired_on_the_spot'`, `currentEmployer`, `hiredPosition`, `hiredAt`) for live municipal labor accounting.
-2. **Municipal Labor Analytics Dashboard**:
-   - Live municipal labor metrics computed across Roxas database records: Total Job Seekers by educational attainment (College, High School, OSY), Verified Roxas Employers, Active Vacancies, and Hired/Placement tallies.
-   - Interactive Recharts bar charts in `AdminDashboard.tsx` and `AdminReportsPage.tsx` displaying:
-     - **Barangay-Level Employment & Placement Distribution** across all 16 Roxas barangays (Bagumbayan, Cantil, Dangay, Happy Valley, Libertad, Mabuhay, Marugdug, Odiong, Paclasan, San Aquilino, San Isidro, San Jose, San Mariano, San Rafael, San Vicente, Victoria) with toggle between Top 8 and All 16 barangays.
-     - **Municipal Industry Demand Breakdown** visualizing vacancy counts across Roxas economic sectors (Customer Service & Retail, Information Technology, Agriculture & Fisheries, etc.).
-   - Full 16-barangay ledger table with automated CSV export (`Barangay_Labor_Distribution`) in `AdminReportsPage.tsx`.
-3. **Printable PESO Referral Slip Generator**:
-   - Built modal-driven PESO Referral Slip generator (`PesoReferralSlipModal.tsx`) integrated into `AdminLraPage.tsx`, `AdminDashboard.tsx`, and `AdminReportsPage.tsx`.
-   - Features standardized municipal referral numbers (`PESO-RXS-REF-YYYY-XXXX`), official Roxas seal & LGU header, candidate details, employer destination, 30-day validity window, printable CSS layout (`@media print`), and automated endorsement audit trail.
-4. **Automated Verification Suite (`scripts/verify-milestone05-peso-lra-analytics.ts`)**:
-   - Authored 84 unit and pipeline tests across 7 suites covering: LRA lifecycle, candidate nomination & pool allocation, HOTS tracking & seeker profile hydration, municipal labor metrics, 16-barangay distribution, industry demand breakdown, and printable PESO Referral Slip generation.
-   - Unified into master test runner (`scripts/verify-milestone07.ts`), elevating total automated test coverage to 424/424 passing tests.
-
-#### Definition of Done Checklist:
-- [x] LRA creation, posting, and applicant tracking functional.
-- [x] Candidate nomination, pool allocation, and HOTS status progression verified.
-- [x] Municipal analytics reflect real database counts and trends (seekers, employers, vacancies, placements).
-- [x] Barangay-level employment distribution (16 Roxas barangays) and industry demand charts render accurately.
-- [x] PESO Referral Slip generator prints formatted official document with municipal tracking numbers.
-- [x] Automated test suite passes (84/84 tests verified).
-- [x] `npm test` passes (424/424 tests verified across 8 suites).
-- [x] `npm run lint` (`tsc --noEmit`) passes with 0 errors.
-- [x] `npm run build` succeeds cleanly.
-
----
-
-### Milestone 06: UI / UX Modernization & Hallmark Editorial Redesign
-- **Status**: Completed
-- **Completed On**: 2026-11-09
-- **Target Branch**: `milestone/06-ui-ux-polish`
-- **Scope Strategy**: Decomposed into 6 atomic sub-phases to prevent context exhaustion and ensure incremental verification.
-
-#### Sub-Milestone 06.1: Foundational Design Tokens & App Shell
-- **Status**: Completed
-- **Files**: `src/tokens.css`, `src/index.css`, `src/App.tsx`, `src/components/Navbar.tsx`, `src/components/Footer.tsx`, `src/views/AuthModal.tsx`
-- **Deliverables**:
-  - Mapped Tailwind tokens to Furrow palette variables (`--color-slate-*`, `--color-indigo-*`, `--color-blue-*`, `--font-sans`, `--font-mono`).
-  - Added 8-state control utilities, `:focus-visible` focus rings, and `motion-reduce:` accessibility overrides.
-  - Refactored `Navbar.tsx` with municipal branding and `Footer.tsx` with municipal colophon.
-  - Fixed `AuthModal.tsx` token mapping and dialog accessibility.
-- **Checklist**:
-  - [x] Design token infrastructure established in `src/tokens.css`.
-  - [x] App shell navigation and footer modernized.
-  - [x] `tsc --noEmit` verified 0 errors.
-
-#### Sub-Milestone 06.2: Job Seeker Portal Experience
-- **Status**: Completed
-- **Files**: `src/views/seeker/SeekerProfileSetupWizard.tsx`, `src/views/seeker/SeekerDashboard.tsx`, `src/views/seeker/SeekerApplicationsPage.tsx`, `src/views/seeker/SeekerInterviewsPage.tsx`, `src/views/seeker/SeekerProfilePage.tsx`
-- **Deliverables**:
-  - Modernized Seeker Onboarding Wizard with step indicators and validation.
-  - Redesigned Seeker Dashboard: removed gradient slop, added tabular ranking figures and clean status badges.
-  - Standardized Seeker Applications, Interviews, and Profile pages with Furrow tokens and accessibility rings.
-- **Checklist**:
-  - [x] All 5 seeker views refactored to Hallmark design tokens.
-  - [x] Tabular numbers and accessible controls implemented.
-  - [x] `tsc --noEmit` verified 0 errors.
-
-#### Sub-Milestone 06.3: Employer Portal & Automated Ranking Engine
-- **Status**: Completed
-- **Files**: `src/views/employer/EmployerDashboard.tsx`, `src/views/employer/EmployerApplicantsPage.tsx`, `src/views/employer/EmployerJobsPage.tsx`, `src/views/employer/EmployerInterviewsPage.tsx`, `src/views/employer/EmployerAnalyticsPage.tsx`, `src/views/employer/EmployerProfilePage.tsx`, `src/views/employer/EmployerProfileSetupWizard.tsx`, `src/views/employer/ApplicantMatchReportModal.tsx`, `src/views/employer/CreateJobModal.tsx`, `src/views/employer/ScheduleInterviewModal.tsx`
-- **Deliverables**:
-  - Re-themed employer metrics cards, navigation tabs, and job creation wizards.
-  - Polished the core thesis feature: **Employer Candidate Ranking Roster** with transparent Decision Tree score breakdowns.
-  - Refactored interview scheduling and applicant match modal overlays.
-- **Checklist**:
-  - [x] Employer dashboard, job management, and profile wizard refactored.
-  - [x] Signature candidate ranking UI preserved with enhanced editorial styling.
-  - [x] Modals updated with token variables and accessible dialog traps.
-  - [x] `tsc --noEmit` verified 0 errors.
-
-#### Sub-Milestone 06.4: PESO / LGU Admin Portal & Regional Analytics
-- **Status**: Completed
-- **Files**: `src/views/admin/AdminDashboard.tsx`, `src/views/admin/AdminJobMatchingPage.tsx`, `src/views/admin/AdminVerificationsPage.tsx`, `src/views/admin/AdminJobsPage.tsx`, `src/views/admin/AdminUsersPage.tsx`, `src/views/admin/AdminReportsPage.tsx`, `src/views/admin/AdminAuditLogsPage.tsx`, `src/views/admin/AdminLraPage.tsx`
-- **Deliverables**:
-  - Refactored municipal admin overview dashboard and real-time labor market analytics.
-  - Modernized employer business permit verification queue and job moderation views.
-  - Standardized LRA (Local Recruitment Activity) management and PESO Referral Slip layouts.
-- **Checklist**:
-  - [x] Admin dashboard and LRA views refactored with Furrow design tokens.
-  - [x] Decision Tree matching inspector view aligned with municipal aesthetic.
-  - [x] Audit logs and verification tables formatted with accessible data presentation.
-  - [x] `tsc --noEmit` verified 0 errors.
-
-#### Sub-Milestone 06.5: Public Discovery & Search Views
-- **Status**: Completed
-- **Files**: `src/views/LandingPage.tsx`, `src/views/JobSearchPage.tsx`, `src/views/JobDetailPage.tsx`, `src/views/EmployerSearchPage.tsx`
-- **Deliverables**:
-  - Verified and finished editorial polish on Public Landing Page.
-  - Completed refactor of `JobSearchPage.tsx`, `JobDetailPage.tsx`, and `EmployerSearchPage.tsx` with filter controls, search bars, and card layouts.
-- **Checklist**:
-  - [x] Search filters and facet controls styled with 8-state control utilities.
-  - [x] Job detail view refactored with clear requirements hierarchy.
-  - [x] `tsc --noEmit` verified 0 errors.
-
-#### Sub-Milestone 06.6: Comprehensive Verification & Hardening
-- **Status**: Completed
-- **Deliverables**:
-  - Run full TypeScript compilation (`npm run lint`).
-  - Run production build packaging (`npm run build`).
-  - Verified responsive mobile breakpoints and contrast ratios.
-- **Checklist**:
-  - [x] `npm run lint` passes with 0 errors.
-  - [x] `npm run build` succeeds without warnings or bundle failures.
-
----
-
-### Milestone 07: Platform Hardening, End-to-End Testing & Thesis Defense Readiness
-- **Status**: Completed
-- **Completed On**: 2026-11-09
-- **Target Branch**: `milestone/07-defense-readiness`
-- **Verification**: `npm test` passing 137/137 tests across 4 suites, `npm run lint` (`tsc --noEmit`) 0 errors, `npm run build` completed successfully.
-
-#### Deliverables & Implementation:
-1. **Automated Verification Suite (`npm test`) [COMPLETED]**:
-   - Implemented `scripts/verify-decision-tree.ts`: 34 unit tests verifying all 5 decision tree scoring nodes (Education, Degree Alignment, 6-Category Skills, Work Experience, Certifications), overall determinism, and explainable decision reasoning.
-   - Implemented `scripts/verify-ats-engine.ts`: 29 unit tests covering ATS resume analysis (Contact Information completeness, section detection, layout readability, and vacancy keyword alignment).
-   - Implemented `scripts/verify-e2e-scenarios.ts`: 30 multi-role simulated scenarios covering Job Seeker journey, Employer candidate ranking roster & applicant progression, and PESO Admin compliance, LRA management, and municipal analytics.
-   - Unified test runner in `scripts/verify-milestone07.ts` wired directly to `npm test` (137/137 automated tests passing).
-2. **Thesis Presentation Runbook [COMPLETED]**:
-   - Authored `docs/THESIS_DEFENSE_RUNBOOK.md`: Complete panel presentation guide for BSCS IV Group 1 (Lomboy, Escalona, Sacapaño; Adviser: Dr. John Edgar S. Anthony).
-   - Includes local Roxas context, Supabase relational architecture summary, 10-minute minute-by-minute live presentation script (Job Seeker, Roxas Employer, and PESO Admin), and technical defense answers for anticipated panel questions (Decision Tree explainability vs black-box AI, Data Privacy Act compliance, and resilient offline fallback architecture).
-3. **Static Analysis & Dead-Code Remediation (SPEC.md Section 7) [COMPLETED]**:
-   - Deprecated and removed 9 orphaned component files in `src/components/` (2,899 lines dead boilerplate pruned).
-   - Pruned unreferenced types, constants, helpers, and duplicate sub-modals (`CandidateRanking`, `SKILLS_DATABASE`, `getDemoAccountById`, `SUPABASE_CONFIG`, `StandardStageKey`, `formatDateDisplay`, `EducationModal`, `ExperienceModal`, `CertificationsModal`).
-   - Eliminated dead assignments and inert computations (`totalSkillsCount`, `currentRole`, `categorized`, `isSubmittedDone`).
-   - Simplified redundant ternaries and duplicate conditions (`middleInitial`, `poqiq75`).
-   - Encapsulated file-private helpers by stripping unused `export` keywords (`AtsEvaluationInput`, `isNotificationValidForUser`, `MINDORO_MUNICIPALITIES`, `fileToBase64`).
-   - Verified with `npm run lint` (0 errors), `npx tsx scripts/verify-phase1-supabase.ts` (44/44 passed), and `npm run build` (clean Vite/Node production bundle).
-
-#### Definition of Done Checklist:
-- [x] Automated tests passing (137/137 tests passing across Supabase, Decision Tree, ATS, and multi-role E2E).
-- [x] Dead and no-op code remediation completed (Work Packages 1–5 in SPEC.md Section 7).
-- [x] Defense presentation runbook completed (`docs/THESIS_DEFENSE_RUNBOOK.md`).
-- [x] `npm run lint` and `npm run build` pass with 0 errors.
-- [x] Zero unhandled errors in console during complete walkthrough.
