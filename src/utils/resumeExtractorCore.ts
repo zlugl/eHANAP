@@ -63,20 +63,9 @@ export const SOFT_SKILLS_LIST = [
   'organized', 'positive attitude', 'willing to learn', 'detail-oriented', 'initiative', 'integrity'
 ];
 
-// Local Municipalities in Oriental Mindoro
-const MINDORO_MUNICIPALITIES = [
-  'Roxas', 'Mansalay', 'Bongabong', 'Bulalacao', 'Calapan', 'Pinamalayan',
-  'Gloria', 'Bansud', 'Pola', 'Socorro', 'Victoria', 'Naujan', 'Baco',
-  'San Teodoro', 'Puerto Galera'
-];
-
-// All Roxas Barangays for exact dropdown mapping
-export const ROXAS_BARANGAYS = [
-  'Bagumbayan', 'Cantil', 'Dangay', 'Happy Valley', 'Libertad',
-  'Mabuhay', 'Marugdug', 'Odiong', 'Paclasan', 'San Aquilino',
-  'San Isidro', 'San Jose', 'San Mariano', 'San Rafael',
-  'San Vicente', 'Victoria'
-];
+// Import centralized municipal and geographic constants (ARCH-06)
+import { ROXAS_BARANGAYS, MINDORO_MUNICIPALITIES } from '../constants';
+export { ROXAS_BARANGAYS };
 
 // 6 Skill Categories patterns
 export const TRADE_SKILLS = [

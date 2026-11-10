@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { parseResumeFile, ExtractedResumePayload } from '../../utils/resumeParser';
 import { evaluateResumeForAts } from '../../utils/atsEngine';
 import { AtsScanResult, CertificationRecord, EducationRecord, WorkExperienceRecord, ResumeFile } from '../../types';
-import { ORIENTAL_MINDORO_MUNICIPALITIES, ROXAS_BARANGAYS } from '../../data/mockData';
+import { ORIENTAL_MINDORO_MUNICIPALITIES, ROXAS_BARANGAYS } from '../../constants';
 import { 
   X, 
   Upload, 

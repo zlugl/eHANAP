@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES } from '../../data/mockData';
+import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES } from '../../constants';
 import { 
   Briefcase, 
   Building2, 

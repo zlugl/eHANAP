@@ -18,7 +18,7 @@ import {
   SOFT_SKILLS_LIST
 } from '../../utils/resumeExtractorCore';
 import { parseResumeFile } from '../../utils/resumeParser';
-import { ROXAS_BARANGAYS } from '../../data/mockData';
+import { ROXAS_BARANGAYS } from '../../constants';
 import { JobSeekerProfile } from '../../types';
 import { 
   Upload, 

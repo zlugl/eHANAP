@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { JobAlertSubscription } from '../types';
-import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES } from '../data/mockData';
+import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES } from '../constants';
 import { 
   X, 
   Bell, 

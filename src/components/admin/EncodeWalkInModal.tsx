@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ROXAS_MUNICIPALITY, ROXAS_BARANGAYS } from '../../data/mockData';
+import { ROXAS_MUNICIPALITY, ROXAS_BARANGAYS } from '../../constants';
 import { TESDA_CERTIFICATIONS_LIST, PRACTICAL_SKILLS_LIST } from '../../data/pesoLguData';
 import { 
   UserPlus, 

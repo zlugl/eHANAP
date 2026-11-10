@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { ROXAS_BARANGAYS, JOB_CATEGORIES } from '../data/mockData';
+import { ROXAS_BARANGAYS, JOB_CATEGORIES } from '../constants';
 import { calculateDecisionTreeMatch } from '../utils/decisionTree';
 import { ApplicationTrackingBar } from '../components/ApplicationTrackingBar';
 import { 

@@ -15,44 +15,13 @@ import {
   CompanyReview
 } from '../types';
 
-export const ROXAS_MUNICIPALITY = "Roxas, Oriental Mindoro";
-
-// Active Barangays in Roxas for precise local placement
-export const ROXAS_BARANGAYS = [
-  "Bagumbayan",
-  "Cantil",
-  "Dangay",
-  "Happy Valley",
-  "Libertad",
-  "Mabuhay",
-  "Marugdug",
-  "Odiong",
-  "Paclasan",
-  "San Aquilino",
-  "San Isidro",
-  "San Jose",
-  "San Mariano",
-  "San Rafael",
-  "San Vicente",
-  "Victoria"
-];
-
-// Single active municipality array for current Roxas PESO pilot scope
-export const ORIENTAL_MINDORO_MUNICIPALITIES = [
-  "Roxas"
-];
-
-export const JOB_CATEGORIES = [
-  "Information Technology & Software",
-  "Business, Accounting & Finance",
-  "Agriculture & Agribusiness",
-  "Tourism, Hotel & Restaurant",
-  "Engineering & Construction",
-  "Healthcare, Nursing & Medical",
-  "Education & Academic Services",
-  "Customer Service & Retail",
-  "Government & Public Administration",
-];
+// Re-export municipal and job category constants from centralized constants layer (ARCH-06)
+export {
+  ROXAS_MUNICIPALITY,
+  ROXAS_BARANGAYS,
+  ORIENTAL_MINDORO_MUNICIPALITIES,
+  JOB_CATEGORIES
+} from '../constants';
 
 // INITIAL USERS: PESO Admin, Employers (Puregold, Tech, Agri, Sales), and Candidate
 export const INITIAL_USERS: User[] = [

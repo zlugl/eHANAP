@@ -10,7 +10,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { useApp } from '../../context/AppContext';
-import { ROXAS_MUNICIPALITY, ROXAS_BARANGAYS } from '../../data/mockData';
+import { ROXAS_MUNICIPALITY, ROXAS_BARANGAYS } from '../../constants';
 import { PesoReferralSlipModal } from '../../components/admin/PesoReferralSlipModal';
 import { PesoReferralSlip } from '../../types';
 import { 

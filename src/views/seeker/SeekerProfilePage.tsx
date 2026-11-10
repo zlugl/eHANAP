@@ -6,7 +6,7 @@ import { ResumePDFExportModal } from '../../components/ResumePDFExportModal';
 import { ResumeBuilderModal } from '../../components/ResumeBuilderModal';
 import { AtsResumeModal } from '../../components/AtsResumeModal';
 import { evaluateResumeForAts } from '../../utils/atsEngine';
-import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES, ROXAS_BARANGAYS } from '../../data/mockData';
+import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES, ROXAS_BARANGAYS } from '../../constants';
 import { EducationRecord, WorkExperienceRecord, CertificationRecord } from '../../types';
 import { SeekerProfileSetupWizard } from './SeekerProfileSetupWizard';
 import { SettingsModal } from '../../components/SettingsModal';

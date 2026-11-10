@@ -1,6 +1,6 @@
 import React from 'react';
 import { FileText, MapPin, Mail, Phone, Shield } from 'lucide-react';
-import { ROXAS_BARANGAYS } from '../data/mockData';
+import { ROXAS_BARANGAYS } from '../constants';
 
 export const Footer: React.FC<{ onNavigate?: (view: string) => void }> = ({ onNavigate }) => {
   return (

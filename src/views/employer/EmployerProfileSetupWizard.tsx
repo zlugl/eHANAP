@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { markProfileCompletedInStorage } from '../../utils/routeGuards';
-import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES, ROXAS_BARANGAYS } from '../../data/mockData';
+import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES, ROXAS_BARANGAYS } from '../../constants';
 import { PESO_EMPLOYER_REQUIREMENTS, PesoRequirementDefinition } from '../../data/pesoEmployerRequirements';
 import { 
   Building2, 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { ORIENTAL_MINDORO_MUNICIPALITIES } from '../../data/mockData';
+import { ORIENTAL_MINDORO_MUNICIPALITIES } from '../../constants';
 import { EncodeWalkInModal } from '../../components/admin/EncodeWalkInModal';
 import { WalkInAssessmentModal } from '../../components/admin/WalkInAssessmentModal';
 import { PesoReferralSlipModal } from '../../components/admin/PesoReferralSlipModal';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, MapPin, DollarSign, RotateCcw, Check, SlidersHorizontal } from 'lucide-react';
-import { ROXAS_BARANGAYS, JOB_CATEGORIES } from '../data/mockData';
+import { ROXAS_BARANGAYS, JOB_CATEGORIES } from '../constants';
 
 export interface FilterState {
   location: string;

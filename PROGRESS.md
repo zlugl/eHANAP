@@ -17,7 +17,7 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
 | Priority | ID | Refactoring Work Package | Status | Target Branch | Verification |
 | :---: | :---: | :--- | :---: | :---: | :--- |
 | **1** | **ARCH-03** | **Storage Unification & Profile Invariant Encapsulation**<br>- Resolve `'seeker_bookmarked_jobs'` vs `'ehanap_bookmarks'` desync bug in `JobDetailPage.tsx` and `SeekerDashboard.tsx`.<br>- Encapsulate `isProfileComplete()` predicate in `src/utils/routeGuards.ts` replacing 26+ raw callsites.<br>- Introduce typed `storageAdapter.ts`. | **COMPLETED** | `refactor/arch-03-storage-unification` | 77/77 ARCH-03 tests + 424/424 regression tests passing; 0 lint errors; clean build |
-| **2** | **ARCH-06** | **Domain & Municipal Constants Extraction**<br>- Create `src/constants/municipal.ts` and `src/constants/jobCategories.ts`.<br>- Move `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS`, and `JOB_CATEGORIES` out of `src/data/mockData.ts`.<br>- Update all 16 consumer view imports. | **PENDING** | `refactor/arch-06-constants-extraction` | `mockData.ts` isolated to seed records only; 0 lint errors |
+| **2** | **ARCH-06** | **Domain & Municipal Constants Extraction**<br>- Create `src/constants/municipal.ts` and `src/constants/jobCategories.ts`.<br>- Move `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS`, and `JOB_CATEGORIES` out of `src/data/mockData.ts`.<br>- Update all 16 consumer view imports. | **COMPLETED** | `refactor/arch-06-constants-extraction` | 95/95 ARCH-06 tests + 77/77 ARCH-03 tests + 424/424 regression tests passing; 0 lint errors; clean build |
 | **3** | **ARCH-02** | **Retire Dual Persistence & Eliminate Firebase**<br>- Migrate Google OAuth in `AppContext.tsx` to `supabase.auth.signInWithOAuth`.<br>- Direct all persistence operations exclusively to `supabaseService.ts`.<br>- Remove `firestoreService.ts`, `lib/firebase.ts`, and prune `firebase` package. | **PENDING** | `refactor/arch-02-retire-firebase` | Exclusive Supabase persistence; clean build without Firebase |
 | **4** | **ARCH-01a**| **Context Slicing: UI Feedback & Auth**<br>- Extract `ToastContext` and `NotificationContext` from `AppContext.tsx`.<br>- Extract `AuthContext` (session, demo role switcher, login/logout).<br>- Prevent full-app re-renders on toast/notification updates. | **PENDING** | `refactor/arch-01-context-slicing` | `AppContext.tsx` reduced; isolated toast/auth testing |
 | **5** | **ARCH-05** | **Route-Level Code-Splitting & Lazy Loading**<br>- Convert Admin and Employer routes to `React.lazy()` with Suspense fallbacks.<br>- Dynamic `import()` for `jspdf` and `html2canvas` in export modals. | **PENDING** | `refactor/arch-05-code-splitting` | Initial bundle size reduction; fast LCP |
@@ -53,4 +53,44 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
   - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (501 total verified assertions).
   - `npm run lint` (`tsc --noEmit`): **0 errors**.
   - `npm run build`: **Clean production bundle created**.
+
+---
+
+### Work Package 2: ARCH-06 — Domain & Municipal Constants Extraction
+- **Status:** [x] **COMPLETED**
+- **Branch:** `refactor/arch-06-constants-extraction`
+- **Scope & Objectives Delivered:**
+  1. **Centralized Domain Constants Modules**:
+     - Created `src/constants/municipal.ts`: Extracted `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS` (16 official barangays), `ORIENTAL_MINDORO_MUNICIPALITIES`, `ALL_ORIENTAL_MINDORO_MUNICIPALITIES`, and `MINDORO_MUNICIPALITIES` with strongly typed TypeScript literal unions (`RoxasBarangay`, `OrientalMindoroMunicipality`).
+     - Created `src/constants/jobCategories.ts`: Extracted `JOB_CATEGORIES` (9 standard industries) and typed literal union `JobCategory`.
+     - Created `src/constants/index.ts`: Barrel export providing a single clean import surface for all domain and municipal invariants.
+  2. **Deduplication & Mock Data Isolation**:
+     - Updated `src/data/mockData.ts` to re-export `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS`, `ORIENTAL_MINDORO_MUNICIPALITIES`, and `JOB_CATEGORIES` from `../constants` for backwards compatibility.
+     - Updated `src/utils/resumeExtractorCore.ts` to import `ROXAS_BARANGAYS` and `MINDORO_MUNICIPALITIES` from `../constants`, eliminating duplicate hardcoded geographic arrays.
+  3. **Presentation & View Layer Decoupling**:
+     - Migrated all 16 consumer views and components away from `../data/mockData` to `src/constants`:
+       - `src/views/EmployerSearchPage.tsx`
+       - `src/views/JobSearchPage.tsx`
+       - `src/views/seeker/SeekerProfileSetupWizard.tsx`
+       - `src/views/seeker/ResumeUploadModal.tsx`
+       - `src/views/seeker/SeekerProfilePage.tsx`
+       - `src/views/employer/EmployerProfilePage.tsx`
+       - `src/views/employer/CreateJobModal.tsx`
+       - `src/views/employer/EmployerProfileSetupWizard.tsx`
+       - `src/views/admin/AdminUsersPage.tsx`
+       - `src/views/admin/AdminJobsPage.tsx`
+       - `src/views/admin/AdminDashboard.tsx`
+       - `src/views/admin/AdminReportsPage.tsx`
+       - `src/components/JobSubscriptionModal.tsx`
+       - `src/components/JobFilterModal.tsx`
+       - `src/components/Footer.tsx`
+       - `src/components/admin/EncodeWalkInModal.tsx`
+     - Exactly **zero** presentation views or components import from `mockData.ts`. `mockData.ts` is now isolated strictly to seed fixtures used by offline service fallbacks.
+- **Verification Evidence:**
+  - `npx tsx scripts/verify-arch06-constants-extraction.ts`: **95/95 tests passed** across 6 verification suites.
+  - `npx tsx scripts/verify-arch03-storage-unification.ts`: **77/77 tests passed** across 7 test suites.
+  - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (596 total verified assertions across suites).
+  - `npm run lint` (`tsc --noEmit`): **0 errors**.
+  - `npm run build`: **Clean production bundle created**.
+
 
