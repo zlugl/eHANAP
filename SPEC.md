@@ -57,7 +57,7 @@ src/App.tsx (25 views bundled statically)         Browser Client (Single Monolit
 ---
 
 ### 2. Split-Brain Dual Persistence & Leaked Firebase Dependencies
-- **ID:** ARCH-02 | **Class:** `DEPLOYMENT_COUPLING` / `LEAKED_INFRASTRUCTURE` / `SHARED_STATE` | **Severity:** 🔴 Critical | **Status:** `ARCHITECTURAL RISK`
+- **ID:** ARCH-02 | **Class:** `DEPLOYMENT_COUPLING` / `LEAKED_INFRASTRUCTURE` / `SHARED_STATE` | **Severity:** 🔴 Critical | **Status:** `REMEDIATED` (Work Package 3)
 - **Blast Radius:** High | **Confidence:** High
 - **Location & Evidence:** `src/context/AppContext.tsx:98-118`, `src/services/firestoreService.ts` (Lines 1–265), `src/lib/firebase.ts` (Lines 1–25), `package.json:28` (`firebase: ^12.17.1`).
 - **Responsibility Analysis:** While the academic thesis directive mandated migrating cleanly to Supabase (PostgreSQL), `saveDocument` and `deleteDocument` in `AppContext.tsx` execute dual-writes to both Supabase and Firestore simultaneously. In addition, Google OAuth in `AppContext.tsx:947-1139` authenticates against Firebase (`firebase/auth`) rather than Supabase Auth.

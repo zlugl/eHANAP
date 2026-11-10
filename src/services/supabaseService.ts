@@ -44,6 +44,25 @@ export const SUPABASE_TABLES = {
 export type SupabaseTableName = (typeof SUPABASE_TABLES)[keyof typeof SUPABASE_TABLES];
 
 /**
+ * Backwards compatibility alias mapping legacy collection keys to Supabase tables.
+ */
+export const COLLECTIONS = {
+  USERS: SUPABASE_TABLES.USERS,
+  EMPLOYERS: SUPABASE_TABLES.EMPLOYERS,
+  JOB_SEEKERS: SUPABASE_TABLES.JOB_SEEKERS,
+  JOB_POSTS: SUPABASE_TABLES.JOB_POSTS,
+  APPLICATIONS: SUPABASE_TABLES.APPLICATIONS,
+  INTERVIEWS: SUPABASE_TABLES.INTERVIEWS,
+  NOTIFICATIONS: SUPABASE_TABLES.NOTIFICATIONS,
+  AUDIT_LOGS: SUPABASE_TABLES.AUDIT_LOGS,
+  ANNOUNCEMENTS: SUPABASE_TABLES.ANNOUNCEMENTS,
+  JOB_SUBSCRIPTIONS: SUPABASE_TABLES.JOB_SUBSCRIPTIONS,
+  REFERRAL_SLIPS: SUPABASE_TABLES.REFERRAL_SLIPS,
+  LRA_EVENTS: SUPABASE_TABLES.LRA_EVENTS,
+  CANDIDATE_MATCHES: SUPABASE_TABLES.CANDIDATE_MATCHES,
+} as const;
+
+/**
  * Utility: Converts a camelCase string to snake_case.
  */
 function camelToSnake(str: string): string {
@@ -592,4 +611,50 @@ export function onSupabaseAuthStateChange(
     return { unsubscribe: () => {} };
   }
 }
+
+/**
+ * Supabase Auth: Sign in or register via OAuth provider (Google)
+ */
+export async function signInWithSupabaseOAuth(
+  provider: 'google' = 'google',
+  options?: { redirectTo?: string; queryParams?: Record<string, string> }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return {
+      success: true,
+      data: {
+        provider,
+        url: null,
+        user: {
+          id: `offline-oauth-${Date.now()}`,
+          email: 'google.user@example.com',
+          user_metadata: {
+            full_name: 'Demo Google User',
+            avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+          },
+        },
+      },
+    };
+  }
+
+  try {
+    const redirectTo = options?.redirectTo || (typeof window !== 'undefined' ? window.location.origin : undefined);
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+        queryParams: options?.queryParams || { prompt: 'select_account' },
+      },
+    });
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Supabase OAuth authentication failed.' };
+  }
+}
+
 

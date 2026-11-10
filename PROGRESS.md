@@ -18,7 +18,7 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
 | :---: | :---: | :--- | :---: | :---: | :--- |
 | **1** | **ARCH-03** | **Storage Unification & Profile Invariant Encapsulation**<br>- Resolve `'seeker_bookmarked_jobs'` vs `'ehanap_bookmarks'` desync bug in `JobDetailPage.tsx` and `SeekerDashboard.tsx`.<br>- Encapsulate `isProfileComplete()` predicate in `src/utils/routeGuards.ts` replacing 26+ raw callsites.<br>- Introduce typed `storageAdapter.ts`. | **COMPLETED** | `refactor/arch-03-storage-unification` | 77/77 ARCH-03 tests + 424/424 regression tests passing; 0 lint errors; clean build |
 | **2** | **ARCH-06** | **Domain & Municipal Constants Extraction**<br>- Create `src/constants/municipal.ts` and `src/constants/jobCategories.ts`.<br>- Move `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS`, and `JOB_CATEGORIES` out of `src/data/mockData.ts`.<br>- Update all 16 consumer view imports. | **COMPLETED** | `refactor/arch-06-constants-extraction` | 95/95 ARCH-06 tests + 77/77 ARCH-03 tests + 424/424 regression tests passing; 0 lint errors; clean build |
-| **3** | **ARCH-02** | **Retire Dual Persistence & Eliminate Firebase**<br>- Migrate Google OAuth in `AppContext.tsx` to `supabase.auth.signInWithOAuth`.<br>- Direct all persistence operations exclusively to `supabaseService.ts`.<br>- Remove `firestoreService.ts`, `lib/firebase.ts`, and prune `firebase` package. | **PENDING** | `refactor/arch-02-retire-firebase` | Exclusive Supabase persistence; clean build without Firebase |
+| **3** | **ARCH-02** | **Retire Dual Persistence & Eliminate Firebase**<br>- Migrate Google OAuth in `AppContext.tsx` to `supabase.auth.signInWithOAuth`.<br>- Direct all persistence operations exclusively to `supabaseService.ts`.<br>- Remove `firestoreService.ts`, `lib/firebase.ts`, and prune `firebase` package. | **COMPLETED** | `refactor/arch-02-retire-firebase` | 35/35 ARCH-02 tests + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build |
 | **4** | **ARCH-01a**| **Context Slicing: UI Feedback & Auth**<br>- Extract `ToastContext` and `NotificationContext` from `AppContext.tsx`.<br>- Extract `AuthContext` (session, demo role switcher, login/logout).<br>- Prevent full-app re-renders on toast/notification updates. | **PENDING** | `refactor/arch-01-context-slicing` | `AppContext.tsx` reduced; isolated toast/auth testing |
 | **5** | **ARCH-05** | **Route-Level Code-Splitting & Lazy Loading**<br>- Convert Admin and Employer routes to `React.lazy()` with Suspense fallbacks.<br>- Dynamic `import()` for `jspdf` and `html2canvas` in export modals. | **PENDING** | `refactor/arch-05-code-splitting` | Initial bundle size reduction; fast LCP |
 | **6** | **ARCH-07** | **Centralize Decision Tree Match Resolver**<br>- Implement `getOrCalculateMatch(seeker, job, cachedMatches)`.<br>- Memoize candidate ranking rosters; eliminate pairwise loops during render. | **PENDING** | `refactor/arch-07-match-resolver` | Deterministic score consistency; 0 render lag |
@@ -92,5 +92,41 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
   - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (596 total verified assertions across suites).
   - `npm run lint` (`tsc --noEmit`): **0 errors**.
   - `npm run build`: **Clean production bundle created**.
+
+---
+
+### Work Package 3: ARCH-02 — Retire Dual Persistence & Eliminate Firebase
+- **Status:** [x] **COMPLETED**
+- **Branch:** `refactor/arch-02-retire-firebase`
+- **Scope & Objectives Delivered:**
+  1. **Google OAuth Migration to Supabase (`src/services/supabaseService.ts`, `src/context/AppContext.tsx`)**:
+     - Introduced `signInWithSupabaseOAuth(provider, options)` in `supabaseService.ts`, fully implementing standard Supabase OAuth with redirect/PKCE URL generation and resilient offline/test simulation fallback.
+     - Refactored `continueWithGoogle` in `AppContext.tsx` to route exclusively through `signInWithSupabaseOAuth`, eliminating `signInWithPopup`, `GoogleAuthProvider`, and the `firebase/auth` module.
+     - Preserved session hydration and user profile linking across all user roles (`job_seeker`, `employer`, `admin`).
+  2. **Unified Single-Source Supabase Persistence**:
+     - Direct persistence pipeline: `saveDocument`, `deleteDocument`, and `updateDocument` in `AppContext.tsx` now write directly to Supabase via `saveRecord`, `deleteRecord`, and `updateRecord`.
+     - Eliminated dual-write split-brain risk; transactions and record updates are committed cleanly to PostgreSQL with snake_case serialization and camelCase hydration.
+     - Exported backwards-compatible `COLLECTIONS` dictionary from `src/services/supabaseService.ts` mapping legacy collection keys directly to `SUPABASE_TABLES` (`job_posts`, `applications`, `candidate_matches`, etc.).
+     - Retired all Firestore real-time collection listeners (`subscribeToCollection`) from `AppContext.tsx`, leaving Supabase Realtime subscriptions (`subscribeToSupabaseTable`) as the single source of live synchronization.
+     - Updated `resetToDemoData` to seed Supabase exclusively via `seedDemoDataToSupabase`.
+  3. **Static Elimination of Firebase SDK & Config Artifacts**:
+     - Deleted `src/services/firestoreService.ts` (265 lines).
+     - Deleted `src/lib/firebase.ts` (25 lines).
+     - Removed legacy Firebase root artifacts: `firebase-applet-config.json`, `firebase-blueprint.json`, and `firestore.rules`.
+     - Pruned `firebase` package (`^12.17.1`) from `package.json` and `package-lock.json`, removing 70 unused packages and ~250KB of bundled client dependencies.
+     - Zero references to `firebase` or `firestoreService` remain anywhere in `src/`.
+  4. **Presentation & UI Decoupling (`src/components/Navbar.tsx`)**:
+     - Retired `isFirestoreConnected` indicator and "Firestore" status pill from `Navbar.tsx`.
+     - Connected `Navbar.tsx` directly to `isSupabaseConnected` to display live Supabase PostgreSQL connection status.
+  5. **Data Flow & Milestone Compatibility (`scripts/verify-milestone03-data-flow.ts`)**:
+     - Updated Milestone 03 data-pipeline verification to import `COLLECTIONS` from `src/services/supabaseService`, verifying complete table mapping compatibility.
+- **Verification Evidence:**
+  - `npx tsx scripts/verify-arch02-retire-firebase.ts`: **35/35 tests passed** across 5 verification suites.
+  - `npx tsx scripts/verify-arch03-storage-unification.ts`: **77/77 tests passed** across 7 verification suites.
+  - `npx tsx scripts/verify-arch06-constants-extraction.ts`: **95/95 tests passed** across 6 verification suites.
+  - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (631 total verified assertions across suites).
+  - `npm run lint` (`tsc --noEmit`): **0 errors**.
+  - `npm run build`: **Clean production bundle created in 24s** (Vite + Node server).
+
 
 

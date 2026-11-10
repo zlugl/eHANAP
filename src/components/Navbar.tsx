@@ -65,7 +65,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     applications,
     interviews,
     referralSlips,
-    isFirestoreConnected, 
+    isSupabaseConnected, 
     isSyncing, 
     jobPosts, 
     currentEmployerProfile, 
@@ -195,13 +195,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="text-[11px] font-medium bg-[var(--color-paper-3)] text-[var(--color-ink)] px-2 py-0.5 rounded-full border border-[var(--color-rule)]">
                     PESO Roxas
                   </span>
-                  {isFirestoreConnected && (
+                  {isSupabaseConnected && (
                     <span 
                       className="hidden sm:inline-flex items-center gap-1 text-[10px] font-medium text-[var(--color-green)] bg-[var(--color-green-soft)] px-2 py-0.5 rounded-full border border-[var(--color-green)]"
-                      title="Real-time Firebase Firestore database active"
+                      title="Real-time Supabase PostgreSQL database active"
                     >
                       <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-[var(--color-accent)] motion-safe:animate-spin' : 'bg-[var(--color-green)] motion-safe:animate-pulse'}`}></span>
-                      <span>Firestore</span>
+                      <span>Supabase</span>
                     </span>
                   )}
                 </div>

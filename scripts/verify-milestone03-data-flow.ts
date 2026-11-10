@@ -4,8 +4,8 @@ import {
   toSnakeCase,
   toCamelCase,
   SUPABASE_TABLES,
+  COLLECTIONS,
 } from '../src/services/supabaseService';
-import { COLLECTIONS } from '../src/services/firestoreService';
 import {
   JobPost,
   Application,

@@ -50,21 +50,12 @@ import {
 import { DEMO_ACCOUNTS, DemoAccountMeta, getDemoAccountByEmail, PRIMARY_DEMO_ACCOUNTS } from '../data/demoAccounts';
 import { calculateDecisionTreeMatch } from '../utils/decisionTree';
 import { evaluateResumeForAts } from '../utils/atsEngine';
-import { 
-  COLLECTIONS,
-  ensureAdminAccountExists,
-  initializeCleanDatabase,
-  subscribeToCollection,
-  saveDocument as saveFirestoreDocument,
-  updateDocument,
-  deleteDocument as deleteFirestoreDocument,
-  resetDatabaseToClean,
-  seedDemoDataToFirestore
-} from '../services/firestoreService';
 import {
   SUPABASE_TABLES,
   SupabaseTableName,
+  COLLECTIONS,
   saveRecord as saveSupabaseRecord,
+  updateRecord as updateSupabaseRecord,
   deleteRecord as deleteSupabaseRecord,
   subscribeToSupabaseTable,
   ensureDemoAccountsExistInSupabase,
@@ -74,6 +65,7 @@ import {
   signUpWithSupabase,
   signOutWithSupabase,
   onSupabaseAuthStateChange,
+  signInWithSupabaseOAuth,
 } from '../services/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { storageAdapter } from '../lib/storageAdapter';
@@ -84,49 +76,32 @@ import {
   markProfileCompletedInStorage, 
   clearProfileCompletedInStorage 
 } from '../utils/routeGuards';
-import { auth } from '../lib/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
-const COLLECTION_TO_SUPABASE: Record<string, SupabaseTableName> = {
-  [COLLECTIONS.USERS]: SUPABASE_TABLES.USERS,
-  [COLLECTIONS.EMPLOYERS]: SUPABASE_TABLES.EMPLOYERS,
-  [COLLECTIONS.JOB_SEEKERS]: SUPABASE_TABLES.JOB_SEEKERS,
-  [COLLECTIONS.JOB_POSTS]: SUPABASE_TABLES.JOB_POSTS,
-  [COLLECTIONS.APPLICATIONS]: SUPABASE_TABLES.APPLICATIONS,
-  [COLLECTIONS.INTERVIEWS]: SUPABASE_TABLES.INTERVIEWS,
-  [COLLECTIONS.NOTIFICATIONS]: SUPABASE_TABLES.NOTIFICATIONS,
-  [COLLECTIONS.AUDIT_LOGS]: SUPABASE_TABLES.AUDIT_LOGS,
-  [COLLECTIONS.ANNOUNCEMENTS]: SUPABASE_TABLES.ANNOUNCEMENTS,
-  [COLLECTIONS.JOB_SUBSCRIPTIONS]: SUPABASE_TABLES.JOB_SUBSCRIPTIONS,
-  [COLLECTIONS.REFERRAL_SLIPS]: SUPABASE_TABLES.REFERRAL_SLIPS,
-  [COLLECTIONS.LRA_EVENTS]: SUPABASE_TABLES.LRA_EVENTS,
-  [COLLECTIONS.CANDIDATE_MATCHES]: SUPABASE_TABLES.CANDIDATE_MATCHES,
+// Supabase-exclusive persistence wrapper: automatically saves records to PostgreSQL via Supabase
+const saveDocument = <T extends { id: string }>(table: SupabaseTableName | string, item: T) => {
+  if (isSupabaseConfigured()) {
+    saveSupabaseRecord(table as SupabaseTableName, item).catch((err) => {
+      console.warn(`[Supabase] Persistence sync warning for ${table}:`, err);
+    });
+  }
 };
 
-// Dual-persistence wrapper: automatically saves to Supabase (when configured) and Firestore
-const saveDocument = <T extends { id: string }>(collectionName: string, item: T) => {
+// Supabase-exclusive persistence wrapper: automatically deletes records from PostgreSQL via Supabase
+const deleteDocument = (table: SupabaseTableName | string, id: string) => {
   if (isSupabaseConfigured()) {
-    const sbTable = COLLECTION_TO_SUPABASE[collectionName];
-    if (sbTable) {
-      saveSupabaseRecord(sbTable, item).catch((err) => {
-        console.warn(`[Supabase] Dual-persistence sync warning for ${sbTable}:`, err);
-      });
-    }
+    deleteSupabaseRecord(table as SupabaseTableName, id).catch((err) => {
+      console.warn(`[Supabase] Persistence delete warning for ${table}:`, err);
+    });
   }
-  saveFirestoreDocument(collectionName, item);
 };
 
-// Dual-persistence wrapper: automatically deletes from Supabase (when configured) and Firestore
-const deleteDocument = (collectionName: string, id: string) => {
+// Supabase-exclusive persistence wrapper: automatically updates record fields in PostgreSQL via Supabase
+const updateDocument = (table: SupabaseTableName | string, id: string, updates: Record<string, any>) => {
   if (isSupabaseConfigured()) {
-    const sbTable = COLLECTION_TO_SUPABASE[collectionName];
-    if (sbTable) {
-      deleteSupabaseRecord(sbTable, id).catch((err) => {
-        console.warn(`[Supabase] Dual-persistence delete warning for ${sbTable}:`, err);
-      });
-    }
+    updateSupabaseRecord(table as SupabaseTableName, id, updates).catch((err) => {
+      console.warn(`[Supabase] Persistence update warning for ${table}:`, err);
+    });
   }
-  deleteFirestoreDocument(collectionName, id);
 };
 
 interface AppContextType {
@@ -146,7 +121,6 @@ interface AppContextType {
   referralSlips: PesoReferralSlip[];
   localRecruitmentActivities: LocalRecruitmentActivity[];
   activeToast: ToastNotification | null;
-  isFirestoreConnected: boolean;
   isSupabaseConnected: boolean;
   isSyncing: boolean;
   
@@ -272,7 +246,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [referralSlips, setReferralSlips] = useState<PesoReferralSlip[]>(INITIAL_REFERRAL_SLIPS);
   const [localRecruitmentActivities, setLocalRecruitmentActivities] = useState<LocalRecruitmentActivity[]>(INITIAL_LRA_EVENTS);
   const [activeToast, setActiveToast] = useState<ToastNotification | null>(null);
-  const [isFirestoreConnected, setIsFirestoreConnected] = useState<boolean>(false);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
@@ -310,7 +283,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const isInitialMount = useRef(true);
 
-  // Initialize Supabase & Firestore listeners and seed initial data
+  // Initialize Supabase listeners and seed initial data
   useEffect(() => {
     let unsubs: Array<() => void> = [];
 
@@ -466,145 +439,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             );
           }
         } catch (sbErr) {
-          console.warn('[Supabase] Initialization warning, continuing with fallback store:', sbErr);
+          console.warn('[Supabase] Initialization warning, continuing with local store:', sbErr);
         }
+      } else {
+        console.log('[Supabase] Running in local offline state mode with seed fixtures.');
       }
 
-      // 2. Initialize Firestore / offline fallback
-      try {
-        await ensureAdminAccountExists();
-        setIsFirestoreConnected(true);
-
-        // Subscribe to real-time updates for each collection
-        unsubs.push(
-          subscribeToCollection<User>(COLLECTIONS.USERS, (data) => {
-            if (data && data.length > 0) {
-              setUsers(prev => {
-                const map = new Map<string, User>();
-                prev.forEach(u => map.set(u.id, u));
-                data.forEach(u => {
-                  // Only one admin account for LGU/PESO
-                  if (u.role === 'admin' && u.id !== 'user-peso-admin-01' && u.email?.toLowerCase() !== 'peso.admin@roxas.gov.ph') {
-                    return;
-                  }
-                  const existing = map.get(u.id);
-                  const isCompleted = u.isProfileCompleted || existing?.isProfileCompleted || 
-                    storageAdapter.isProfileCompletedInStorage(u.id) ||
-                    (u.email ? storageAdapter.isProfileCompletedInStorage(u.email) : false);
-                  map.set(u.id, { ...u, isProfileCompleted: Boolean(isCompleted) });
-                });
-                return Array.from(map.values());
-              });
-              setCurrentUser(prev => {
-                if (!prev) return null;
-                const match = data.find(u => u.id === prev.id);
-                if (!match) return prev;
-                const completed = prev.isProfileCompleted || match.isProfileCompleted || 
-                  storageAdapter.isProfileCompletedInStorage(prev.id) ||
-                  (prev.email ? storageAdapter.isProfileCompletedInStorage(prev.email) : false);
-                return { ...match, isProfileCompleted: Boolean(completed) };
-              });
-            }
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<EmployerProfile>(COLLECTIONS.EMPLOYERS, (data) => {
-            if (data && data.length > 0) {
-              setEmployers(prev => {
-                const map = new Map<string, EmployerProfile>();
-                prev.forEach(e => map.set(e.id, e));
-                data.forEach(e => map.set(e.id, e));
-                return Array.from(map.values());
-              });
-            }
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<JobSeekerProfile>(COLLECTIONS.JOB_SEEKERS, (data) => {
-            if (data && data.length > 0) {
-              setJobSeekers(prev => {
-                const map = new Map<string, JobSeekerProfile>();
-                prev.forEach(s => map.set(s.id, s));
-                data.forEach(s => {
-                  const existing = map.get(s.id);
-                  const isCompleted = Boolean(
-                    s.isProfileCompleted || 
-                    existing?.isProfileCompleted || 
-                    storageAdapter.isProfileCompletedInStorage(s.id) ||
-                    (s.userId && storageAdapter.isProfileCompletedInStorage(s.userId)) ||
-                    (s.email && storageAdapter.isProfileCompletedInStorage(s.email))
-                  );
-                  map.set(s.id, { ...s, isProfileCompleted: isCompleted });
-                });
-                return Array.from(map.values());
-              });
-            }
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<JobPost>(COLLECTIONS.JOB_POSTS, (data) => {
-            setJobPosts(data || []);
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<Application>(COLLECTIONS.APPLICATIONS, (data) => {
-            setApplications(data || []);
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<Interview>(COLLECTIONS.INTERVIEWS, (data) => {
-            setInterviews(data || []);
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<NotificationItem>(COLLECTIONS.NOTIFICATIONS, (data) => {
-            setNotifications(data || []);
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<AuditLog>(COLLECTIONS.AUDIT_LOGS, (data) => {
-            const list = data || [];
-            const sorted = [...list].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            setAuditLogs(sorted);
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<SystemAnnouncement>(COLLECTIONS.ANNOUNCEMENTS, (data) => {
-            setAnnouncements(data || []);
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<JobAlertSubscription>(COLLECTIONS.JOB_SUBSCRIPTIONS, (data) => {
-            setJobSubscriptions(data || []);
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<PesoReferralSlip>(COLLECTIONS.REFERRAL_SLIPS, (data) => {
-            setReferralSlips(data || []);
-          })
-        );
-
-        unsubs.push(
-          subscribeToCollection<LocalRecruitmentActivity>(COLLECTIONS.LRA_EVENTS, (data) => {
-            setLocalRecruitmentActivities(data || []);
-          })
-        );
-
-        setIsSyncing(false);
-      } catch (err) {
-        console.warn('[Firestore] Initialization error, continuing with zero-data memory state:', err);
-        setIsSyncing(false);
-      }
+      setIsSyncing(false);
     }
 
     initDatabases();
@@ -860,15 +701,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return { success: false, error: res.error || 'Failed to switch demo account.' };
   };
 
-  // Google OAuth Authentication
+  // Google OAuth Authentication via Supabase
   const continueWithGoogle = async (intendedRole: UserRole = 'job_seeker') => {
     try {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({ prompt: 'select_account' });
-      
-      const result = await signInWithPopup(auth, provider);
-      const googleUser = result.user;
-      
+      const res = await signInWithSupabaseOAuth('google');
+      if (!res.success) {
+        return { success: false, error: res.error || 'Failed to authenticate with Google.' };
+      }
+
+      // If browser OAuth redirect URL was returned
+      if (res.data?.url && typeof window !== 'undefined') {
+        storageAdapter.setItem('ehanap_oauth_intended_role', intendedRole);
+        window.location.href = res.data.url;
+        return { success: true };
+      }
+
+      const googleUser = res.data?.user;
       if (!googleUser || !googleUser.email) {
         return { success: false, error: 'Could not retrieve Google account information.' };
       }
@@ -899,8 +747,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           isProfileCompleted: isCompleted,
         };
       } else {
-        const name = googleUser.displayName || email.split('@')[0];
+        const metadata = googleUser.user_metadata || {};
+        const name = metadata.full_name || metadata.name || googleUser.displayName || email.split('@')[0];
         const newUserId = `user-${Date.now()}`;
+        const avatarUrl = metadata.avatar_url || googleUser.photoURL || undefined;
         
         if (intendedRole === 'employer') {
           // Clear any stale local flags for this new account
@@ -914,7 +764,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             role: 'employer',
             isProfileCompleted: false, // NEW account must complete profile setup
             createdAt: new Date().toISOString(),
-            avatar: googleUser.photoURL || undefined,
+            avatar: avatarUrl,
           };
 
           const newEmpId = `emp-${Date.now()}`;
@@ -931,7 +781,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             companyDescription: '',
             status: 'pending',
             isProfileCompleted: false, // NEW account must complete setup wizard
-            logoUrl: googleUser.photoURL || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
+            logoUrl: avatarUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
             createdAt: new Date().toISOString(),
           };
 
@@ -967,7 +817,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             role: 'job_seeker',
             isProfileCompleted: false, // NEW account must complete profile setup
             createdAt: new Date().toISOString(),
-            avatar: googleUser.photoURL || undefined,
+            avatar: avatarUrl,
           };
           
           const newSeekerId = `seeker-${Date.now()}`;
@@ -981,7 +831,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             contactNumber: '',
             address: 'Bagumbayan, Roxas',
             municipality: 'Roxas',
-            profilePicture: googleUser.photoURL || undefined,
+            profilePicture: avatarUrl,
             professionalSummary: 'Job seeker registered via Google on eHANAP Roxas.',
             educationalAttainment: "Bachelor's Degree",
             primaryDegree: '',
@@ -996,7 +846,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             updatedAt: new Date().toISOString(),
           };
           
-          // Save to Firestore & local state
+          // Save to Supabase & local state
           setUsers(prev => [...prev, newUser]);
           setJobSeekers(prev => [...prev, newSeeker]);
           setCurrentUser(newUser);
@@ -1016,15 +866,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }
     } catch (err: any) {
-      if (err.code === 'auth/popup-closed-by-user' || err.code === 'auth/cancelled-popup-request') {
-        // User intentionally closed the popup window - not an application fault
-        return { success: false, error: 'Google sign-in was cancelled or closed.' };
-      }
-      if (err.code === 'auth/popup-blocked') {
-        return { success: false, error: 'Google sign-in popup was blocked by your browser. Please allow popups for this site and try again.' };
-      }
       console.warn('Google sign-in notice:', err?.message || err);
-      return { success: false, error: err.message || 'Failed to authenticate with Google.' };
+      return { success: false, error: err?.message || 'Failed to authenticate with Google.' };
     }
   };
 
@@ -2715,7 +2558,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.warn('[Supabase] Warning during demo reset:', err);
       });
     }
-    await seedDemoDataToFirestore();
     setUsers(INITIAL_USERS);
     setCurrentUser(null);
     setEmployers(INITIAL_EMPLOYERS);
@@ -2939,7 +2781,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         referralSlips,
         localRecruitmentActivities,
         activeToast,
-        isFirestoreConnected,
         isSupabaseConnected,
         isSyncing,
         switchUserRole,
