@@ -212,6 +212,43 @@ assert(!seekerDashboardContent.includes('const [bookmarkedIds, setBookmarkedIds]
 assert(appContextContent.includes('storageAdapter.getBookmarks'), 'AppContext.tsx hydrates bookmarks via storageAdapter.getBookmarks');
 assert(appContextContent.includes('storageAdapter.setBookmarks'), 'AppContext.tsx persists bookmarks via storageAdapter.setBookmarks');
 
+// -------------------------------------------------------------
+// Suite 7: Static Elimination of Leaked Storage Primitives in Presentation Views
+// -------------------------------------------------------------
+console.log('\n>>> [Suite 7] Static Elimination of Leaked Storage Primitives');
+
+const appContent = fs.readFileSync(path.resolve(process.cwd(), 'src/App.tsx'), 'utf-8');
+const navbarContent = fs.readFileSync(path.resolve(process.cwd(), 'src/components/Navbar.tsx'), 'utf-8');
+const seekerProfileContent = fs.readFileSync(path.resolve(process.cwd(), 'src/views/seeker/SeekerProfilePage.tsx'), 'utf-8');
+const authModalContent = fs.readFileSync(path.resolve(process.cwd(), 'src/views/AuthModal.tsx'), 'utf-8');
+const notificationUtilsContent = fs.readFileSync(path.resolve(process.cwd(), 'src/utils/notificationUtils.ts'), 'utf-8');
+const seekerWizardContent = fs.readFileSync(path.resolve(process.cwd(), 'src/views/seeker/SeekerProfileSetupWizard.tsx'), 'utf-8');
+const employerWizardContent = fs.readFileSync(path.resolve(process.cwd(), 'src/views/employer/EmployerProfileSetupWizard.tsx'), 'utf-8');
+
+assert(!appContent.includes('localStorage.getItem'), 'App.tsx contains 0 raw localStorage.getItem calls');
+assert(appContent.includes('isSeekerProfileComplete') && appContent.includes('isEmployerProfileComplete'), 'App.tsx uses routeGuards predicates');
+
+assert(!navbarContent.includes('localStorage.getItem'), 'Navbar.tsx contains 0 raw localStorage.getItem calls');
+assert(navbarContent.includes('isSeekerProfileComplete') && navbarContent.includes('isEmployerProfileComplete'), 'Navbar.tsx uses routeGuards predicates');
+
+assert(!seekerProfileContent.includes('localStorage.getItem'), 'SeekerProfilePage.tsx contains 0 raw localStorage.getItem calls');
+assert(seekerProfileContent.includes('isSeekerProfileComplete'), 'SeekerProfilePage.tsx uses isSeekerProfileComplete');
+
+assert(!authModalContent.includes('localStorage.getItem'), 'AuthModal.tsx contains 0 raw localStorage.getItem calls');
+assert(authModalContent.includes('isProfileComplete'), 'AuthModal.tsx uses isProfileComplete');
+
+assert(!notificationUtilsContent.includes('localStorage.getItem'), 'notificationUtils.ts contains 0 raw localStorage.getItem calls');
+assert(notificationUtilsContent.includes('isSeekerProfileComplete'), 'notificationUtils.ts uses isSeekerProfileComplete');
+
+assert(seekerWizardContent.includes('markProfileCompletedInStorage'), 'SeekerProfileSetupWizard.tsx uses markProfileCompletedInStorage');
+assert(!seekerWizardContent.includes('localStorage.setItem'), 'SeekerProfileSetupWizard.tsx has 0 raw localStorage.setItem calls');
+
+assert(employerWizardContent.includes('markProfileCompletedInStorage'), 'EmployerProfileSetupWizard.tsx uses markProfileCompletedInStorage');
+assert(!employerWizardContent.includes('localStorage.setItem'), 'EmployerProfileSetupWizard.tsx has 0 raw localStorage.setItem calls');
+
+assert(!appContextContent.includes("localStorage.getItem('ehanap_users')"), 'AppContext.tsx hydrates users via storageAdapter');
+assert(!appContextContent.includes("localStorage.getItem('ehanap_job_seekers')"), 'AppContext.tsx hydrates job seekers via storageAdapter');
+
 // Print summary
 console.log('\n================================================================');
 console.log(`ARCH-03 Verification Summary: ${passedTests}/${totalTests} tests passed`);

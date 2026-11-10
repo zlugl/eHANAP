@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { isProfileComplete } from '../utils/routeGuards';
 import { 
   X, 
   Eye, 
@@ -191,13 +192,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   }, [isOpen, initialMode, initialRole, initialShowSplash]);
 
-  // Lock body scroll when AuthModal is open so the background window doesn't scroll
+  // Lock root document and body scroll when AuthModal is open so the background window doesn't scroll
   useEffect(() => {
     if (!isOpen) return;
-    const originalOverflow = document.body.style.overflow;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
     return () => {
-      document.body.style.overflow = originalOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
     };
   }, [isOpen]);
 
@@ -353,11 +359,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       onClose();
       // If brand new Google account, they must set up their profile
       const isCompleted = res.isNewUser ? false : Boolean(
-        res.isProfileCompleted ?? (
-          res.user.role === 'job_seeker'
-            ? (res.seekerProfile?.isProfileCompleted || (typeof window !== 'undefined' && res.user.email && localStorage.getItem(`ehanap_profile_completed_${res.user.email.toLowerCase()}`) === 'true'))
-            : (res.employerProfile?.isProfileCompleted || (typeof window !== 'undefined' && res.user.email && localStorage.getItem(`ehanap_employer_completed_${res.user.email.toLowerCase()}`) === 'true'))
-        )
+        res.isProfileCompleted ?? isProfileComplete(res.user, res.user.role === 'job_seeker' ? res.seekerProfile : res.employerProfile)
       );
       if (onSuccessRole) onSuccessRole(res.user.role, res.user, isCompleted);
       else if (onSuccess) onSuccess();

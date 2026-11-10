@@ -38,7 +38,13 @@ import { AdminReportsPage } from './views/admin/AdminReportsPage';
 import { AdminAuditLogsPage } from './views/admin/AdminAuditLogsPage';
 import { AdminJobMatchingPage } from './views/admin/AdminJobMatchingPage';
 import { AdminLraPage } from './views/admin/AdminLraPage';
-import { isRouteAllowedForRole, getRequiredRoleForRoute, getRoleDefaultView } from './utils/routeGuards';
+import { 
+  isRouteAllowedForRole, 
+  getRequiredRoleForRoute, 
+  getRoleDefaultView,
+  isSeekerProfileComplete,
+  isEmployerProfileComplete
+} from './utils/routeGuards';
 
 import { ShieldAlert, LogIn, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -127,17 +133,7 @@ function AppContent() {
     // MANDATORY PROFILE SETUP GATE:
     // If a job seeker hasn't completed their profile setup, they must complete it
     // before they can access the dashboard, apply for jobs, or browse features
-    const userEmailStr = (currentUser?.email || '').toLowerCase();
-    const isSeekerCompleted = Boolean(
-      currentSeekerProfile?.isProfileCompleted ||
-      currentUser?.isProfileCompleted ||
-      userEmailStr.includes('poqiq75') ||
-      (typeof window !== 'undefined' && currentUser ? (
-        localStorage.getItem(`ehanap_profile_completed_${currentUser.id}`) === 'true' ||
-        (currentUser.email && localStorage.getItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`) === 'true') ||
-        userEmailStr.includes('poqiq75')
-      ) : false)
-    );
+    const isSeekerCompleted = isSeekerProfileComplete(currentUser, currentSeekerProfile);
 
     if (
       currentUser?.role === 'job_seeker' &&
@@ -150,13 +146,7 @@ function AppContent() {
     }
 
     // MANDATORY EMPLOYER PROFILE SETUP GATE:
-    const isEmployerCompleted = Boolean(
-      currentEmployerProfile?.isProfileCompleted ||
-      (typeof window !== 'undefined' && currentUser ? (
-        localStorage.getItem(`ehanap_employer_completed_${currentUser.id}`) === 'true' ||
-        (currentUser.email && localStorage.getItem(`ehanap_employer_completed_${currentUser.email.toLowerCase()}`) === 'true')
-      ) : false)
-    );
+    const isEmployerCompleted = isEmployerProfileComplete(currentUser, currentEmployerProfile);
 
     if (
       currentUser?.role === 'employer' &&
@@ -177,16 +167,7 @@ function AppContent() {
   React.useEffect(() => {
     if (!currentUser || currentUser.role !== 'job_seeker') return;
 
-    const userEmailStr = (currentUser.email || '').toLowerCase();
-    const isSeekerCompleted = Boolean(
-      currentSeekerProfile?.isProfileCompleted ||
-      currentUser.isProfileCompleted ||
-      userEmailStr.includes('poqiq75') ||
-      (typeof window !== 'undefined' && (
-        localStorage.getItem(`ehanap_profile_completed_${currentUser.id}`) === 'true' ||
-        (currentUser.email && localStorage.getItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`) === 'true')
-      ))
-    );
+    const isSeekerCompleted = isSeekerProfileComplete(currentUser, currentSeekerProfile);
 
     if (!isSeekerCompleted && currentView !== 'seeker-profile-setup') {
       setCurrentView('seeker-profile-setup');
@@ -200,13 +181,7 @@ function AppContent() {
   React.useEffect(() => {
     if (!currentUser || currentUser.role !== 'employer') return;
 
-    const isEmployerCompleted = Boolean(
-      currentEmployerProfile?.isProfileCompleted ||
-      (typeof window !== 'undefined' && (
-        localStorage.getItem(`ehanap_employer_completed_${currentUser.id}`) === 'true' ||
-        (currentUser.email && localStorage.getItem(`ehanap_employer_completed_${currentUser.email.toLowerCase()}`) === 'true')
-      ))
-    );
+    const isEmployerCompleted = isEmployerProfileComplete(currentUser, currentEmployerProfile);
 
     if (!isEmployerCompleted && currentView !== 'employer-profile-setup') {
       setCurrentView('employer-profile-setup');
@@ -484,15 +459,7 @@ function AppContent() {
             );
 
             const isCompleted = isCompletedArg === false ? false : Boolean(
-              isCompletedArg === true ||
-              loggedInUser?.isProfileCompleted ||
-              matchingSeeker?.isProfileCompleted ||
-              userEmail.includes('poqiq75') ||
-              (typeof window !== 'undefined' && (
-                (userId && localStorage.getItem(`ehanap_profile_completed_${userId}`) === 'true') ||
-                (userEmail && localStorage.getItem(`ehanap_profile_completed_${userEmail}`) === 'true') ||
-                userEmail.includes('poqiq75')
-              ))
+              isCompletedArg === true || isSeekerProfileComplete(loggedInUser, matchingSeeker)
             );
 
             if (isCompleted) {
@@ -509,12 +476,7 @@ function AppContent() {
               (userEmail && e.email && e.email.toLowerCase() === userEmail)
             );
             const isCompleted = isCompletedArg === false ? false : Boolean(
-              isCompletedArg === true ||
-              matchingEmployer?.isProfileCompleted ||
-              (typeof window !== 'undefined' && (
-                (userId && localStorage.getItem(`ehanap_employer_completed_${userId}`) === 'true') ||
-                (userEmail && localStorage.getItem(`ehanap_employer_completed_${userEmail}`) === 'true')
-              ))
+              isCompletedArg === true || isEmployerProfileComplete(loggedInUser, matchingEmployer)
             );
             if (isCompleted) {
               handleNavigate('employer-dashboard');

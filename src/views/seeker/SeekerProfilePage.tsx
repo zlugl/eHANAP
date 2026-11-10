@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
+import { isSeekerProfileComplete } from '../../utils/routeGuards';
 import { ResumeUploadModal } from './ResumeUploadModal';
 import { ResumePDFExportModal } from '../../components/ResumePDFExportModal';
 import { ResumeBuilderModal } from '../../components/ResumeBuilderModal';
@@ -266,19 +267,7 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
   }
 
   // Multi-tier check: If profile has already been completed, do not force the wizard
-  const seekerEmail = (currentUser?.email || currentSeekerProfile.email || '').toLowerCase();
-  const isProfileSetupFinished = Boolean(
-    currentSeekerProfile.isProfileCompleted ||
-    currentUser?.isProfileCompleted ||
-    seekerEmail.includes('poqiq75') ||
-    (typeof window !== 'undefined' && (
-      (currentUser?.id && localStorage.getItem(`ehanap_profile_completed_${currentUser.id}`) === 'true') ||
-      (currentUser?.email && localStorage.getItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`) === 'true') ||
-      (currentSeekerProfile.email && localStorage.getItem(`ehanap_profile_completed_${currentSeekerProfile.email.toLowerCase()}`) === 'true') ||
-      (currentSeekerProfile.id && localStorage.getItem(`ehanap_profile_completed_${currentSeekerProfile.id}`) === 'true') ||
-      seekerEmail.includes('poqiq75')
-    ))
-  );
+  const isProfileSetupFinished = isSeekerProfileComplete(currentUser, currentSeekerProfile);
 
   // If profile is not yet completed, or user specifically requested to open Setup Wizard:
   if (!isProfileSetupFinished || showSetupWizard) {

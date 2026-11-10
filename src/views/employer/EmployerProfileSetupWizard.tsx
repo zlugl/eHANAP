@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
+import { markProfileCompletedInStorage } from '../../utils/routeGuards';
 import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES, ROXAS_BARANGAYS } from '../../data/mockData';
 import { PESO_EMPLOYER_REQUIREMENTS, PesoRequirementDefinition } from '../../data/pesoEmployerRequirements';
 import { 
@@ -248,21 +249,8 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
 
     updateEmployerProfile(updatedProfile);
 
-    // Persist employer profile completion in localStorage
-    try {
-      if (currentUser?.id) {
-        localStorage.setItem(`ehanap_employer_completed_${currentUser.id}`, 'true');
-      }
-      if (currentUser?.email) {
-        localStorage.setItem(`ehanap_employer_completed_${currentUser.email.toLowerCase()}`, 'true');
-      }
-      if (email.trim()) {
-        localStorage.setItem(`ehanap_employer_completed_${email.trim().toLowerCase()}`, 'true');
-      }
-      if (currentEmployerProfile?.id) {
-        localStorage.setItem(`ehanap_employer_completed_${currentEmployerProfile.id}`, 'true');
-      }
-    } catch {}
+    // Persist employer profile completion in storage
+    markProfileCompletedInStorage([currentUser?.id, currentUser?.email, email, currentEmployerProfile?.id], 'employer');
 
     // Notify Employer in real-time
     if (typeof addNotification === 'function') {

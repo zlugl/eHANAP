@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
+import { markProfileCompletedInStorage } from '../../utils/routeGuards';
 import { 
   extractResumeInfoFromText, 
   ExtractedResumePayload,
@@ -514,21 +515,8 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
     // Save profile to context and persistent database
     updateJobSeekerProfile(seekerId, updatedProfile);
 
-    // Persist completion state in localStorage so subsequent logins immediately recognize setup completion
-    try {
-      if (currentUser?.id) {
-        localStorage.setItem(`ehanap_profile_completed_${currentUser.id}`, 'true');
-      }
-      if (currentUser?.email) {
-        localStorage.setItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`, 'true');
-      }
-      if (email.trim()) {
-        localStorage.setItem(`ehanap_profile_completed_${email.trim().toLowerCase()}`, 'true');
-      }
-      if (seekerId) {
-        localStorage.setItem(`ehanap_profile_completed_${seekerId}`, 'true');
-      }
-    } catch {}
+    // Persist completion state in storage so subsequent logins immediately recognize setup completion
+    markProfileCompletedInStorage([currentUser?.id, currentUser?.email, email, seekerId], 'job_seeker');
 
     // Create real-time notification
     if (typeof addNotification === 'function') {

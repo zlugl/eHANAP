@@ -1,4 +1,5 @@
 import { NotificationItem, User, JobSeekerProfile, Application, Interview, PesoReferralSlip } from '../types';
+import { isSeekerProfileComplete } from './routeGuards';
 
 /**
  * Validates whether a notification is relevant and authorized for the given user,
@@ -86,16 +87,8 @@ function isNotificationValidForUser(
 
     // D) Profile setup completed notification ("Profile Setup Completed & Saved")
     if (combined.includes('profile setup completed') || combined.includes('profile setup complete') || combined.includes('profile set up')) {
-      const isDone = Boolean(
-        seekerProfile?.isProfileCompleted ||
-        currentUser.isProfileCompleted ||
-        userEmailStr.includes('poqiq75') ||
-        (seekerProfile && ((seekerProfile.technicalSkills && seekerProfile.technicalSkills.length > 0) || (seekerProfile.softSkills && seekerProfile.softSkills.length > 0))) ||
-        (typeof window !== 'undefined' && (
-          localStorage.getItem(`ehanap_profile_completed_${currentUser.id}`) === 'true' ||
-          localStorage.getItem(`ehanap_profile_completed_${userEmailStr}`) === 'true'
-        ))
-      );
+      const isDone = isSeekerProfileComplete(currentUser, seekerProfile) ||
+        Boolean(seekerProfile && ((seekerProfile.technicalSkills && seekerProfile.technicalSkills.length > 0) || (seekerProfile.softSkills && seekerProfile.softSkills.length > 0)));
       if (!isDone) {
         return false; // Seeker hasn't completed profile setup yet
       }

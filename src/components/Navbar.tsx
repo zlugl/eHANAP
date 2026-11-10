@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { NotificationDrawer } from './NotificationDrawer';
 import { getFilteredUserNotifications } from '../utils/notificationUtils';
+import { isSeekerProfileComplete, isEmployerProfileComplete } from '../utils/routeGuards';
 import { 
   Briefcase, 
   Search, 
@@ -71,25 +72,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     currentSeekerProfile 
   } = useApp();
 
-  const userEmail = (currentUser?.email || '').toLowerCase();
-  const isSeekerIncomplete = currentUser?.role === 'job_seeker' && !(
-    currentSeekerProfile?.isProfileCompleted ||
-    currentUser?.isProfileCompleted ||
-    userEmail.includes('poqiq75') || (
-      typeof window !== 'undefined' && currentUser && (
-        localStorage.getItem(`ehanap_profile_completed_${currentUser.id}`) === 'true' ||
-        (currentUser.email && localStorage.getItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`) === 'true') ||
-        userEmail.includes('poqiq75')
-      )
-    )
-  );
-  const isEmployerIncomplete = currentUser?.role === 'employer' && !(
-    currentEmployerProfile?.isProfileCompleted ||
-    (typeof window !== 'undefined' && currentUser && (
-      localStorage.getItem(`ehanap_employer_completed_${currentUser.id}`) === 'true' ||
-      (currentUser.email && localStorage.getItem(`ehanap_employer_completed_${currentUser.email.toLowerCase()}`) === 'true')
-    ))
-  );
+  const isSeekerIncomplete = currentUser?.role === 'job_seeker' && !isSeekerProfileComplete(currentUser, currentSeekerProfile);
+  const isEmployerIncomplete = currentUser?.role === 'employer' && !isEmployerProfileComplete(currentUser, currentEmployerProfile);
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

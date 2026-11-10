@@ -77,6 +77,13 @@ import {
 } from '../services/supabaseService';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { storageAdapter } from '../lib/storageAdapter';
+import { 
+  isProfileComplete, 
+  isSeekerProfileComplete, 
+  isEmployerProfileComplete, 
+  markProfileCompletedInStorage, 
+  clearProfileCompletedInStorage 
+} from '../utils/routeGuards';
 import { auth } from '../lib/firebase';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
@@ -228,41 +235,31 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>(() => {
-    try {
-      const saved = localStorage.getItem('ehanap_users');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const map = new Map<string, User>();
-          INITIAL_USERS.forEach(u => map.set(u.id, u));
-          parsed.forEach((u: User) => {
-            // Strictly enforce single official LGU/PESO administrator account
-            if (u.role === 'admin' && u.id !== 'user-peso-admin-01' && u.email?.toLowerCase() !== 'peso.admin@roxas.gov.ph') {
-              return;
-            }
-            map.set(u.id, u);
-          });
-          return Array.from(map.values());
+    const saved = storageAdapter.getStoredUsers([]);
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      const map = new Map<string, User>();
+      INITIAL_USERS.forEach(u => map.set(u.id, u));
+      saved.forEach((u: User) => {
+        // Strictly enforce single official LGU/PESO administrator account
+        if (u.role === 'admin' && u.id !== 'user-peso-admin-01' && u.email?.toLowerCase() !== 'peso.admin@roxas.gov.ph') {
+          return;
         }
-      }
-    } catch {}
+        map.set(u.id, u);
+      });
+      return Array.from(map.values());
+    }
     return INITIAL_USERS;
   });
   const [currentUser, setCurrentUser] = useState<User | null>(null); // Starts in GUEST / Not Logged In state
   const [employers, setEmployers] = useState<EmployerProfile[]>(INITIAL_EMPLOYERS);
   const [jobSeekers, setJobSeekers] = useState<JobSeekerProfile[]>(() => {
-    try {
-      const saved = localStorage.getItem('ehanap_job_seekers');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const map = new Map<string, JobSeekerProfile>();
-          INITIAL_JOB_SEEKERS.forEach(s => map.set(s.id, s));
-          parsed.forEach((s: JobSeekerProfile) => map.set(s.id, s));
-          return Array.from(map.values());
-        }
-      }
-    } catch {}
+    const saved = storageAdapter.getStoredJobSeekers([]);
+    if (saved && Array.isArray(saved) && saved.length > 0) {
+      const map = new Map<string, JobSeekerProfile>();
+      INITIAL_JOB_SEEKERS.forEach(s => map.set(s.id, s));
+      saved.forEach((s: JobSeekerProfile) => map.set(s.id, s));
+      return Array.from(map.values());
+    }
     return INITIAL_JOB_SEEKERS;
   });
   const [jobPosts, setJobPosts] = useState<JobPost[]>(INITIAL_JOB_POSTS);
@@ -288,20 +285,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [companyReviews, setCompanyReviews] = useState<CompanyReview[]>(INITIAL_COMPANY_REVIEWS);
   const [profileViews, setProfileViews] = useState<ProfileViewEvent[]>(INITIAL_PROFILE_VIEWS);
   const [invitations, setInvitations] = useState<CandidateInvitation[]>(() => {
-    try {
-      const saved = localStorage.getItem('ehanap_invitations');
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
+    return storageAdapter.getStoredInvitations([]);
   });
 
   useEffect(() => {
-    try {
-      localStorage.setItem('ehanap_invitations', JSON.stringify(invitations));
-    } catch (e) {
-      console.warn('Failed to save invitations to localStorage', e);
-    }
+    storageAdapter.setStoredInvitations(invitations);
   }, [invitations]);
 
   useEffect(() => {
@@ -309,22 +297,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [bookmarkedJobIds]);
 
   useEffect(() => {
-    try {
-      if (users && users.length > 0) {
-        localStorage.setItem('ehanap_users', JSON.stringify(users));
-      }
-    } catch (e) {
-      console.warn('Failed to save users to localStorage', e);
+    if (users && users.length > 0) {
+      storageAdapter.setStoredUsers(users);
     }
   }, [users]);
 
   useEffect(() => {
-    try {
-      if (jobSeekers && jobSeekers.length > 0) {
-        localStorage.setItem('ehanap_job_seekers', JSON.stringify(jobSeekers));
-      }
-    } catch (e) {
-      console.warn('Failed to save jobSeekers to localStorage', e);
+    if (jobSeekers && jobSeekers.length > 0) {
+      storageAdapter.setStoredJobSeekers(jobSeekers);
     }
   }, [jobSeekers]);
 
@@ -372,12 +352,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                         return;
                       }
                       const existing = map.get(u.id);
-                      const isCompleted = u.isProfileCompleted || existing?.isProfileCompleted || (
-                        typeof window !== 'undefined' && (
-                          localStorage.getItem(`ehanap_profile_completed_${u.id}`) === 'true' ||
-                          (u.email && localStorage.getItem(`ehanap_profile_completed_${u.email.toLowerCase()}`) === 'true')
-                        )
-                      );
+                      const isCompleted = u.isProfileCompleted || existing?.isProfileCompleted || 
+                        storageAdapter.isProfileCompletedInStorage(u.id) ||
+                        (u.email ? storageAdapter.isProfileCompletedInStorage(u.email) : false);
                       map.set(u.id, { ...u, isProfileCompleted: Boolean(isCompleted) });
                     });
                     return Array.from(map.values());
@@ -386,12 +363,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     if (!prev) return null;
                     const match = data.find(u => u.id === prev.id);
                     if (!match) return prev;
-                    const completed = prev.isProfileCompleted || match.isProfileCompleted || (
-                      typeof window !== 'undefined' && (
-                        localStorage.getItem(`ehanap_profile_completed_${prev.id}`) === 'true' ||
-                        (prev.email && localStorage.getItem(`ehanap_profile_completed_${prev.email.toLowerCase()}`) === 'true')
-                      )
-                    );
+                    const completed = prev.isProfileCompleted || match.isProfileCompleted || 
+                      storageAdapter.isProfileCompletedInStorage(prev.id) ||
+                      (prev.email ? storageAdapter.isProfileCompletedInStorage(prev.email) : false);
                     return { ...match, isProfileCompleted: Boolean(completed) };
                   });
                 }
@@ -422,11 +396,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                       const isCompleted = Boolean(
                         s.isProfileCompleted || 
                         existing?.isProfileCompleted || 
-                        (typeof window !== 'undefined' && (
-                          localStorage.getItem(`ehanap_profile_completed_${s.id}`) === 'true' ||
-                          (s.userId && localStorage.getItem(`ehanap_profile_completed_${s.userId}`) === 'true') ||
-                          (s.email && localStorage.getItem(`ehanap_profile_completed_${s.email.toLowerCase()}`) === 'true')
-                        ))
+                        storageAdapter.isProfileCompletedInStorage(s.id) ||
+                        (s.userId && storageAdapter.isProfileCompletedInStorage(s.userId)) ||
+                        (s.email && storageAdapter.isProfileCompletedInStorage(s.email))
                       );
                       map.set(s.id, { ...s, isProfileCompleted: isCompleted });
                     });
@@ -516,12 +488,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                     return;
                   }
                   const existing = map.get(u.id);
-                  const isCompleted = u.isProfileCompleted || existing?.isProfileCompleted || (
-                    typeof window !== 'undefined' && (
-                      localStorage.getItem(`ehanap_profile_completed_${u.id}`) === 'true' ||
-                      (u.email && localStorage.getItem(`ehanap_profile_completed_${u.email.toLowerCase()}`) === 'true')
-                    )
-                  );
+                  const isCompleted = u.isProfileCompleted || existing?.isProfileCompleted || 
+                    storageAdapter.isProfileCompletedInStorage(u.id) ||
+                    (u.email ? storageAdapter.isProfileCompletedInStorage(u.email) : false);
                   map.set(u.id, { ...u, isProfileCompleted: Boolean(isCompleted) });
                 });
                 return Array.from(map.values());
@@ -530,12 +499,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                 if (!prev) return null;
                 const match = data.find(u => u.id === prev.id);
                 if (!match) return prev;
-                const completed = prev.isProfileCompleted || match.isProfileCompleted || (
-                  typeof window !== 'undefined' && (
-                    localStorage.getItem(`ehanap_profile_completed_${prev.id}`) === 'true' ||
-                    (prev.email && localStorage.getItem(`ehanap_profile_completed_${prev.email.toLowerCase()}`) === 'true')
-                  )
-                );
+                const completed = prev.isProfileCompleted || match.isProfileCompleted || 
+                  storageAdapter.isProfileCompletedInStorage(prev.id) ||
+                  (prev.email ? storageAdapter.isProfileCompletedInStorage(prev.email) : false);
                 return { ...match, isProfileCompleted: Boolean(completed) };
               });
             }
@@ -566,11 +532,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
                   const isCompleted = Boolean(
                     s.isProfileCompleted || 
                     existing?.isProfileCompleted || 
-                    (typeof window !== 'undefined' && (
-                      localStorage.getItem(`ehanap_profile_completed_${s.id}`) === 'true' ||
-                      (s.userId && localStorage.getItem(`ehanap_profile_completed_${s.userId}`) === 'true') ||
-                      (s.email && localStorage.getItem(`ehanap_profile_completed_${s.email.toLowerCase()}`) === 'true')
-                    ))
+                    storageAdapter.isProfileCompletedInStorage(s.id) ||
+                    (s.userId && storageAdapter.isProfileCompletedInStorage(s.userId)) ||
+                    (s.email && storageAdapter.isProfileCompletedInStorage(s.email))
                   );
                   map.set(s.id, { ...s, isProfileCompleted: isCompleted });
                 });
@@ -662,18 +626,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           s.id === currentUser.id || 
           (s.email && currentUser.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
         );
-        const email = (currentUser.email || '').toLowerCase();
-        const isLocallyCompleted = Boolean(
-          found?.isProfileCompleted ||
-          (currentUser as any).isProfileCompleted ||
-          email.includes('poqiq75') ||
-          (typeof window !== 'undefined' && (
-            localStorage.getItem(`ehanap_profile_completed_${currentUser.id}`) === 'true' ||
-            (currentUser.email && localStorage.getItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`) === 'true') ||
-            (found?.email && localStorage.getItem(`ehanap_profile_completed_${found.email.toLowerCase()}`) === 'true') ||
-            (found?.userId && localStorage.getItem(`ehanap_profile_completed_${found.userId}`) === 'true')
-          ))
-        );
+        const isLocallyCompleted = isSeekerProfileComplete(currentUser, found);
 
         if (!found) {
           if (isLocallyCompleted) {
@@ -781,26 +734,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Search in registered users state
     let found = users.find(u => u.email.toLowerCase() === cleanEmail);
 
-    // If not found in dynamic state, check localStorage ehanap_users
-    if (!found && typeof window !== 'undefined') {
-      try {
-        const savedUsers = localStorage.getItem('ehanap_users');
-        if (savedUsers) {
-          const parsed = JSON.parse(savedUsers);
-          if (Array.isArray(parsed)) {
-            const locUser = parsed.find((u: any) => u.email && u.email.toLowerCase() === cleanEmail);
-            if (locUser) {
-              found = locUser;
-              setUsers(prev => {
-                const map = new Map<string, User>();
-                prev.forEach(u => map.set(u.id, u));
-                map.set(locUser.id, locUser);
-                return Array.from(map.values());
-              });
-            }
-          }
-        }
-      } catch {}
+    // If not found in dynamic state, check storageAdapter
+    if (!found) {
+      const savedUsers = storageAdapter.getStoredUsers([]);
+      const locUser = savedUsers.find((u: any) => u.email && u.email.toLowerCase() === cleanEmail);
+      if (locUser) {
+        found = locUser;
+        setUsers(prev => {
+          const map = new Map<string, User>();
+          prev.forEach(u => map.set(u.id, u));
+          map.set(locUser.id, locUser);
+          return Array.from(map.values());
+        });
+      }
     }
 
     // If not found in dynamic state, lookup demo accounts
@@ -837,15 +783,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (s.email && s.email.toLowerCase() === cleanEmail)
     );
 
-    const isSeekerProfileCompleted = Boolean(
-      (found as any).isProfileCompleted === true ||
-      matchingSeeker?.isProfileCompleted === true ||
-      cleanEmail.includes('poqiq75') ||
-      (typeof window !== 'undefined' && (
-        localStorage.getItem(`ehanap_profile_completed_${found!.id}`) === 'true' ||
-        localStorage.getItem(`ehanap_profile_completed_${cleanEmail}`) === 'true'
-      ))
-    );
+    const isSeekerProfileCompleted = isSeekerProfileComplete(found, matchingSeeker);
 
     const matchingEmployer = employers.find(e => 
       e.userId === found!.id || 
@@ -853,30 +791,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       (e.email && e.email.toLowerCase() === cleanEmail)
     );
 
-    const isEmployerProfileCompleted = Boolean(
-      (found as any).isProfileCompleted === true ||
-      matchingEmployer?.isProfileCompleted === true ||
-      (typeof window !== 'undefined' && (
-        localStorage.getItem(`ehanap_employer_completed_${found!.id}`) === 'true' ||
-        localStorage.getItem(`ehanap_employer_completed_${cleanEmail}`) === 'true'
-      ))
-    );
+    const isEmployerProfileCompleted = isEmployerProfileComplete(found, matchingEmployer);
 
     if (found.role === 'job_seeker') {
       (found as any).isProfileCompleted = isSeekerProfileCompleted;
-      if (isSeekerProfileCompleted && typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(`ehanap_profile_completed_${found!.id}`, 'true');
-          localStorage.setItem(`ehanap_profile_completed_${cleanEmail}`, 'true');
-        } catch {}
+      if (isSeekerProfileCompleted) {
+        markProfileCompletedInStorage([found!.id, cleanEmail], 'job_seeker');
       }
     } else if (found.role === 'employer') {
       (found as any).isProfileCompleted = isEmployerProfileCompleted;
-      if (isEmployerProfileCompleted && typeof window !== 'undefined') {
-        try {
-          localStorage.setItem(`ehanap_employer_completed_${found!.id}`, 'true');
-          localStorage.setItem(`ehanap_employer_completed_${cleanEmail}`, 'true');
-        } catch {}
+      if (isEmployerProfileCompleted) {
+        markProfileCompletedInStorage([found!.id, cleanEmail], 'employer');
       }
     }
 
@@ -960,24 +885,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const matchingEmployer = employers.find(e => e.userId === existingUser.id || (e.email && e.email.toLowerCase() === email));
 
         const isCompleted = existingUser.role === 'job_seeker'
-          ? Boolean(
-              existingUser.isProfileCompleted ||
-              matchingSeeker?.isProfileCompleted ||
-              email.includes('poqiq75') ||
-              (typeof window !== 'undefined' && (
-                localStorage.getItem(`ehanap_profile_completed_${existingUser.id}`) === 'true' ||
-                localStorage.getItem(`ehanap_profile_completed_${email}`) === 'true'
-              ))
-            )
+          ? isSeekerProfileComplete(existingUser, matchingSeeker)
           : existingUser.role === 'employer'
-          ? Boolean(
-              existingUser.isProfileCompleted ||
-              matchingEmployer?.isProfileCompleted ||
-              (typeof window !== 'undefined' && (
-                localStorage.getItem(`ehanap_employer_completed_${existingUser.id}`) === 'true' ||
-                localStorage.getItem(`ehanap_employer_completed_${email}`) === 'true'
-              ))
-            )
+          ? isEmployerProfileComplete(existingUser, matchingEmployer)
           : true;
 
         return {
@@ -994,12 +904,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         
         if (intendedRole === 'employer') {
           // Clear any stale local flags for this new account
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.removeItem(`ehanap_employer_completed_${newUserId}`);
-              localStorage.removeItem(`ehanap_employer_completed_${email}`);
-            } catch {}
-          }
+          clearProfileCompletedInStorage([newUserId, email], 'employer');
 
           // Create new Employer account
           const newUser: User = {
@@ -1048,12 +953,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           };
         } else {
           // Clear any stale local flags for this new account
-          if (typeof window !== 'undefined') {
-            try {
-              localStorage.removeItem(`ehanap_profile_completed_${newUserId}`);
-              localStorage.removeItem(`ehanap_profile_completed_${email}`);
-            } catch {}
-          }
+          clearProfileCompletedInStorage([newUserId, email], 'job_seeker');
 
           // Brand new Google user -> create real Job Seeker account
           const nameParts = name.trim().split(/\s+/);
@@ -1852,21 +1752,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }));
     }
 
-    // Persist in localStorage for instant access across reloads/logins
-    try {
-      if (currentUser?.id) {
-        localStorage.setItem(`ehanap_profile_completed_${currentUser.id}`, 'true');
-      }
-      if (currentUser?.email) {
-        localStorage.setItem(`ehanap_profile_completed_${currentUser.email.toLowerCase()}`, 'true');
-      }
-      if (emailToMatch) {
-        localStorage.setItem(`ehanap_profile_completed_${emailToMatch}`, 'true');
-      }
-      if (seekerId) {
-        localStorage.setItem(`ehanap_profile_completed_${seekerId}`, 'true');
-      }
-    } catch {}
+    // Persist in storage for instant access across reloads/logins
+    markProfileCompletedInStorage([currentUser?.id, currentUser?.email, emailToMatch, seekerId], 'job_seeker');
 
     logAudit('PROFILE_UPDATED', 'JobSeekerProfile', seekerId, 'Updated job seeker profile credentials.');
   };
@@ -1965,17 +1852,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           return u;
         }));
 
-        try {
-          if (currentUser.id) {
-            localStorage.setItem(`ehanap_employer_completed_${currentUser.id}`, 'true');
-          }
-          if (currentUser.email) {
-            localStorage.setItem(`ehanap_employer_completed_${currentUser.email.toLowerCase()}`, 'true');
-          }
-          if (typeof employerIdOrData === 'string' && employerIdOrData) {
-            localStorage.setItem(`ehanap_employer_completed_${employerIdOrData}`, 'true');
-          }
-        } catch {}
+        markProfileCompletedInStorage([currentUser.id, currentUser.email, typeof employerIdOrData === 'string' ? employerIdOrData : undefined], 'employer');
       }
     }
 
@@ -2594,14 +2471,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const cleanRegEmail = userData.email.toLowerCase().trim();
 
     // Clear any stale local flags for this newly registered account
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.removeItem(`ehanap_profile_completed_${newUserId}`);
-        localStorage.removeItem(`ehanap_profile_completed_${cleanRegEmail}`);
-        localStorage.removeItem(`ehanap_employer_completed_${newUserId}`);
-        localStorage.removeItem(`ehanap_employer_completed_${cleanRegEmail}`);
-      } catch {}
-    }
+    clearProfileCompletedInStorage([newUserId, cleanRegEmail], 'job_seeker');
+    clearProfileCompletedInStorage([newUserId, cleanRegEmail], 'employer');
 
     const newUser: User = {
       ...userData,
