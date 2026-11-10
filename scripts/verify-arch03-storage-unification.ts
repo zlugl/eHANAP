@@ -2,6 +2,13 @@ import 'dotenv/config';
 import fs from 'fs';
 import path from 'path';
 import { storageAdapter } from '../src/lib/storageAdapter';
+import {
+  isProfileComplete,
+  isSeekerProfileComplete,
+  isEmployerProfileComplete,
+  markProfileCompletedInStorage,
+  clearProfileCompletedInStorage,
+} from '../src/utils/routeGuards';
 
 console.log('================================================================');
 console.log('   eHANAP ARCH-03: Storage Unification & Profile Invariant Suite ');
@@ -125,9 +132,70 @@ storageAdapter.setStoredUsers(dummyUsers as any);
 const retrievedUsers = storageAdapter.getStoredUsers([]);
 assert(retrievedUsers.length === 1 && retrievedUsers[0].id === 'user-01', 'setStoredUsers and getStoredUsers round-trip successfully');
 
+// -------------------------------------------------------------
+// Suite 5: RouteGuards Profile Invariants & Predicates
+// -------------------------------------------------------------
+console.log('\n>>> [Suite 5] RouteGuards Profile Invariants & Predicates');
+
+assert(typeof isProfileComplete === 'function', 'isProfileComplete is a function');
+assert(typeof isSeekerProfileComplete === 'function', 'isSeekerProfileComplete is a function');
+assert(typeof isEmployerProfileComplete === 'function', 'isEmployerProfileComplete is a function');
+assert(typeof markProfileCompletedInStorage === 'function', 'markProfileCompletedInStorage is a function');
+assert(typeof clearProfileCompletedInStorage === 'function', 'clearProfileCompletedInStorage is a function');
+
+// Null and empty checks
+assert(isProfileComplete(null, null) === false, 'isProfileComplete(null, null) is false');
+assert(isSeekerProfileComplete(null, null) === false, 'isSeekerProfileComplete(null, null) is false');
+assert(isEmployerProfileComplete(null, null) === false, 'isEmployerProfileComplete(null, null) is false');
+
+// Admin users bypass profile completion requirements
+const adminUser = { id: 'admin-01', role: 'admin' as const, email: 'peso.admin@roxas.gov.ph' };
+assert(isProfileComplete(adminUser as any, null) === true, 'Admin users always evaluate as profile complete');
+
+// Seeker with direct property flags
+const seekerWithUserFlag = { id: 'user-seeker-01', role: 'job_seeker' as const, email: 'seeker1@gmail.com', isProfileCompleted: true };
+assert(isSeekerProfileComplete(seekerWithUserFlag as any, null) === true, 'Seeker with user.isProfileCompleted evaluates as true');
+assert(isProfileComplete(seekerWithUserFlag as any, null) === true, 'isProfileComplete routes seeker with user flag correctly');
+
+const seekerWithProfileFlag = { id: 'user-seeker-02', role: 'job_seeker' as const, email: 'seeker2@gmail.com', isProfileCompleted: false };
+const seekerProfileWithFlag = { id: 'seeker-prof-02', userId: 'user-seeker-02', email: 'seeker2@gmail.com', isProfileCompleted: true };
+assert(isSeekerProfileComplete(seekerWithProfileFlag as any, seekerProfileWithFlag as any) === true, 'Seeker with profile.isProfileCompleted evaluates as true');
+
+// Demo persona check (poqiq75)
+const demoSeeker = { id: 'user-poqiq', role: 'job_seeker' as const, email: 'poqiq75@gmail.com' };
+assert(isSeekerProfileComplete(demoSeeker as any, null) === true, 'Demo persona poqiq75 always evaluates as profile complete');
+
+// Incomplete seeker without storage flag
+const incompleteSeeker = { id: 'user-inc-01', role: 'job_seeker' as const, email: 'inc.seeker@gmail.com', isProfileCompleted: false };
+const incompleteSeekerProf = { id: 'prof-inc-01', userId: 'user-inc-01', email: 'inc.seeker@gmail.com', isProfileCompleted: false };
+assert(isSeekerProfileComplete(incompleteSeeker as any, incompleteSeekerProf as any) === false, 'Incomplete seeker without flags evaluates as false');
+
+// Marking profile completed in storage
+markProfileCompletedInStorage([incompleteSeeker.id, incompleteSeeker.email], 'job_seeker');
+assert(isSeekerProfileComplete(incompleteSeeker as any, incompleteSeekerProf as any) === true, 'Seeker evaluates as complete after markProfileCompletedInStorage');
+
+// Clearing profile completion from storage
+clearProfileCompletedInStorage([incompleteSeeker.id, incompleteSeeker.email], 'job_seeker');
+assert(isSeekerProfileComplete(incompleteSeeker as any, incompleteSeekerProf as any) === false, 'Seeker evaluates as false after clearProfileCompletedInStorage');
+
+// Employer checks
+const employerWithUserFlag = { id: 'user-emp-01', role: 'employer' as const, email: 'hr@puregold.com', isProfileCompleted: true };
+assert(isEmployerProfileComplete(employerWithUserFlag as any, null) === true, 'Employer with user.isProfileCompleted evaluates as true');
+assert(isProfileComplete(employerWithUserFlag as any, null) === true, 'isProfileComplete routes employer with user flag correctly');
+
+const incompleteEmployer = { id: 'user-emp-inc', role: 'employer' as const, email: 'hr@newstore.com', isProfileCompleted: false };
+const incompleteEmployerProf = { id: 'emp-prof-inc', userId: 'user-emp-inc', email: 'hr@newstore.com', isProfileCompleted: false };
+assert(isEmployerProfileComplete(incompleteEmployer as any, incompleteEmployerProf as any) === false, 'Incomplete employer evaluates as false');
+
+markProfileCompletedInStorage([incompleteEmployer.id, incompleteEmployer.email], 'employer');
+assert(isEmployerProfileComplete(incompleteEmployer as any, incompleteEmployerProf as any) === true, 'Employer evaluates as complete after markProfileCompletedInStorage');
+
+clearProfileCompletedInStorage([incompleteEmployer.id, incompleteEmployer.email], 'employer');
+assert(isEmployerProfileComplete(incompleteEmployer as any, incompleteEmployerProf as any) === false, 'Employer evaluates as false after clearProfileCompletedInStorage');
+
 // Print summary
 console.log('\n================================================================');
-console.log(`ARCH-03 Task 1 Verification Summary: ${passedTests}/${totalTests} tests passed`);
+console.log(`ARCH-03 Verification Summary: ${passedTests}/${totalTests} tests passed`);
 console.log('================================================================');
 
 if (passedTests !== totalTests) {
