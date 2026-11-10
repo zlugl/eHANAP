@@ -191,6 +191,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   }, [isOpen, initialMode, initialRole, initialShowSplash]);
 
+  // Lock body scroll when AuthModal is open so the background window doesn't scroll
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   // 1. Submit Sign In
@@ -431,8 +441,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[var(--color-paper)] text-[var(--color-ink)] overflow-y-auto no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden motion-safe:animate-in motion-safe:fade-in duration-150 select-none">
-      <div className="min-h-screen bg-[var(--color-paper)] flex flex-col justify-start py-4 sm:py-8 px-4 no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+    <div className="fixed inset-0 z-50 bg-[var(--color-paper)] text-[var(--color-ink)] overflow-y-auto [scrollbar-color:var(--color-muted)_var(--color-paper)] motion-safe:animate-in motion-safe:fade-in duration-150 select-none">
+      <div className="min-h-screen bg-[var(--color-paper)] flex flex-col justify-start py-4 sm:py-8 px-4">
         
         {/* Full Window Container */}
         <div className="max-w-sm sm:max-w-md mx-auto w-full space-y-6">
