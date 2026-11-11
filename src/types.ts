@@ -479,6 +479,18 @@ export interface MatchResult {
   decisionReason: string;
 }
 
+export interface CandidateMatch extends MatchResult {
+  id?: string;
+  calculatedAt?: string;
+}
+
+export interface MatchResolverOptions {
+  cachedMatches?: CandidateMatch[] | MatchResult[] | Map<string, MatchResult> | Record<string, any>;
+  application?: Partial<Application> | null;
+  forceRecalculate?: boolean;
+  allowCompute?: boolean;
+}
+
 export interface Application {
   id: string;
   jobId: string;
