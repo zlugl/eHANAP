@@ -142,7 +142,6 @@ async function runVerification() {
     assert(prompt.includes('softSkills'), 'Prompt defines softSkills category');
 
     // 3. Heuristic Sanitizer: Anti-hallucination verification for DOB and Sex
-    // When raw text does NOT mention DOB or Sex, LLM guessed values must be blanked out
     const hallucinatedData = {
       firstName: 'Juan',
       lastName: 'Dela Cruz',
@@ -158,7 +157,6 @@ async function runVerification() {
     assert(sanitized.age === undefined, 'Age is undefined when raw text has no DOB mention');
     assert(sanitized.sex === '', 'Sex is blanked when raw text has no sex mention');
 
-    // When raw text DOES mention DOB and Sex, preserve values
     const rawTextWithDobAndSex = 'Name: Maria Santos. Birthday: October 24, 2000. Age: 24. Gender: Female. Roxas.';
     const validData = {
       firstName: 'Maria',
@@ -183,6 +181,86 @@ async function runVerification() {
     assert(fallbackParse.success === true, 'parseResumeWithAi succeeds with fallback');
     assert(typeof fallbackParse.source === 'string', 'parseResumeWithAi returns source identifier');
     assert(fallbackParse.extracted.contactNumber.length > 0 || fallbackParse.extracted.email.length > 0, 'parseResumeWithAi extracts contact details');
+  }
+
+  // -------------------------------------------------------------
+  // Suite 3: Controller & Express Application Factory
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 3] Controller & Express App Factory (server/controllers/resumeController.ts, server/app.ts)');
+
+  const controllerPath = path.join(rootDir, 'server/controllers/resumeController.ts');
+  const appPath = path.join(rootDir, 'server/app.ts');
+
+  assert(fs.existsSync(controllerPath), 'server/controllers/resumeController.ts exists on disk');
+  assert(fs.existsSync(appPath), 'server/app.ts exists on disk');
+
+  if (fs.existsSync(controllerPath) && fs.existsSync(appPath)) {
+    const controllerContent = fs.readFileSync(controllerPath, 'utf-8');
+    const appContent = fs.readFileSync(appPath, 'utf-8');
+
+    assert(controllerContent.includes('handleResumeParsing'), 'handleResumeParsing is exported');
+    assert(controllerContent.includes('handleHealthCheck'), 'handleHealthCheck is exported');
+    assert(appContent.includes('createApp'), 'createApp is exported from server/app.ts');
+
+    const { createApp } = await import('../server/app.ts');
+    const app = createApp();
+    assert(typeof app === 'function', 'createApp returns Express application instance');
+
+    // Start ephemeral server on random port to test HTTP request/response handling
+    const serverInstance = await new Promise<any>((resolve) => {
+      const server = app.listen(0, '127.0.0.1', () => resolve(server));
+    });
+    const port = serverInstance.address().port;
+    const baseUrl = `http://127.0.0.1:${port}`;
+
+    try {
+      // 1. Test GET /api/health
+      const healthRes = await fetch(`${baseUrl}/api/health`);
+      assert(healthRes.status === 200, 'GET /api/health returns status 200');
+      const healthData = await healthRes.json();
+      assert(healthData.status === 'ok', 'health status is ok');
+      assert(healthData.system.includes('eHANAP'), 'health response identifies eHANAP system');
+
+      // 2. Test POST /api/parse-resume
+      const parseRes = await fetch(`${baseUrl}/api/parse-resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: 'Juan_Resume.txt',
+          fileContent: 'Juan Dela Cruz\nEmail: juan.delacruz@gmail.com\nPhone: 09181234567\nRoxas, Oriental Mindoro\nBS Information Technology\nSkills: React, Node.js',
+        }),
+      });
+      assert(parseRes.status === 200, 'POST /api/parse-resume returns status 200');
+      const parseData = await parseRes.json();
+      assert(parseData.success === true, 'parse-resume response success is true');
+      assert(Boolean(parseData.extracted), 'parse-resume returns extracted resume data');
+      assert(parseData.extracted.municipality === 'Roxas', 'extracted municipality matches Roxas');
+
+      // 3. Test POST /api/extract-resume (endpoint alias)
+      const extractRes = await fetch(`${baseUrl}/api/extract-resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: 'Maria_Resume.txt',
+          fileContent: 'Maria Santos\nBarangay Dangay, Roxas Oriental Mindoro\nSkills: Cashiering, Customer Service',
+        }),
+      });
+      assert(extractRes.status === 200, 'POST /api/extract-resume alias returns status 200');
+      const extractData = await extractRes.json();
+      assert(extractData.success === true, 'extract-resume alias success is true');
+
+      // 4. Test error resilience with corrupt/empty body
+      const errorRes = await fetch(`${baseUrl}/api/parse-resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileBase64: 'corrupted!!!base64' }),
+      });
+      assert(errorRes.status === 200, 'corrupt input returns status 200 with safe fallback');
+      const errorData = await errorRes.json();
+      assert(errorData.success === true, 'corrupt input safely handled without server crash');
+    } finally {
+      await new Promise<void>((resolve) => serverInstance.close(() => resolve()));
+    }
   }
 
   console.log(`\n--- ARCH-08 Modular Server Verification Summary: ${passedTests}/${totalTests} tests passed ---`);
