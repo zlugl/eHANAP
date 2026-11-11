@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { exportElementToPdf } from '../utils/pdfExport';
 import { JobSeekerProfile, ResumeFile } from '../types';
 import { useApp } from '../context/AppContext';
 import { evaluateResumeForAts } from '../utils/atsEngine';
@@ -149,31 +148,13 @@ export const ResumeBuilderModal: React.FC<ResumeBuilderModalProps> = ({ isOpen, 
       const safeLastName = seeker.lastName || 'Resume';
       const fileName = `${safeFirstName}_${safeLastName}_Resume_${templateTitle}.pdf`;
 
-      // Render high-resolution canvas
-      const canvas = await html2canvas(resumeEl, {
-        scale: 2, // 2x retina crispness for PDF rendering
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      
-      // Standard A4: 210 x 297 mm
-      const pdf = new jsPDF({
+      const success = await exportElementToPdf(resumeEl, fileName, {
+        scale: 2,
+        format: 'a4',
         orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
       });
 
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(fileName);
-
-      if (showToast) {
+      if (success && showToast) {
         showToast('Resume PDF downloaded successfully!', 'success');
       }
     } catch (err) {

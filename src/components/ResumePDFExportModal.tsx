@@ -1,6 +1,5 @@
 import React, { useState, useRef } from 'react';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import { exportElementToPdf } from '../utils/pdfExport';
 import { JobSeekerProfile } from '../types';
 import { 
   X, 
@@ -49,27 +48,11 @@ export const ResumePDFExportModal: React.FC<ResumePDFExportModalProps> = ({ isOp
       const safeLastName = seeker.lastName || 'Resume';
       const fileName = `${safeFirstName}_${safeLastName}_Resume_${templateTitle}.pdf`;
 
-      const canvas = await html2canvas(resumeEl, {
+      await exportElementToPdf(resumeEl, fileName, {
         scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        logging: false,
-        backgroundColor: '#ffffff'
-      });
-
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      
-      const pdf = new jsPDF({
+        format: 'a4',
         orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
       });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(fileName);
     } catch (err) {
       console.error('PDF export fallback:', err);
       window.print();
