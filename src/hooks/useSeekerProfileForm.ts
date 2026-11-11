@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import { useApp } from '../context/AppContext';
 import { useToast } from '../context/ToastContext';
 import { JobSeekerProfile } from '../types';
@@ -23,7 +23,7 @@ export function useSeekerProfileForm(
   const [age, setAge] = useState<string>(initialProfile?.age ? String(initialProfile.age) : '');
   const [civilStatus, setCivilStatus] = useState<string>(initialProfile?.civilStatus || 'Single');
   const [sex, setSex] = useState<string>(initialProfile?.sex || '');
-  const [barangay, setBarangay] = useState<string>(initialProfile?.barangay || '');
+  const [barangay, setBarangay] = useState(initialProfile?.barangay || '');
   const [municipality, setMunicipality] = useState(initialProfile?.municipality || 'Roxas');
   const [address, setAddress] = useState(initialProfile?.address || '');
   const [contactNumber, setContactNumber] = useState(initialProfile?.contactNumber || '');
@@ -78,7 +78,7 @@ export function useSeekerProfileForm(
     }
   }, [initialProfile?.id]);
 
-  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 

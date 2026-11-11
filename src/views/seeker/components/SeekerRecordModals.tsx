@@ -11,7 +11,7 @@ export interface EducationModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialRecord?: EducationRecord | null;
-  onSave: (record: Omit<EducationRecord, 'id'>, id?: string) => void;
+  onSave: (record: any, id?: string) => void;
 }
 
 export const EducationModal: React.FC<EducationModalProps> = ({
@@ -20,17 +20,23 @@ export const EducationModal: React.FC<EducationModalProps> = ({
   initialRecord,
   onSave
 }) => {
-  const [degree, setDegree] = useState(initialRecord?.degree || '');
+  const [degree, setDegree] = useState(
+    initialRecord?.degreeCourse || (initialRecord as any)?.degree || ''
+  );
   const [school, setSchool] = useState(initialRecord?.school || '');
-  const [attainment, setAttainment] = useState(initialRecord?.level || "Bachelor's Degree");
+  const [attainment, setAttainment] = useState(
+    initialRecord?.educationalAttainment || (initialRecord as any)?.level || "Bachelor's Degree"
+  );
   const [year, setYear] = useState<number>(initialRecord?.yearGraduated || 2024);
   const [honors, setHonors] = useState(initialRecord?.honors || '');
 
   useEffect(() => {
     if (initialRecord) {
-      setDegree(initialRecord.degree || '');
+      setDegree(initialRecord.degreeCourse || (initialRecord as any)?.degree || '');
       setSchool(initialRecord.school || '');
-      setAttainment(initialRecord.level || "Bachelor's Degree");
+      setAttainment(
+        initialRecord.educationalAttainment || (initialRecord as any)?.level || "Bachelor's Degree"
+      );
       setYear(initialRecord.yearGraduated || 2024);
       setHonors(initialRecord.honors || '');
     } else {
@@ -48,11 +54,13 @@ export const EducationModal: React.FC<EducationModalProps> = ({
     e.preventDefault();
     onSave(
       {
-        degree,
-        school,
+        degreeCourse: degree.trim(),
+        degree: degree.trim(),
+        school: school.trim(),
+        educationalAttainment: attainment,
         level: attainment,
         yearGraduated: year,
-        honors: honors || undefined
+        honors: honors.trim() || undefined
       },
       initialRecord?.id
     );
@@ -351,7 +359,7 @@ export interface CertificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialRecord?: CertificationRecord | null;
-  onSave: (record: Omit<CertificationRecord, 'id'>, id?: string) => void;
+  onSave: (record: any, id?: string) => void;
 }
 
 export const CertificationModal: React.FC<CertificationModalProps> = ({
@@ -361,17 +369,27 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
   onSave
 }) => {
   const [name, setName] = useState(initialRecord?.name || '');
-  const [issuer, setIssuer] = useState(initialRecord?.issuer || '');
-  const [date, setDate] = useState(initialRecord?.date || '');
-  const [imageUrl, setImageUrl] = useState(initialRecord?.imageUrl || '');
+  const [issuer, setIssuer] = useState(
+    initialRecord?.issuingOrganization || (initialRecord as any)?.issuer || ''
+  );
+  const [date, setDate] = useState(
+    initialRecord?.dateObtained || (initialRecord as any)?.date || ''
+  );
+  const [imageUrl, setImageUrl] = useState(
+    initialRecord?.imageUrl || initialRecord?.documentUrl || ''
+  );
   const [imageFileName, setImageFileName] = useState('');
 
   useEffect(() => {
     if (initialRecord) {
       setName(initialRecord.name || '');
-      setIssuer(initialRecord.issuer || '');
-      setDate(initialRecord.date || '');
-      setImageUrl(initialRecord.imageUrl || '');
+      setIssuer(
+        initialRecord.issuingOrganization || (initialRecord as any)?.issuer || ''
+      );
+      setDate(
+        initialRecord.dateObtained || (initialRecord as any)?.date || ''
+      );
+      setImageUrl(initialRecord.imageUrl || initialRecord.documentUrl || '');
       setImageFileName('');
     } else {
       setName('');
@@ -400,10 +418,13 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
     e.preventDefault();
     onSave(
       {
-        name,
-        issuer,
+        name: name.trim(),
+        issuingOrganization: issuer.trim(),
+        issuer: issuer.trim(),
+        dateObtained: date || undefined,
         date: date || undefined,
-        imageUrl: imageUrl || undefined
+        imageUrl: imageUrl || undefined,
+        documentUrl: imageUrl || undefined
       },
       initialRecord?.id
     );
@@ -525,7 +546,7 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
 // ==========================================
 
 export interface CertificateLightboxProps {
-  proof: { url: string; name: string; issuer: string } | null;
+  proof: { url: string; name: string; issuer?: string; date?: string } | null;
   onClose: () => void;
 }
 
@@ -544,7 +565,7 @@ export const CertificateLightbox: React.FC<CertificateLightboxProps> = ({ proof,
         <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
           <div>
             <h4 className="text-sm font-bold">{proof.name}</h4>
-            <p className="text-xs text-slate-400">{proof.issuer}</p>
+            {proof.issuer && <p className="text-xs text-slate-400">{proof.issuer}</p>}
           </div>
           <button onClick={onClose} className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer">
             <X className="w-5 h-5" />
