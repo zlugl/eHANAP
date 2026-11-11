@@ -98,6 +98,93 @@ async function runVerification() {
     assert(imgPayloadResult.isImage === true, 'PNG image detected correctly');
   }
 
+  // -------------------------------------------------------------
+  // Suite 2: AI Resume Service, Circuit Breaker & Heuristics
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 2] AI Resume Service & Heuristics (server/services/aiResumeService.ts)');
+
+  const aiServicePath = path.join(rootDir, 'server/services/aiResumeService.ts');
+  assert(fs.existsSync(aiServicePath), 'server/services/aiResumeService.ts exists on disk');
+
+  if (fs.existsSync(aiServicePath)) {
+    const aiContent = fs.readFileSync(aiServicePath, 'utf-8');
+    assert(aiContent.includes('getCircuitBreakerStatus'), 'getCircuitBreakerStatus is exported');
+    assert(aiContent.includes('tripCircuitBreaker'), 'tripCircuitBreaker is exported');
+    assert(aiContent.includes('resetCircuitBreaker'), 'resetCircuitBreaker is exported');
+    assert(aiContent.includes('buildResumeExtractionPrompt'), 'buildResumeExtractionPrompt is exported');
+    assert(aiContent.includes('sanitizeExtractedResumeData'), 'sanitizeExtractedResumeData is exported');
+    assert(aiContent.includes('parseResumeWithAi'), 'parseResumeWithAi is exported');
+
+    const aiService = await import('../server/services/aiResumeService.ts');
+
+    // 1. Circuit breaker test: trip and reset
+    aiService.resetCircuitBreaker();
+    assert(aiService.getCircuitBreakerStatus().isQuotaDepleted === false, 'circuit breaker is initially inactive');
+    aiService.tripCircuitBreaker(30000); // 30 sec cooldown
+    const statusTripped = aiService.getCircuitBreakerStatus();
+    assert(statusTripped.isQuotaDepleted === true, 'circuit breaker reports quota depleted after trip');
+    assert(statusTripped.remainingCooldownMs > 0, 'circuit breaker records positive cooldown remaining');
+    aiService.resetCircuitBreaker();
+    assert(aiService.getCircuitBreakerStatus().isQuotaDepleted === false, 'circuit breaker successfully resets');
+
+    // 2. Prompt builder: includes required PESO Oriental Mindoro mandates and 6 skill taxonomy
+    const prompt = aiService.buildResumeExtractionPrompt({
+      fileName: 'Juan_Dela_Cruz_BioData.pdf',
+      extractedDocText: 'Personal Data: Juan Dela Cruz, Roxas, Oriental Mindoro',
+    });
+    assert(prompt.includes('PESO Oriental Mindoro'), 'Prompt mentions PESO Oriental Mindoro');
+    assert(prompt.includes('CRITICAL INCLUSIVITY & EXTRACTION MANDATES'), 'Prompt includes inclusivity mandates');
+    assert(prompt.includes('tradeSkills'), 'Prompt defines tradeSkills category');
+    assert(prompt.includes('administrativeSkills'), 'Prompt defines administrativeSkills category');
+    assert(prompt.includes('serviceHospitalitySkills'), 'Prompt defines serviceHospitalitySkills category');
+    assert(prompt.includes('salesCustomerSkills'), 'Prompt defines salesCustomerSkills category');
+    assert(prompt.includes('itCreativeSkills'), 'Prompt defines itCreativeSkills category');
+    assert(prompt.includes('softSkills'), 'Prompt defines softSkills category');
+
+    // 3. Heuristic Sanitizer: Anti-hallucination verification for DOB and Sex
+    // When raw text does NOT mention DOB or Sex, LLM guessed values must be blanked out
+    const hallucinatedData = {
+      firstName: 'Juan',
+      lastName: 'Dela Cruz',
+      dateOfBirth: '1995-04-12',
+      age: 29,
+      sex: 'Male',
+      primaryDegree: 'BS Information Technology',
+      school: 'Mindoro State University',
+    };
+    const rawTextWithoutDobOrSex = 'Juan Dela Cruz. Software Developer from Roxas Oriental Mindoro. Skills: React, Node.js.';
+    const sanitized = aiService.sanitizeExtractedResumeData(hallucinatedData, {}, rawTextWithoutDobOrSex);
+    assert(sanitized.dateOfBirth === '', 'Date of birth is blanked when raw text has no DOB mention');
+    assert(sanitized.age === undefined, 'Age is undefined when raw text has no DOB mention');
+    assert(sanitized.sex === '', 'Sex is blanked when raw text has no sex mention');
+
+    // When raw text DOES mention DOB and Sex, preserve values
+    const rawTextWithDobAndSex = 'Name: Maria Santos. Birthday: October 24, 2000. Age: 24. Gender: Female. Roxas.';
+    const validData = {
+      firstName: 'Maria',
+      lastName: 'Santos',
+      dateOfBirth: 'October 24, 2000',
+      age: 24,
+      sex: 'Female',
+      primaryDegree: 'BS Tourism',
+      school: 'John Paul College',
+    };
+    const sanitizedWithMentions = aiService.sanitizeExtractedResumeData(validData, {}, rawTextWithDobAndSex);
+    assert(sanitizedWithMentions.dateOfBirth === 'October 24, 2000', 'Date of birth is preserved when mentioned');
+    assert(sanitizedWithMentions.age === 24, 'Age is preserved when mentioned');
+    assert(sanitizedWithMentions.sex === 'Female', 'Sex is normalized to Female when mentioned');
+
+    // 4. Fallback execution: parseResumeWithAi returns extracted data using heuristic fallback
+    const fallbackParse = await aiService.parseResumeWithAi(
+      { fileName: 'Sample.pdf' },
+      'Juan Dela Cruz\nEmail: juan@example.com\nPhone: 09171234567\nRoxas Oriental Mindoro\nSkills: TypeScript, TailwindCSS',
+      null
+    );
+    assert(fallbackParse.success === true, 'parseResumeWithAi succeeds with fallback');
+    assert(typeof fallbackParse.source === 'string', 'parseResumeWithAi returns source identifier');
+    assert(fallbackParse.extracted.contactNumber.length > 0 || fallbackParse.extracted.email.length > 0, 'parseResumeWithAi extracts contact details');
+  }
+
   console.log(`\n--- ARCH-08 Modular Server Verification Summary: ${passedTests}/${totalTests} tests passed ---`);
   if (passedTests === totalTests && totalTests > 0) {
     console.log('🎉 ARCH-08 Modular Server is VERIFIED successfully!\n');
