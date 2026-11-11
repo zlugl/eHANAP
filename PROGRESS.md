@@ -22,7 +22,7 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
 | **4** | **ARCH-01a**| **Context Slicing: UI Feedback & Auth**<br>- Extract `ToastContext` and `NotificationContext` from `AppContext.tsx`.<br>- Extract `AuthContext` (session, demo role switcher, login/logout).<br>- Prevent full-app re-renders on toast/notification updates. | **COMPLETED** | `refactor/arch-01-context-slicing` | 57/57 ARCH-01a tests + 35/35 ARCH-02 + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build |
 | **5** | **ARCH-05** | **Route-Level Code-Splitting & Lazy Loading**<br>- Convert Admin and Employer routes to `React.lazy()` with Suspense fallbacks.<br>- Dynamic `import()` for `jspdf` and `html2canvas` in export modals. | **COMPLETED** | `refactor/arch-05-code-splitting` | 58/58 ARCH-05 tests + 57/57 ARCH-01a + 35/35 ARCH-02 + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build (initial bundle reduced 85.1% from 2.97MB to 433KB) |
 | **6** | **ARCH-07** | **Centralize Decision Tree Match Resolver**<br>- Implement `getOrCalculateMatch(seeker, job, cachedMatches)`.<br>- Memoize candidate ranking rosters; eliminate pairwise loops during render. | **COMPLETED** | `refactor/arch-07-match-resolver` | 90/90 ARCH-07 tests + 412/412 previous arch tests + 424/424 regression tests passing; 0 lint errors; clean build |
-| **7** | **ARCH-04** | **Mega-Component Decomposition**<br>- Split `Navbar.tsx` (1,456 lines) into role-specific navigation bars.<br>- Decompose `SeekerProfilePage.tsx` (2,905 lines) into child section tabs. | **PENDING** | `refactor/arch-04-component-decomposition` | High cohesion; zero merge-conflict hotspots |
+| **7** | **ARCH-04** | **Mega-Component Decomposition**<br>- Split `Navbar.tsx` (1,440 lines) into role-specific navigation bars.<br>- Decompose `SeekerProfilePage.tsx` (2,894 lines) into child section tabs. | **COMPLETED** | `refactor/arch-04-component-decomposition` | 79/79 ARCH-04 tests + 412/412 previous arch tests + 424/424 regression tests passing; 0 lint errors; clean build |
 | **8** | **ARCH-08** | **Server Controller & Service Separation**<br>- Extract PDF/DOCX extractors to `server/services/documentParser.ts`.<br>- Extract Gemini resume parser to `server/services/aiResumeService.ts`. | **PENDING** | `refactor/arch-08-server-modularization` | Standalone unit testability of prompt schemas |
 
 ---
@@ -240,6 +240,61 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
   - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (836 total verified assertions across suites).
   - `npm run lint` (`tsc --noEmit`): **0 errors**.
   - `npm run build`: **Clean production bundle created in 23s**.
+
+### Work Package 7: ARCH-04 — Mega-Component Decomposition
+- **Status:** [x] **COMPLETED**
+- **Branch:** `refactor/arch-04-component-decomposition`
+- **Scope & Objectives Delivered:**
+  1. **Navbar Decomposition (`src/components/Navbar.tsx`)**:
+     - Reduced line count from **1,440 lines down to 336 lines** (76.7% reduction, surpassing the $\le 350$ lines requirement).
+     - Extracted persona navigation modules under `src/components/navbar/`:
+       - `GuestNav.tsx` — Public navigation (Home, Vacancies, Employers, How it Works).
+       - `SeekerNav.tsx` — Job Seeker links (Home, Vacancies, Applications, Interviews).
+       - `EmployerNav.tsx` — Employer portal tabs (Home, Vacancies, Candidates & Ranking, Interviews, Analytics, Profile, Post Vacancy).
+       - `AdminNav.tsx` — Municipal Admin controls (Home, Verify, Vacancies, Registry, Reports, Logs).
+       - `DemoPersonaPill.tsx` — 1-Click persona switcher pill.
+       - `UserProfileDropdown.tsx` — Avatar menu with role-specific items, demo switcher, and sign-out.
+       - `MobileRoleQuickNav.tsx` — Floating mobile bottom navigation bar for authenticated personas.
+       - `MobileNavDrawer.tsx` — Responsive full-screen slide-out navigation drawer.
+       - `index.ts` — Barrel export for seamless imports.
+     - 100% backwards-compatible: preserved `NavbarProps` contract (`currentRole`, `onRoleChange`, `currentView`, `onNavigate`, `onLoginClick`, `onRegisterClick`, etc.).
+  2. **Reusable Seeker Profile Form Hook (`src/hooks/useSeekerProfileForm.ts`)**:
+     - Centralizes all personal details state (`firstName`, `middleName`, `lastName`, `dateOfBirth`, `age`, `civilStatus`, `sex`, `barangay`, `municipality`, `address`, `contactNumber`, `summary`, `primaryDegree`, `educationalAttainment`, `profilePicture`).
+     - Centralizes job preferences state (`prefCategories`, `prefMunicipalities`, `prefEmploymentTypes`, `prefMinSalary`).
+     - Encapsulates 5MB avatar file size validation, DataURL conversion, and Supabase profile updates.
+     - Exposes clean save mutations (`handleSavePersonalInfo`, `handleSavePreferences`) with toast notifications.
+  3. **SeekerProfilePage Subcomponent & Modal Decomposition (`src/views/seeker/components/`)**:
+     - Reduced line count of `SeekerProfilePage.tsx` from **2,894 lines down to 435 lines** (85.0% reduction, below the $\le 450$ lines requirement).
+     - Extracted presentation cards & sections:
+       - `SeekerProfileHeader.tsx` — Portrait card, full name, headline, bio narrative, expertise tags, and contact details.
+       - `SeekerCareerToolsGrid.tsx` — Action grid for Resume Builder, Upload, PDF export, Settings, and ATS scan.
+       - `SeekerBottomNav.tsx` — Floating mobile bottom navigation bar.
+       - `sections/BioPersonalSection.tsx` — Bio and personal info form tab.
+       - `sections/EducationSection.tsx` — Education history tab with CRUD actions.
+       - `sections/ExperienceSection.tsx` — Work history tab with CRUD actions.
+       - `sections/SkillsSection.tsx` — Technical and soft skills inventory tab.
+       - `sections/CertificationsSection.tsx` — Certifications tab with proof inspection.
+       - `sections/ResumesSection.tsx` — Uploaded resumes tab with ATS audit launch.
+       - `SeekerPersonalInfoModal.tsx` — Tabbed modal assembling the 6 profile sections.
+       - `SeekerRecordModals.tsx` — Record modals (`EducationModal`, `ExperienceModal`, `CertificationModal`, `CertificateLightbox`).
+       - `SeekerMatchReadinessModal.tsx` — Decision tree qualification criteria checklist modal.
+       - `SeekerJobPreferencesModal.tsx` — Availability and job preferences modal.
+       - `SeekerFullProfileOverviewModal.tsx` — Comprehensive profile review modal.
+       - `SeekerUtilityModals.tsx` — `SeekerLanguageModal`, `SeekerHelpModal`, `SeekerPrivacyModal`, `SeekerInviteModal`.
+       - `index.ts` — Barrel export for all seeker subcomponents.
+- **Verification Evidence:**
+  - `npx tsx scripts/verify-arch04-component-decomposition.ts`: **79/79 tests passed** across 5 verification suites.
+  - `npx tsx scripts/verify-arch01-context-slicing.ts`: **57/57 tests passed**.
+  - `npx tsx scripts/verify-arch02-retire-firebase.ts`: **44/44 tests passed**.
+  - `npx tsx scripts/verify-arch03-storage-unification.ts`: **55/55 tests passed**.
+  - `npx tsx scripts/verify-arch05-code-splitting.ts`: **60/60 tests passed**.
+  - `npx tsx scripts/verify-arch06-constants-extraction.ts`: **95/95 tests passed**.
+  - `npx tsx scripts/verify-arch07-match-resolver.ts`: **92/92 tests passed**.
+  - Total Architectural Assertions: **482/482 passed with 0 failures**.
+  - `npm test`: **424/424 regression tests passed** across 8 milestone test suites.
+  - `npm run lint` (`tsc --noEmit`): **0 errors**.
+  - `npm run build`: **Clean production bundle created in 31s**.
+
 
 
 

@@ -3,6 +3,7 @@ import { ArrowLeft, Edit2, User } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { isSeekerProfileComplete } from '../../utils/routeGuards';
 import { evaluateResumeForAts } from '../../utils/atsEngine';
+import { JOB_CATEGORIES } from '../../constants';
 import { EducationRecord, WorkExperienceRecord, CertificationRecord } from '../../types';
 import { useSeekerProfileForm } from '../../hooks/useSeekerProfileForm';
 import {

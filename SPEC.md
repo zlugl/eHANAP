@@ -91,13 +91,16 @@ src/App.tsx (25 views bundled statically)         Browser Client (Single Monolit
 ---
 
 ### 4. Mega-Component God Views (UI Layer Low Cohesion)
-- **ID:** ARCH-04 | **Class:** `GOD_COMPONENT` / `LOW_COHESION` | **Severity:** 🟠 High | **Status:** `CURRENT`
+- **ID:** ARCH-04 | **Class:** `GOD_COMPONENT` / `LOW_COHESION` | **Severity:** 🟠 High | **Status:** `REMEDIATED`
 - **Blast Radius:** Medium | **Confidence:** High
+- **Remediation Delivered:**
+  - `src/components/Navbar.tsx`: Reduced from 1,440 lines down to 336 lines (76.7% reduction). Split into persona navigation components under `src/components/navbar/` (`GuestNav`, `SeekerNav`, `EmployerNav`, `AdminNav`, `DemoPersonaPill`, `UserProfileDropdown`, `MobileRoleQuickNav`, `MobileNavDrawer`).
+  - `src/hooks/useSeekerProfileForm.ts`: Created reusable form management hook encapsulating all personal details, job preferences, 5MB avatar validation, and profile save mutations.
+  - `src/views/seeker/SeekerProfilePage.tsx`: Reduced from 2,894 lines down to 435 lines (85.0% reduction). Decomposed into modular presentation components and specialized modals under `src/views/seeker/components/` (`SeekerProfileHeader`, `SeekerCareerToolsGrid`, `SeekerBottomNav`, `SeekerPersonalInfoModal`, `sections/*`, `SeekerRecordModals`, `SeekerMatchReadinessModal`, `SeekerJobPreferencesModal`, `SeekerFullProfileOverviewModal`, `SeekerUtilityModals`).
+  - Automated verification: 79/79 ARCH-04 tests passing (`scripts/verify-arch04-component-decomposition.ts`), 482/482 total architectural assertions passing, and 424/424 regression tests passing. Zero lint errors.
 - **Location & Evidence:**
-  - `src/views/seeker/SeekerProfilePage.tsx`: 2,905 lines, 50+ `useState` hooks, 8 embedded modals, inlined education, experience, and certification editors.
-  - `src/views/seeker/SeekerProfileSetupWizard.tsx`: 1,792 lines, duplicating profile forms, photo uploads, and normalization logic.
-  - `src/components/Navbar.tsx`: 1,456 lines, renders desktop and mobile navigation for four separate user personas (Guest, Seeker, Employer, Admin) plus quick demo switchers and database indicators.
-  - `src/views/AuthModal.tsx`: 1,354 lines, combines login, registration across three distinct user roles, OTP validation, and password recovery.
+  - `src/views/seeker/SeekerProfilePage.tsx`: Previously 2,905 lines, now 435 modular lines.
+  - `src/components/Navbar.tsx`: Previously 1,456 lines, now 336 modular lines.
 - **Responsibility Analysis:** These UI views mix responsive markup, modal state management, complex form validation, image base64 conversions, PDF preview generation, and direct domain computations in single massive files.
 - **Why This Is a Smell & Consequence:**
   - *Merge conflict bottleneck:* In a multi-developer team (e.g., thesis partners Lomboy, Escalona, Sacapaño), simultaneous work on profile fields, navigation items, or authentication triggers constant merge conflicts.
