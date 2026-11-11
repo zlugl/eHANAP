@@ -1,43 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { JobMatchToastContainer } from './components/JobMatchToastContainer';
 import { JobSubscriptionModal } from './components/JobSubscriptionModal';
+import { RouteLoadingFallback } from './components/RouteLoadingFallback';
 
-// Views
+// Public Views (Eagerly Loaded for Immediate Guest LCP)
 import { LandingPage } from './views/LandingPage';
 import { JobSearchPage } from './views/JobSearchPage';
 import { JobDetailPage } from './views/JobDetailPage';
 import { EmployerSearchPage } from './views/EmployerSearchPage';
 import { AuthModal } from './views/AuthModal';
 
-// Seeker Views
-import { SeekerDashboard } from './views/seeker/SeekerDashboard';
-import { SeekerApplicationsPage } from './views/seeker/SeekerApplicationsPage';
-import { SeekerInterviewsPage } from './views/seeker/SeekerInterviewsPage';
-import { SeekerProfilePage } from './views/seeker/SeekerProfilePage';
-import { SeekerProfileSetupWizard } from './views/seeker/SeekerProfileSetupWizard';
+// Seeker Views (Code-Split / Lazy Loaded)
+const SeekerDashboard = lazy(() => import('./views/seeker/SeekerDashboard').then(m => ({ default: m.SeekerDashboard })));
+const SeekerApplicationsPage = lazy(() => import('./views/seeker/SeekerApplicationsPage').then(m => ({ default: m.SeekerApplicationsPage })));
+const SeekerInterviewsPage = lazy(() => import('./views/seeker/SeekerInterviewsPage').then(m => ({ default: m.SeekerInterviewsPage })));
+const SeekerProfilePage = lazy(() => import('./views/seeker/SeekerProfilePage').then(m => ({ default: m.SeekerProfilePage })));
+const SeekerProfileSetupWizard = lazy(() => import('./views/seeker/SeekerProfileSetupWizard').then(m => ({ default: m.SeekerProfileSetupWizard })));
 
-// Employer Views
-import { EmployerDashboard } from './views/employer/EmployerDashboard';
-import { EmployerJobsPage } from './views/employer/EmployerJobsPage';
-import { EmployerApplicantsPage } from './views/employer/EmployerApplicantsPage';
-import { EmployerInterviewsPage } from './views/employer/EmployerInterviewsPage';
-import { EmployerAnalyticsPage } from './views/employer/EmployerAnalyticsPage';
-import { EmployerProfilePage } from './views/employer/EmployerProfilePage';
-import { EmployerProfileSetupWizard } from './views/employer/EmployerProfileSetupWizard';
-import { CreateJobModal } from './views/employer/CreateJobModal';
+// Employer Views (Code-Split / Lazy Loaded)
+const EmployerDashboard = lazy(() => import('./views/employer/EmployerDashboard').then(m => ({ default: m.EmployerDashboard })));
+const EmployerJobsPage = lazy(() => import('./views/employer/EmployerJobsPage').then(m => ({ default: m.EmployerJobsPage })));
+const EmployerApplicantsPage = lazy(() => import('./views/employer/EmployerApplicantsPage').then(m => ({ default: m.EmployerApplicantsPage })));
+const EmployerInterviewsPage = lazy(() => import('./views/employer/EmployerInterviewsPage').then(m => ({ default: m.EmployerInterviewsPage })));
+const EmployerAnalyticsPage = lazy(() => import('./views/employer/EmployerAnalyticsPage').then(m => ({ default: m.EmployerAnalyticsPage })));
+const EmployerProfilePage = lazy(() => import('./views/employer/EmployerProfilePage').then(m => ({ default: m.EmployerProfilePage })));
+const EmployerProfileSetupWizard = lazy(() => import('./views/employer/EmployerProfileSetupWizard').then(m => ({ default: m.EmployerProfileSetupWizard })));
+const CreateJobModal = lazy(() => import('./views/employer/CreateJobModal').then(m => ({ default: m.CreateJobModal })));
 
-// Admin Views
-import { AdminDashboard } from './views/admin/AdminDashboard';
-import { AdminJobsPage } from './views/admin/AdminJobsPage';
-import { AdminUsersPage } from './views/admin/AdminUsersPage';
-import { AdminVerificationsPage } from './views/admin/AdminVerificationsPage';
-import { AdminReportsPage } from './views/admin/AdminReportsPage';
-import { AdminAuditLogsPage } from './views/admin/AdminAuditLogsPage';
-import { AdminJobMatchingPage } from './views/admin/AdminJobMatchingPage';
-import { AdminLraPage } from './views/admin/AdminLraPage';
+// Admin Views (Code-Split / Lazy Loaded)
+const AdminDashboard = lazy(() => import('./views/admin/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
+const AdminJobsPage = lazy(() => import('./views/admin/AdminJobsPage').then(m => ({ default: m.AdminJobsPage })));
+const AdminUsersPage = lazy(() => import('./views/admin/AdminUsersPage').then(m => ({ default: m.AdminUsersPage })));
+const AdminVerificationsPage = lazy(() => import('./views/admin/AdminVerificationsPage').then(m => ({ default: m.AdminVerificationsPage })));
+const AdminReportsPage = lazy(() => import('./views/admin/AdminReportsPage').then(m => ({ default: m.AdminReportsPage })));
+const AdminAuditLogsPage = lazy(() => import('./views/admin/AdminAuditLogsPage').then(m => ({ default: m.AdminAuditLogsPage })));
+const AdminJobMatchingPage = lazy(() => import('./views/admin/AdminJobMatchingPage').then(m => ({ default: m.AdminJobMatchingPage })));
+const AdminLraPage = lazy(() => import('./views/admin/AdminLraPage').then(m => ({ default: m.AdminLraPage })));
 import { 
   isRouteAllowedForRole, 
   getRequiredRoleForRoute, 
@@ -298,9 +299,10 @@ function AppContent() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.22, ease: "easeInOut" }}
             >
-              {currentView === 'landing' && (
-                <LandingPage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} />
-              )}
+              <Suspense fallback={<RouteLoadingFallback />}>
+                {currentView === 'landing' && (
+                  <LandingPage onNavigate={handleNavigate} onOpenAuth={handleOpenAuth} />
+                )}
 
               {currentView === 'jobs' && (
                 <JobSearchPage
@@ -430,17 +432,20 @@ function AppContent() {
               {currentView === 'admin-lra' && (
                 <AdminLraPage onNavigate={handleNavigate} />
               )}
+              </Suspense>
             </motion.div>
           </AnimatePresence>
         )}
       </main>
 
       {/* Modals & Overlays */}
-      <CreateJobModal
-        isOpen={isPostJobModalOpen}
-        onClose={() => setIsPostJobModalOpen(false)}
-        onSuccess={() => handleNavigate('employer-applicants')}
-      />
+      <Suspense fallback={null}>
+        <CreateJobModal
+          isOpen={isPostJobModalOpen}
+          onClose={() => setIsPostJobModalOpen(false)}
+          onSuccess={() => handleNavigate('employer-applicants')}
+        />
+      </Suspense>
 
       <AuthModal
         isOpen={authModalOpen}
