@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
-import { calculateDecisionTreeMatch } from '../../utils/decisionTree';
+import { getOrCalculateMatch } from '../../utils/matchResolver';
 import { 
   X, 
   Sparkles, 
@@ -39,6 +39,7 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
     applications, 
     jobSeekers, 
     jobPosts, 
+    candidateMatches,
     inviteCandidateToApply, 
     hasInvitedCandidate 
   } = useApp();
@@ -56,7 +57,7 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
   if (!seeker || !job) return null;
 
   // Resolve match result & scores
-  const matchResult = application?.matchResult || calculateDecisionTreeMatch(seeker, job);
+  const matchResult = getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches, application });
   const matchScore = application?.matchScore ?? matchResult.overallMatch;
   const outcome = application?.decisionTreeOutcome || matchResult.outcome;
 

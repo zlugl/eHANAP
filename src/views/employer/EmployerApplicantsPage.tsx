@@ -4,7 +4,7 @@ import { ApplicantMatchReportModal } from './ApplicantMatchReportModal';
 import { ScheduleInterviewModal } from './ScheduleInterviewModal';
 import { AtsResumeModal } from '../../components/AtsResumeModal';
 import { evaluateResumeForAts } from '../../utils/atsEngine';
-import { calculateDecisionTreeMatch } from '../../utils/decisionTree';
+import { getOrCalculateMatch } from '../../utils/matchResolver';
 import { EmployerStatusUpdateModal } from '../../components/EmployerStatusUpdateModal';
 import { ApplicationStatusTracker } from '../../components/ApplicationStatusTracker';
 import { ApplicationStatus, Application, JobSeekerProfile } from '../../types';
@@ -51,6 +51,7 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
     submitApplicationFeedback,
     inviteCandidateToApply,
     hasInvitedCandidate,
+    candidateMatches,
     showToast
   } = useApp();
 
@@ -86,12 +87,15 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
   const activeJob = myJobs.find(j => j.id === effectiveJobId);
 
   // 1. AUTOMATED CANDIDATE RANKING ROSTER (Core Thesis Invariant: Evaluates ALL registered seekers in Roxas)
-  const candidateRankingPool = useMemo(() => {
+  const allCandidateEvaluations = useMemo(() => {
     if (!activeJob) return [];
 
-    const mapped = jobSeekers.map(seeker => {
-      const matchResult = calculateDecisionTreeMatch(seeker, activeJob);
+    return jobSeekers.map(seeker => {
       const existingApp = applications.find(a => a.jobId === activeJob.id && a.jobSeekerId === seeker.id);
+      const matchResult = getOrCalculateMatch(seeker, activeJob, {
+        cachedMatches: candidateMatches,
+        application: existingApp,
+      });
       const isInvited = hasInvitedCandidate(activeJob.id, seeker.id);
       const atsResult = existingApp?.atsResult || evaluateResumeForAts(seeker, activeJob);
       const atsScore = existingApp?.atsScore || atsResult?.score || 85;
@@ -108,9 +112,13 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
         atsScore,
       };
     });
+  }, [activeJob, jobSeekers, applications, candidateMatches, hasInvitedCandidate]);
+
+  const candidateRankingPool = useMemo(() => {
+    if (!activeJob || allCandidateEvaluations.length === 0) return [];
 
     // Search filter
-    let filtered = mapped;
+    let filtered = allCandidateEvaluations;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       filtered = filtered.filter(item => {
@@ -145,27 +153,26 @@ export const EmployerApplicantsPage: React.FC<EmployerApplicantsPageProps> = ({ 
     });
 
     // Deterministic sort: descending by Decision Tree score (or ATS)
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       if (sortBy === 'ats') {
         return b.atsScore - a.atsScore;
       }
       return b.score - a.score;
     });
-  }, [activeJob, jobSeekers, applications, hasInvitedCandidate, searchQuery, rosterFilter, sortBy]);
+  }, [activeJob, allCandidateEvaluations, searchQuery, rosterFilter, sortBy]);
 
-  // Pool summary counts
+  // Pool summary counts - derived directly from allCandidateEvaluations without duplicate calculation
   const poolCounts = useMemo(() => {
     if (!activeJob) return { total: 0, highly: 0, qualified: 0, applied: 0, unapplied: 0, invited: 0 };
-    const all = jobSeekers.map(s => calculateDecisionTreeMatch(s, activeJob));
     return {
-      total: jobSeekers.length,
-      highly: all.filter(m => m.overallMatch >= 85).length,
-      qualified: all.filter(m => m.overallMatch >= 70).length,
+      total: allCandidateEvaluations.length,
+      highly: allCandidateEvaluations.filter(m => m.score >= 85).length,
+      qualified: allCandidateEvaluations.filter(m => m.score >= 70).length,
       applied: applications.filter(a => a.jobId === activeJob.id).length,
-      unapplied: jobSeekers.filter(s => !applications.some(a => a.jobId === activeJob.id && a.jobSeekerId === s.id)).length,
-      invited: jobSeekers.filter(s => hasInvitedCandidate(activeJob.id, s.id)).length,
+      unapplied: allCandidateEvaluations.filter(item => !item.existingApp).length,
+      invited: allCandidateEvaluations.filter(item => item.isInvited).length,
     };
-  }, [activeJob, jobSeekers, applications, hasInvitedCandidate]);
+  }, [activeJob, allCandidateEvaluations, applications]);
 
   // 2. ACTIVE APPLICANTS PIPELINE (Applied Candidates Only)
   const rankedApplicants = useMemo(() => {

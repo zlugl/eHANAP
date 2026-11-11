@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
-import { calculateDecisionTreeMatch } from '../utils/decisionTree';
+import { getOrCalculateMatch } from '../utils/matchResolver';
 import { ApplyForJobWindow } from './ApplyForJobWindow';
 import { WriteCompanyReviewModal } from './WriteCompanyReviewModal';
 import { 
@@ -72,7 +72,8 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
     applications, 
     applyForJob, 
     showToast,
-    companyReviews
+    companyReviews,
+    candidateMatches
   } = useApp();
 
   // 3 Tabs: About (Description), Company, Review (matching design image)
@@ -92,8 +93,9 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
   // Compute Decision Tree match score specifically for the applicant
   const applicantMatch = useMemo(() => {
     if (!isApplicant || !currentSeekerProfile) return null;
-    return calculateDecisionTreeMatch(currentSeekerProfile, fullJobPost || (job as any));
-  }, [isApplicant, currentSeekerProfile, fullJobPost, job]);
+    const targetJob = fullJobPost || (job as any);
+    return getOrCalculateMatch(currentSeekerProfile, targetJob, { cachedMatches: candidateMatches });
+  }, [isApplicant, currentSeekerProfile, fullJobPost, job, candidateMatches]);
 
   // Check if currently applied
   const existingApp = currentSeekerProfile

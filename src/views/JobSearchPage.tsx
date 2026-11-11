@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../context/AppContext';
 import { ROXAS_BARANGAYS, JOB_CATEGORIES } from '../constants';
-import { calculateDecisionTreeMatch } from '../utils/decisionTree';
+import { getOrCalculateMatch } from '../utils/matchResolver';
 import { ApplicationTrackingBar } from '../components/ApplicationTrackingBar';
 import { 
   Search, 
@@ -54,6 +54,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
     applications, 
     bookmarkedJobIds, 
     toggleBookmarkJob, 
+    candidateMatches,
     showToast 
   } = useApp();
 
@@ -194,7 +195,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
       let outcome = 'QUALIFIED';
       let matchResult: any = null;
       if (currentSeekerProfile) {
-        matchResult = calculateDecisionTreeMatch(currentSeekerProfile, job);
+        matchResult = getOrCalculateMatch(currentSeekerProfile, job, { cachedMatches: candidateMatches });
         matchScore = matchResult.overallMatch;
         outcome = matchResult.outcome;
       }

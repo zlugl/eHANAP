@@ -237,6 +237,94 @@ async function runVerification() {
   }
 
   // -------------------------------------------------------------
+  // Suite 3: Presentation View Decoupling & Roster Memoization
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 3] Presentation View Decoupling & Roster Memoization');
+
+  // 1. JobSearchPage.tsx
+  const jobSearchPath = path.join(rootDir, 'src/views/JobSearchPage.tsx');
+  assert(fs.existsSync(jobSearchPath), 'src/views/JobSearchPage.tsx exists on disk');
+  if (fs.existsSync(jobSearchPath)) {
+    const content = fs.readFileSync(jobSearchPath, 'utf-8');
+    assert(
+      !content.includes("from '../utils/decisionTree'") && !content.includes('calculateDecisionTreeMatch'),
+      'JobSearchPage.tsx does NOT import calculateDecisionTreeMatch directly'
+    );
+    assert(
+      content.includes('getOrCalculateMatch') || content.includes('getMatch('),
+      'JobSearchPage.tsx uses centralized getOrCalculateMatch or getMatch'
+    );
+  }
+
+  // 2. SeekerDashboard.tsx
+  const seekerDashPath = path.join(rootDir, 'src/views/seeker/SeekerDashboard.tsx');
+  assert(fs.existsSync(seekerDashPath), 'src/views/seeker/SeekerDashboard.tsx exists on disk');
+  if (fs.existsSync(seekerDashPath)) {
+    const content = fs.readFileSync(seekerDashPath, 'utf-8');
+    assert(
+      !content.includes("from '../../utils/decisionTree'") && !content.includes('calculateDecisionTreeMatch'),
+      'SeekerDashboard.tsx does NOT import calculateDecisionTreeMatch directly'
+    );
+    assert(
+      content.includes('getOrCalculateMatch') || content.includes('getMatch('),
+      'SeekerDashboard.tsx uses centralized getOrCalculateMatch or getMatch'
+    );
+    assert(
+      content.includes('jobMatchScoreMap') || content.includes('memoizedMatches'),
+      'SeekerDashboard.tsx memoizes job match scores into a lookup map'
+    );
+  }
+
+  // 3. EmployerApplicantsPage.tsx
+  const empApplicantsPath = path.join(rootDir, 'src/views/employer/EmployerApplicantsPage.tsx');
+  assert(fs.existsSync(empApplicantsPath), 'src/views/employer/EmployerApplicantsPage.tsx exists on disk');
+  if (fs.existsSync(empApplicantsPath)) {
+    const content = fs.readFileSync(empApplicantsPath, 'utf-8');
+    assert(
+      !content.includes("from '../../utils/decisionTree'") && !content.includes('calculateDecisionTreeMatch'),
+      'EmployerApplicantsPage.tsx does NOT import calculateDecisionTreeMatch directly'
+    );
+    assert(
+      content.includes('getOrCalculateMatch') || content.includes('getMatch('),
+      'EmployerApplicantsPage.tsx uses centralized getOrCalculateMatch or getMatch'
+    );
+    assert(
+      !content.includes('const all = jobSeekers.map(s => calculateDecisionTreeMatch(s, activeJob))'),
+      'EmployerApplicantsPage.tsx eliminates duplicate pairwise calculation loop in poolCounts'
+    );
+  }
+
+  // 4. ApplicantMatchReportModal.tsx
+  const matchReportModalPath = path.join(rootDir, 'src/views/employer/ApplicantMatchReportModal.tsx');
+  assert(fs.existsSync(matchReportModalPath), 'src/views/employer/ApplicantMatchReportModal.tsx exists on disk');
+  if (fs.existsSync(matchReportModalPath)) {
+    const content = fs.readFileSync(matchReportModalPath, 'utf-8');
+    assert(
+      !content.includes("from '../../utils/decisionTree'") && !content.includes('calculateDecisionTreeMatch'),
+      'ApplicantMatchReportModal.tsx does NOT import calculateDecisionTreeMatch directly'
+    );
+    assert(
+      content.includes('getOrCalculateMatch') || content.includes('getMatch('),
+      'ApplicantMatchReportModal.tsx uses centralized getOrCalculateMatch or getMatch'
+    );
+  }
+
+  // 5. JobOfferView.tsx
+  const jobOfferViewPath = path.join(rootDir, 'src/components/JobOfferView.tsx');
+  assert(fs.existsSync(jobOfferViewPath), 'src/components/JobOfferView.tsx exists on disk');
+  if (fs.existsSync(jobOfferViewPath)) {
+    const content = fs.readFileSync(jobOfferViewPath, 'utf-8');
+    assert(
+      !content.includes("from '../utils/decisionTree'") && !content.includes('calculateDecisionTreeMatch'),
+      'JobOfferView.tsx does NOT import calculateDecisionTreeMatch directly'
+    );
+    assert(
+      content.includes('getOrCalculateMatch') || content.includes('getMatch('),
+      'JobOfferView.tsx uses centralized getOrCalculateMatch or getMatch'
+    );
+  }
+
+  // -------------------------------------------------------------
   // Summary
   // -------------------------------------------------------------
   console.log(`\n================================================================`);

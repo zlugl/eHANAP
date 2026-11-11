@@ -30,7 +30,7 @@ import {
   Send,
   PhoneCall
 } from 'lucide-react';
-import { calculateDecisionTreeMatch } from '../../utils/decisionTree';
+import { getOrCalculateMatch, getMatchScoreCategory } from '../../utils/matchResolver';
 
 interface SeekerDashboardProps {
   onNavigate: (view: string, params?: any) => void;
@@ -87,7 +87,8 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
     referralSlips,
     bookmarkedJobIds,
     toggleBookmarkJob,
-    isJobBookmarked
+    isJobBookmarked,
+    candidateMatches
   } = useApp();
 
   // State
@@ -111,20 +112,21 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
   const [filterWorkSetup, setFilterWorkSetup] = useState<'all' | 'Remote' | 'On-site' | 'Hybrid'>('all');
   const [filterJobType, setFilterJobType] = useState<'all' | 'Full-Time' | 'Part-Time' | 'Contract'>('all');
 
-  // Decision Tree match score evaluator for Seeker Job Feed
+  // Memoized Decision Tree match score evaluator for Seeker Job Feed
+  const jobMatchScoreMap = useMemo(() => {
+    const map = new Map<string, { score: number; label: string }>();
+    if (!currentSeekerProfile || !jobPosts || jobPosts.length === 0) return map;
+
+    jobPosts.forEach(targetJob => {
+      const matchRes = getOrCalculateMatch(currentSeekerProfile, targetJob, { cachedMatches: candidateMatches });
+      const cat = getMatchScoreCategory(matchRes.overallMatch);
+      map.set(targetJob.id, { score: cat.score, label: cat.label });
+    });
+    return map;
+  }, [currentSeekerProfile, jobPosts, candidateMatches]);
+
   const getJobMatchScore = (jobId: string): { score: number; label: string } => {
-    if (currentSeekerProfile && jobPosts && jobPosts.length > 0) {
-      const targetJob = jobPosts.find(j => j.id === jobId);
-      if (targetJob) {
-        const matchRes = calculateDecisionTreeMatch(currentSeekerProfile, targetJob);
-        const score = Math.min(100, Math.max(0, Math.round(matchRes.overallMatch)));
-        const label = score >= 90 ? 'Highly Qualified' :
-                      score >= 78 ? 'Qualified' :
-                      score >= 65 ? 'Potential Match' : 'General Match';
-        return { score, label };
-      }
-    }
-    return { score: 88, label: 'Qualified' };
+    return jobMatchScoreMap.get(jobId) || { score: 88, label: 'Qualified' };
   };
 
   // Transform real registered employer jobs from AppContext into DisplayJob
@@ -200,14 +202,14 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
   const suggestedJobs = useMemo(() => {
     if (currentSeekerProfile && jobPosts && jobPosts.length > 0) {
       return [...registeredDisplayJobs].sort((a, b) => {
-        const scoreA = getJobMatchScore(a.id).score;
-        const scoreB = getJobMatchScore(b.id).score;
+        const scoreA = jobMatchScoreMap.get(a.id)?.score ?? 88;
+        const scoreB = jobMatchScoreMap.get(b.id)?.score ?? 88;
         return scoreB - scoreA;
       });
     }
 
     return registeredDisplayJobs;
-  }, [registeredDisplayJobs, currentSeekerProfile, jobPosts]);
+  }, [registeredDisplayJobs, currentSeekerProfile, jobPosts, jobMatchScoreMap]);
 
   const toggleBookmark = (jobId: string, jobTitle: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
