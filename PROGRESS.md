@@ -20,7 +20,7 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
 | **2** | **ARCH-06** | **Domain & Municipal Constants Extraction**<br>- Create `src/constants/municipal.ts` and `src/constants/jobCategories.ts`.<br>- Move `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS`, and `JOB_CATEGORIES` out of `src/data/mockData.ts`.<br>- Update all 16 consumer view imports. | **COMPLETED** | `refactor/arch-06-constants-extraction` | 95/95 ARCH-06 tests + 77/77 ARCH-03 tests + 424/424 regression tests passing; 0 lint errors; clean build |
 | **3** | **ARCH-02** | **Retire Dual Persistence & Eliminate Firebase**<br>- Migrate Google OAuth in `AppContext.tsx` to `supabase.auth.signInWithOAuth`.<br>- Direct all persistence operations exclusively to `supabaseService.ts`.<br>- Remove `firestoreService.ts`, `lib/firebase.ts`, and prune `firebase` package. | **COMPLETED** | `refactor/arch-02-retire-firebase` | 35/35 ARCH-02 tests + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build |
 | **4** | **ARCH-01a**| **Context Slicing: UI Feedback & Auth**<br>- Extract `ToastContext` and `NotificationContext` from `AppContext.tsx`.<br>- Extract `AuthContext` (session, demo role switcher, login/logout).<br>- Prevent full-app re-renders on toast/notification updates. | **COMPLETED** | `refactor/arch-01-context-slicing` | 57/57 ARCH-01a tests + 35/35 ARCH-02 + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build |
-| **5** | **ARCH-05** | **Route-Level Code-Splitting & Lazy Loading**<br>- Convert Admin and Employer routes to `React.lazy()` with Suspense fallbacks.<br>- Dynamic `import()` for `jspdf` and `html2canvas` in export modals. | **PENDING** | `refactor/arch-05-code-splitting` | Initial bundle size reduction; fast LCP |
+| **5** | **ARCH-05** | **Route-Level Code-Splitting & Lazy Loading**<br>- Convert Admin and Employer routes to `React.lazy()` with Suspense fallbacks.<br>- Dynamic `import()` for `jspdf` and `html2canvas` in export modals. | **COMPLETED** | `refactor/arch-05-code-splitting` | 58/58 ARCH-05 tests + 57/57 ARCH-01a + 35/35 ARCH-02 + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build (initial bundle reduced 85.1% from 2.97MB to 433KB) |
 | **6** | **ARCH-07** | **Centralize Decision Tree Match Resolver**<br>- Implement `getOrCalculateMatch(seeker, job, cachedMatches)`.<br>- Memoize candidate ranking rosters; eliminate pairwise loops during render. | **PENDING** | `refactor/arch-07-match-resolver` | Deterministic score consistency; 0 render lag |
 | **7** | **ARCH-04** | **Mega-Component Decomposition**<br>- Split `Navbar.tsx` (1,456 lines) into role-specific navigation bars.<br>- Decompose `SeekerProfilePage.tsx` (2,905 lines) into child section tabs. | **PENDING** | `refactor/arch-04-component-decomposition` | High cohesion; zero merge-conflict hotspots |
 | **8** | **ARCH-08** | **Server Controller & Service Separation**<br>- Extract PDF/DOCX extractors to `server/services/documentParser.ts`.<br>- Extract Gemini resume parser to `server/services/aiResumeService.ts`. | **PENDING** | `refactor/arch-08-server-modularization` | Standalone unit testability of prompt schemas |
@@ -161,6 +161,45 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
   - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (688 total verified assertions across suites).
   - `npm run lint` (`tsc --noEmit`): **0 errors**.
   - `npm run build`: **Clean production bundle created in 32s** (Vite + Node server).
+
+---
+
+### Work Package 5: ARCH-05 — Route-Level Code-Splitting & Lazy Loading
+- **Status:** [x] **COMPLETED**
+- **Branch:** `refactor/arch-05-code-splitting`
+- **Scope & Objectives Delivered:**
+  1. **Dynamic PDF & Canvas Export Utility (`src/utils/pdfExport.ts`)**:
+     - Extracted `exportElementToPdf(element, fileName, options)` using asynchronous `Promise.all([import('html2canvas'), import('jspdf')])`.
+     - Completely eliminated static top-level imports of `jspdf` (~390KB) and `html2canvas` (~202KB) from presentation components (`src/components/ResumePDFExportModal.tsx` and `src/components/ResumeBuilderModal.tsx`).
+     - Added robust fallback to `window.print()` in cases of missing elements or canvas failure.
+  2. **Branded Route Loading Fallback Shell (`src/components/RouteLoadingFallback.tsx`)**:
+     - Built an accessible, flicker-free loading skeleton (`role="status"`, `aria-live="polite"`, `sr-only` announcement).
+     - Styled consistently with the eHANAP Paper & Ink Hallmark design system (`--color-paper`, `--color-paper-2`, `--color-rule`, `--color-accent-ink`).
+  3. **Route-Level Code-Splitting in `src/App.tsx`**:
+     - Converted all 8 Admin views (`AdminDashboard`, `AdminJobsPage`, `AdminUsersPage`, `AdminVerificationsPage`, `AdminReportsPage`, `AdminAuditLogsPage`, `AdminJobMatchingPage`, `AdminLraPage`) to `React.lazy()`.
+     - Converted all 8 Employer views (`EmployerDashboard`, `EmployerJobsPage`, `EmployerApplicantsPage`, `EmployerInterviewsPage`, `EmployerAnalyticsPage`, `EmployerProfilePage`, `EmployerProfileSetupWizard`, `CreateJobModal`) to `React.lazy()`.
+     - Converted all 5 Seeker views (`SeekerDashboard`, `SeekerApplicationsPage`, `SeekerInterviewsPage`, `SeekerProfilePage`, `SeekerProfileSetupWizard`) to `React.lazy()`.
+     - Retained public entry views (`LandingPage`, `JobSearchPage`, `JobDetailPage`, `EmployerSearchPage`, `AuthModal`) eagerly loaded for instant initial render and optimal mobile LCP.
+     - Wrapped route rendering and lazy modals in `<Suspense fallback={<RouteLoadingFallback />}>` without breaking `AnimatePresence` animations or role gatekeeping.
+  4. **Rollup Manual Chunk Partitioning (`vite.config.ts`)**:
+     - Configured `manualChunks` in `vite.config.ts` isolating third-party vendor libraries:
+       - `vendor-pdf`: `jspdf`, `html2canvas` (~595KB) — loaded only upon PDF export.
+       - `vendor-charts`: `recharts`, `d3-*` (~439KB) — loaded only for analytics/reports dashboards.
+       - `vendor-motion`: `motion`, `framer-motion` (~129KB).
+       - `vendor-supabase`: `@supabase/*` (~229KB).
+       - `vendor-react`: `react`, `react-dom` (~230KB).
+     - Initial entry bundle size plummeted from **2,972 kB down to 433 kB** (an **85.1% reduction**; gzip dropped from **747 kB down to 98 kB**).
+     - Completely eliminated Vite minification chunk bloat warnings on entry bundle.
+- **Verification Evidence:**
+  - `npx tsx scripts/verify-arch05-code-splitting.ts`: **58/58 tests passed** across 5 verification suites.
+  - `npx tsx scripts/verify-arch01-context-slicing.ts`: **57/57 tests passed** across 4 verification suites.
+  - `npx tsx scripts/verify-arch02-retire-firebase.ts`: **35/35 tests passed** across 5 verification suites.
+  - `npx tsx scripts/verify-arch03-storage-unification.ts`: **77/77 tests passed** across 7 verification suites.
+  - `npx tsx scripts/verify-arch06-constants-extraction.ts`: **95/95 tests passed** across 6 verification suites.
+  - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (746 total verified assertions across suites).
+  - `npm run lint` (`tsc --noEmit`): **0 errors**.
+  - `npm run build`: **Clean production bundle created in 23s** with granular vendor chunks.
+
 
 
 
