@@ -181,10 +181,20 @@ async function runVerification() {
   const viteConfigPath = path.join(rootDir, 'vite.config.ts');
   const viteConfigCode = fs.readFileSync(viteConfigPath, 'utf-8');
   assert(viteConfigCode.includes('manualChunks'), 'vite.config.ts configures manualChunks');
+  assert(viteConfigCode.includes('vite/preload-helper'), 'vite.config.ts maps vite/preload-helper to prevent vendor-pdf preload leak');
   assert(viteConfigCode.includes('vendor-pdf'), 'vite.config.ts defines vendor-pdf chunk');
   assert(viteConfigCode.includes('vendor-charts'), 'vite.config.ts defines vendor-charts chunk');
   assert(viteConfigCode.includes('vendor-motion'), 'vite.config.ts defines vendor-motion chunk');
   assert(viteConfigCode.includes('vendor-supabase'), 'vite.config.ts defines vendor-supabase chunk');
+
+  const distIndexPath = path.join(rootDir, 'dist/index.html');
+  if (fs.existsSync(distIndexPath)) {
+    const distIndexHtml = fs.readFileSync(distIndexPath, 'utf-8');
+    assert(
+      !distIndexHtml.includes('vendor-pdf'),
+      'dist/index.html does NOT eagerly preload vendor-pdf (fully on-demand)'
+    );
+  }
 
   const distAssetsDir = path.join(rootDir, 'dist/assets');
   if (fs.existsSync(distAssetsDir)) {

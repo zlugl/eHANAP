@@ -38,7 +38,13 @@ export async function exportElementToPdf(
       element: HTMLElement,
       options?: any
     ) => Promise<HTMLCanvasElement>;
-    const jsPdfConstructor = (jspdfModule.default || (jspdfModule as any).jsPDF || jspdfModule) as any;
+    const rawDefault = jspdfModule.default as any;
+    const jsPdfConstructor = (
+      (typeof (jspdfModule as any).jsPDF === 'function' ? (jspdfModule as any).jsPDF : null) ||
+      (typeof rawDefault === 'function' ? rawDefault : null) ||
+      (rawDefault && typeof rawDefault.jsPDF === 'function' ? rawDefault.jsPDF : null) ||
+      jspdfModule
+    ) as any;
 
     const canvas = await html2canvas(element, {
       scale,

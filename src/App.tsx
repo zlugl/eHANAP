@@ -439,13 +439,15 @@ function AppContent() {
       </main>
 
       {/* Modals & Overlays */}
-      <Suspense fallback={null}>
-        <CreateJobModal
-          isOpen={isPostJobModalOpen}
-          onClose={() => setIsPostJobModalOpen(false)}
-          onSuccess={() => handleNavigate('employer-applicants')}
-        />
-      </Suspense>
+      {isPostJobModalOpen && (
+        <Suspense fallback={null}>
+          <CreateJobModal
+            isOpen={isPostJobModalOpen}
+            onClose={() => setIsPostJobModalOpen(false)}
+            onSuccess={() => handleNavigate('employer-applicants')}
+          />
+        </Suspense>
+      )}
 
       <AuthModal
         isOpen={authModalOpen}

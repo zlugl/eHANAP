@@ -16,6 +16,9 @@ export default defineConfig(() => {
       rollupOptions: {
         output: {
           manualChunks(id) {
+            if (id.includes('vite/preload-helper')) {
+              return 'vendor-react';
+            }
             if (id.includes('node_modules')) {
               if (id.includes('jspdf') || id.includes('html2canvas')) {
                 return 'vendor-pdf';
