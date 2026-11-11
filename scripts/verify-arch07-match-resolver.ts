@@ -231,8 +231,22 @@ async function runVerification() {
       'AppContext exposes getMatch in provider value'
     );
     assert(
-      appContextContent.includes('invalidateMatchCache(seekerId)'),
-      'updateJobSeekerProfile invalidates match cache on profile change'
+      appContextContent.includes('invalidateMatchCache(s.id)'),
+      'updateJobSeekerProfile invalidates match cache using specific profile id (s.id)'
+    );
+    assert(
+      appContextContent.includes('invalidateMatchCache(undefined, jobId)'),
+      'updateJobPost invalidates match cache on job vacancy update'
+    );
+
+    const typesContent = fs.readFileSync(path.join(rootDir, 'src/types.ts'), 'utf-8');
+    const jobPostInterface = typesContent.slice(
+      typesContent.indexOf('export interface JobPost {'),
+      typesContent.indexOf('export interface PesoReferralSlip')
+    );
+    assert(
+      jobPostInterface.includes('updatedAt?: string') || jobPostInterface.includes('updatedAt: string'),
+      'JobPost interface defines updatedAt timestamp property'
     );
   }
 

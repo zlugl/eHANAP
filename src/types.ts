@@ -335,6 +335,7 @@ export interface JobPost {
   salaryRange?: string;
   applicationDeadline: string;
   postedDate: string;
+  updatedAt?: string;
   status: JobStatus;
   reviewNotes?: string;
   complianceRemarks?: string;

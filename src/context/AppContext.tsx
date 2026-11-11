@@ -728,12 +728,13 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const updateJobPost = (jobId: string, updates: Partial<JobPost>) => {
     setJobPosts(prev => prev.map(j => {
       if (j.id === jobId) {
-        const updated = { ...j, ...updates };
+        const updated = { ...j, ...updates, updatedAt: new Date().toISOString() };
         saveDocument(COLLECTIONS.JOB_POSTS, updated);
         return updated;
       }
       return j;
     }));
+    invalidateMatchCache(undefined, jobId);
     logAudit('JOB_UPDATED', 'JobPost', jobId, `Updated job details`);
   };
 
@@ -1066,8 +1067,8 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
           };
           saveDocument(COLLECTIONS.JOB_SEEKERS, updated);
 
-          // Invalidate cached match entries for this seeker
-          invalidateMatchCache(seekerId);
+          // Invalidate cached match entries for this seeker profile
+          invalidateMatchCache(s.id);
 
           // Re-calculate matches for applications
           setApplications(apps => apps.map(app => {
