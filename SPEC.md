@@ -145,7 +145,7 @@ src/App.tsx (25 views bundled statically)         Browser Client (Single Monolit
 ---
 
 ### 7. Ad-Hoc Pairwise Decision Tree Matching in Presentation Render Loops
-- **ID:** ARCH-07 | **Class:** `RESPONSIBILITY_MIXING` / `UNCLEAR_OWNERSHIP` | **Severity:** 🟡 Medium | **Status:** `SCALING RISK`
+- **ID:** ARCH-07 | **Class:** `RESPONSIBILITY_MIXING` / `UNCLEAR_OWNERSHIP` | **Severity:** 🟡 Medium | **Status:** `REMEDIATED` (Work Package 6)
 - **Blast Radius:** Medium | **Confidence:** High
 - **Location & Evidence:** `src/views/JobSearchPage.tsx:197`, `src/views/seeker/SeekerDashboard.tsx:126`, `src/views/employer/EmployerApplicantsPage.tsx:93, 159`, `src/views/employer/ApplicantMatchReportModal.tsx:59`, `src/components/JobOfferView.tsx:95`.
 - **Responsibility Analysis:** The automated candidate ranking engine calculates compatibility scores. However, individual UI components bypass stored database matches and re-run pairwise `calculateDecisionTreeMatch(seeker, job)` loops on every render pass.

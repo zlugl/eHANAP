@@ -21,7 +21,7 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
 | **3** | **ARCH-02** | **Retire Dual Persistence & Eliminate Firebase**<br>- Migrate Google OAuth in `AppContext.tsx` to `supabase.auth.signInWithOAuth`.<br>- Direct all persistence operations exclusively to `supabaseService.ts`.<br>- Remove `firestoreService.ts`, `lib/firebase.ts`, and prune `firebase` package. | **COMPLETED** | `refactor/arch-02-retire-firebase` | 35/35 ARCH-02 tests + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build |
 | **4** | **ARCH-01a**| **Context Slicing: UI Feedback & Auth**<br>- Extract `ToastContext` and `NotificationContext` from `AppContext.tsx`.<br>- Extract `AuthContext` (session, demo role switcher, login/logout).<br>- Prevent full-app re-renders on toast/notification updates. | **COMPLETED** | `refactor/arch-01-context-slicing` | 57/57 ARCH-01a tests + 35/35 ARCH-02 + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build |
 | **5** | **ARCH-05** | **Route-Level Code-Splitting & Lazy Loading**<br>- Convert Admin and Employer routes to `React.lazy()` with Suspense fallbacks.<br>- Dynamic `import()` for `jspdf` and `html2canvas` in export modals. | **COMPLETED** | `refactor/arch-05-code-splitting` | 58/58 ARCH-05 tests + 57/57 ARCH-01a + 35/35 ARCH-02 + 77/77 ARCH-03 + 95/95 ARCH-06 + 424/424 regression tests passing; 0 lint errors; clean build (initial bundle reduced 85.1% from 2.97MB to 433KB) |
-| **6** | **ARCH-07** | **Centralize Decision Tree Match Resolver**<br>- Implement `getOrCalculateMatch(seeker, job, cachedMatches)`.<br>- Memoize candidate ranking rosters; eliminate pairwise loops during render. | **PENDING** | `refactor/arch-07-match-resolver` | Deterministic score consistency; 0 render lag |
+| **6** | **ARCH-07** | **Centralize Decision Tree Match Resolver**<br>- Implement `getOrCalculateMatch(seeker, job, cachedMatches)`.<br>- Memoize candidate ranking rosters; eliminate pairwise loops during render. | **COMPLETED** | `refactor/arch-07-match-resolver` | 90/90 ARCH-07 tests + 412/412 previous arch tests + 424/424 regression tests passing; 0 lint errors; clean build |
 | **7** | **ARCH-04** | **Mega-Component Decomposition**<br>- Split `Navbar.tsx` (1,456 lines) into role-specific navigation bars.<br>- Decompose `SeekerProfilePage.tsx` (2,905 lines) into child section tabs. | **PENDING** | `refactor/arch-04-component-decomposition` | High cohesion; zero merge-conflict hotspots |
 | **8** | **ARCH-08** | **Server Controller & Service Separation**<br>- Extract PDF/DOCX extractors to `server/services/documentParser.ts`.<br>- Extract Gemini resume parser to `server/services/aiResumeService.ts`. | **PENDING** | `refactor/arch-08-server-modularization` | Standalone unit testability of prompt schemas |
 
@@ -199,6 +199,47 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
   - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (746 total verified assertions across suites).
   - `npm run lint` (`tsc --noEmit`): **0 errors**.
   - `npm run build`: **Clean production bundle created in 23s** with granular vendor chunks.
+
+---
+
+### Work Package 6: ARCH-07 — Centralize Decision Tree Match Resolver
+- **Status:** [x] **COMPLETED**
+- **Branch:** `refactor/arch-07-match-resolver`
+- **Scope & Objectives Delivered:**
+  1. **Domain Match Resolver & Caching Engine (`src/utils/matchResolver.ts`)**:
+     - Created `src/utils/matchResolver.ts` providing `getOrCalculateMatch(seeker, job, options)`.
+     - Multi-tiered resolution hierarchy:
+       1. Application snapshot prioritization (preserves historical match result snapshots).
+       2. Pre-computed Supabase `candidate_matches` cache prioritization.
+       3. In-memory version-aware session cache lookup.
+       4. Pure `calculateDecisionTreeMatch` computation fallback on cache miss.
+     - Added `resolveRosterMatches` for batch candidate evaluation.
+     - Added `getMatchScoreCategory(score)` for uniform qualification labeling (`Highly Qualified`, `Qualified`, `Potential Match`, `General Match`).
+     - Added granular cache invalidation: `invalidateMatchCache(seekerId, jobId)`, `clearMatchCache()`, and cache metrics tracking.
+  2. **Candidate Matches Relational Synchronization (`src/context/AppContext.tsx`, `src/types.ts`)**:
+     - Introduced strongly typed `CandidateMatch` and `MatchResolverOptions` in `src/types.ts`.
+     - Added `candidateMatches: CandidateMatch[]` state to `AppContext`.
+     - Integrated real-time Supabase PostgreSQL synchronization via `subscribeToSupabaseTable<CandidateMatch>(SUPABASE_TABLES.CANDIDATE_MATCHES)`.
+     - Exposed `getMatch: (seeker, job, options?) => MatchResult` helper on `AppContextType` and `useApp()`.
+     - Updated `updateJobSeekerProfile` to trigger `invalidateMatchCache(seekerId)`.
+     - Routed internal candidate match recalculations through `getOrCalculateMatch`.
+  3. **Presentation View Decoupling & Roster Memoization**:
+     - Refactored `src/views/JobSearchPage.tsx`: replaced ad-hoc `calculateDecisionTreeMatch` render calls with `getOrCalculateMatch`.
+     - Refactored `src/views/seeker/SeekerDashboard.tsx`: replaced unmemoized `getJobMatchScore` and $O(N \log N)$ pairwise sorting with `useMemo` pre-computed `jobMatchScoreMap` providing instant $O(1)$ lookups.
+     - Refactored `src/views/employer/EmployerApplicantsPage.tsx`: isolated candidate evaluations into `allCandidateEvaluations` and eliminated the duplicate $O(N)$ pairwise calculation pass in `poolCounts`.
+     - Refactored `src/views/employer/ApplicantMatchReportModal.tsx`: routed match resolution through `getOrCalculateMatch`.
+     - Refactored `src/components/JobOfferView.tsx`: memoized `applicantMatch` with `candidateMatches` cache binding.
+     - **Zero** presentation views or components import or execute `calculateDecisionTreeMatch` directly.
+- **Verification Evidence:**
+  - `npx tsx scripts/verify-arch07-match-resolver.ts`: **90/90 tests passed** across 4 verification suites.
+  - `npx tsx scripts/verify-arch05-code-splitting.ts`: **58/58 tests passed** across 5 verification suites.
+  - `npx tsx scripts/verify-arch01-context-slicing.ts`: **57/57 tests passed** across 4 verification suites.
+  - `npx tsx scripts/verify-arch02-retire-firebase.ts`: **35/35 tests passed** across 5 verification suites.
+  - `npx tsx scripts/verify-arch03-storage-unification.ts`: **77/77 tests passed** across 7 verification suites.
+  - `npx tsx scripts/verify-arch06-constants-extraction.ts`: **95/95 tests passed** across 6 verification suites.
+  - `npm test`: **424/424 automated test assertions passed** across 8 regression suites (836 total verified assertions across suites).
+  - `npm run lint` (`tsc --noEmit`): **0 errors**.
+  - `npm run build`: **Clean production bundle created in 23s**.
 
 
 

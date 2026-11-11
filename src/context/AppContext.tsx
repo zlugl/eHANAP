@@ -29,8 +29,7 @@ import {
   ProfileViewEvent,
   CandidateInvitation,
   CandidateMatch,
-  MatchResolverOptions,
-  MatchResult
+  MatchResolverOptions
 } from '../types';
 import { 
   INITIAL_USERS, INITIAL_EMPLOYERS, INITIAL_JOB_SEEKERS, INITIAL_JOB_POSTS, INITIAL_APPLICATIONS, 
@@ -340,16 +339,10 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
             unsubs.push(
               subscribeToSupabaseTable<JobPost>(SUPABASE_TABLES.JOB_POSTS, (data) => {
                 if (data && data.length > 0) setJobPosts(data);
-              })
-            );
-
-            unsubs.push(
+              }),
               subscribeToSupabaseTable<Application>(SUPABASE_TABLES.APPLICATIONS, (data) => {
                 if (data && data.length > 0) setApplications(data);
-              })
-            );
-
-            unsubs.push(
+              }),
               subscribeToSupabaseTable<Interview>(SUPABASE_TABLES.INTERVIEWS, (data) => {
                 if (data && data.length > 0) setInterviews(data);
               })
@@ -367,28 +360,16 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
             unsubs.push(
               subscribeToSupabaseTable<SystemAnnouncement>(SUPABASE_TABLES.ANNOUNCEMENTS, (data) => {
                 if (data && data.length > 0) setAnnouncements(data);
-              })
-            );
-
-            unsubs.push(
+              }),
               subscribeToSupabaseTable<JobAlertSubscription>(SUPABASE_TABLES.JOB_SUBSCRIPTIONS, (data) => {
                 if (data && data.length > 0) setJobSubscriptions(data);
-              })
-            );
-
-            unsubs.push(
+              }),
               subscribeToSupabaseTable<PesoReferralSlip>(SUPABASE_TABLES.REFERRAL_SLIPS, (data) => {
                 if (data && data.length > 0) setReferralSlips(data);
-              })
-            );
-
-            unsubs.push(
+              }),
               subscribeToSupabaseTable<LocalRecruitmentActivity>(SUPABASE_TABLES.LRA_EVENTS, (data) => {
                 if (data && data.length > 0) setLocalRecruitmentActivities(data);
-              })
-            );
-
-            unsubs.push(
+              }),
               subscribeToSupabaseTable<CandidateMatch>(SUPABASE_TABLES.CANDIDATE_MATCHES, (data) => {
                 if (data && data.length > 0) setCandidateMatches(data);
               })
@@ -2140,67 +2121,24 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         isSupabaseConnected,
         isSyncing,
         getMatch,
-        switchUserRole,
-        switchDemoRole,
-        loginAs,
-        continueWithGoogle,
-        logout,
-        sendOtp,
-        verifyOtp,
-        recoverPassword,
-        verifyEmployer,
-        createJobPost,
-        reviewJobVacancy,
-        updateJobVacancyStatus,
-        updateJobPost,
-        deleteJobPost,
-        applyForJob,
-        updateApplicationStatus,
-        submitApplicationFeedback,
-        scheduleInterview,
-        respondToInterview,
-        updateJobSeekerProfile,
-        saveAssessmentResult,
-        updateEmployerProfile,
-        issueReferralSlip,
-        updateReferralSlipStatus,
-        encodeWalkInJobSeeker,
-        assessJobSeekerWalkIn,
-        createLraEvent,
-        updateLraEvent,
-        logHotsApplicant,
-        nominateCandidateToLra,
-        removeCandidateFromLra,
-        updateLraCandidateStatus,
-        addNotification,
-        markNotificationRead,
-        markAllNotificationsRead,
-        deleteNotification,
-        clearAllNotifications,
-        registerUser,
-        resetToDemoData,
-        addJobSubscription,
-        updateJobSubscription,
-        deleteJobSubscription,
-        showToast,
-        dismissToast,
-        simulateJobMatch,
-        bookmarkedJobIds,
-        toggleBookmarkJob,
-        isJobBookmarked,
-        conversations,
-        chatMessages,
-        sendChatMessage,
-        markConversationRead,
-        companyReviews,
-        addCompanyReview,
-        profileViews,
-        withdrawApplication,
-        updateJobSeekingStatus,
-        updateNotificationPreferences,
-        invitations,
-        inviteCandidateToApply,
-        hasInvitedCandidate,
+        switchUserRole, switchDemoRole, loginAs, continueWithGoogle, logout,
+        sendOtp, verifyOtp, recoverPassword, verifyEmployer, createJobPost,
+        reviewJobVacancy, updateJobVacancyStatus, updateJobPost, deleteJobPost,
+        applyForJob, updateApplicationStatus, submitApplicationFeedback,
+        scheduleInterview, respondToInterview, updateJobSeekerProfile,
+        saveAssessmentResult, updateEmployerProfile, issueReferralSlip,
+        updateReferralSlipStatus, encodeWalkInJobSeeker, assessJobSeekerWalkIn,
+        createLraEvent, updateLraEvent, logHotsApplicant, nominateCandidateToLra,
+        removeCandidateFromLra, updateLraCandidateStatus,
+        addNotification, markNotificationRead, markAllNotificationsRead,
+        deleteNotification, clearAllNotifications, registerUser, resetToDemoData,
+        addJobSubscription, updateJobSubscription, deleteJobSubscription,
+        showToast, dismissToast, simulateJobMatch,
+        bookmarkedJobIds, toggleBookmarkJob, isJobBookmarked,
+        conversations, chatMessages, sendChatMessage, markConversationRead,
+        companyReviews, addCompanyReview, profileViews, withdrawApplication,
+        updateJobSeekingStatus, updateNotificationPreferences,
+        invitations, inviteCandidateToApply, hasInvitedCandidate,
       }}
     >
       {children}

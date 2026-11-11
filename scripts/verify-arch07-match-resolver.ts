@@ -325,6 +325,67 @@ async function runVerification() {
   }
 
   // -------------------------------------------------------------
+  // Suite 4: Algorithmic Score Parity & Global Presentation Isolation
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 4] Algorithmic Score Parity & Global Presentation Isolation');
+
+  const { calculateDecisionTreeMatch } = await import('../src/utils/decisionTree.js').catch(() =>
+    import('../src/utils/decisionTree.ts')
+  );
+  const { getOrCalculateMatch } = await import('../src/utils/matchResolver.js').catch(() =>
+    import('../src/utils/matchResolver.ts')
+  );
+  const { INITIAL_JOB_SEEKERS, INITIAL_JOB_POSTS } = await import('../src/data/mockData.js').catch(() =>
+    import('../src/data/mockData.ts')
+  );
+
+  let parityChecks = 0;
+  for (const seeker of INITIAL_JOB_SEEKERS.slice(0, 3)) {
+    for (const job of INITIAL_JOB_POSTS.slice(0, 5)) {
+      const pureScore = calculateDecisionTreeMatch(seeker, job);
+      const resolvedScore = getOrCalculateMatch(seeker, job, { forceRecalculate: true });
+
+      assert(
+        pureScore.overallMatch === resolvedScore.overallMatch,
+        `Score parity: ${seeker.firstName} vs ${job.title} (${pureScore.overallMatch}% === ${resolvedScore.overallMatch}%)`
+      );
+      assert(
+        pureScore.outcome === resolvedScore.outcome,
+        `Outcome parity: ${seeker.firstName} vs ${job.title} (${pureScore.outcome})`
+      );
+      parityChecks++;
+    }
+  }
+  assert(parityChecks === 15, `Verified 15 pairwise seeker-job score parity calculations`);
+
+  // Global Presentation Scan: Ensure zero presentation views/components import decisionTree
+  function scanDirForDecisionTreeImports(dir: string): string[] {
+    const offending: string[] = [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        offending.push(...scanDirForDecisionTreeImports(fullPath));
+      } else if (entry.isFile() && (entry.name.endsWith('.tsx') || entry.name.endsWith('.ts'))) {
+        const text = fs.readFileSync(fullPath, 'utf-8');
+        if (text.includes("from '../utils/decisionTree'") || text.includes('from "../../utils/decisionTree"')) {
+          offending.push(fullPath.replace(rootDir + '/', ''));
+        }
+      }
+    }
+    return offending;
+  }
+
+  const offendingViews = scanDirForDecisionTreeImports(path.join(rootDir, 'src/views'));
+  const offendingComponents = scanDirForDecisionTreeImports(path.join(rootDir, 'src/components'));
+  const allOffending = [...offendingViews, ...offendingComponents];
+
+  assert(
+    allOffending.length === 0,
+    `Zero presentation views or components import calculateDecisionTreeMatch directly (found ${allOffending.length}: ${allOffending.join(', ')})`
+  );
+
+  // -------------------------------------------------------------
   // Summary
   // -------------------------------------------------------------
   console.log(`\n================================================================`);
@@ -332,7 +393,7 @@ async function runVerification() {
   console.log(`================================================================`);
 
   if (passedTests === totalTests && totalTests > 0) {
-    console.log('🎉 ARCH-07 Suite 1 Verification Passed!');
+    console.log('🎉 ARCH-07 Decision Tree Match Resolver is VERIFIED!');
   } else {
     console.error('❌ Some tests failed.');
     process.exitCode = 1;

@@ -480,7 +480,7 @@ export interface MatchResult {
 }
 
 export interface CandidateMatch extends MatchResult {
-  id?: string;
+  id: string;
   calculatedAt?: string;
 }
 
