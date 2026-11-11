@@ -263,6 +263,45 @@ async function runVerification() {
     }
   }
 
+  // -------------------------------------------------------------
+  // Suite 4: Structural Architecture, Line Counts & Module Decomposition
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 4] Structural Architecture & server.ts Line-Count Decomposition');
+
+  const serverTsPath = path.join(rootDir, 'server.ts');
+  assert(fs.existsSync(serverTsPath), 'server.ts exists on disk');
+
+  if (fs.existsSync(serverTsPath)) {
+    const serverTsContent = fs.readFileSync(serverTsPath, 'utf-8');
+    const lineCount = serverTsContent.split('\n').length;
+    console.log(`[INFO] Current server.ts line count: ${lineCount}`);
+
+    assert(lineCount <= 60, `server.ts is reduced to <= 60 lines (Actual: ${lineCount})`);
+    assert(serverTsContent.includes("from './server/app'") || serverTsContent.includes('from "./server/app"'), 'server.ts delegates to ./server/app');
+    assert(!serverTsContent.includes('GoogleGenAI'), 'server.ts contains zero direct GoogleGenAI imports');
+    assert(!serverTsContent.includes('mammoth'), 'server.ts contains zero direct mammoth imports');
+    assert(!serverTsContent.includes('pdf-parse'), 'server.ts contains zero direct pdf-parse imports');
+    assert(!serverTsContent.includes('CRITICAL INCLUSIVITY'), 'server.ts contains zero inlined prompt strings');
+  }
+
+  // -------------------------------------------------------------
+  // Suite 5: Modular Isolation & Standalone Testability
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 5] Modular Isolation & Backend Clean Architecture');
+
+  const requiredModules = [
+    'server/types.ts',
+    'server/services/documentParser.ts',
+    'server/services/aiResumeService.ts',
+    'server/controllers/resumeController.ts',
+    'server/app.ts',
+  ];
+
+  for (const mod of requiredModules) {
+    const fullModPath = path.join(rootDir, mod);
+    assert(fs.existsSync(fullModPath), `Modular component ${mod} exists in repository structure`);
+  }
+
   console.log(`\n--- ARCH-08 Modular Server Verification Summary: ${passedTests}/${totalTests} tests passed ---`);
   if (passedTests === totalTests && totalTests > 0) {
     console.log('🎉 ARCH-08 Modular Server is VERIFIED successfully!\n');

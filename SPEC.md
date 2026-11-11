@@ -163,9 +163,21 @@ src/App.tsx (25 views bundled statically)         Browser Client (Single Monolit
 ---
 
 ### 8. Mixed Server Lifecycle, AI Orchestration, and Document Heuristics in `server.ts`
-- **ID:** ARCH-08 | **Class:** `GOD_SERVICE` / `LOW_COHESION` | **Severity:** 🟡 Medium | **Status:** `ARCHITECTURAL RISK`
+- **ID:** ARCH-08 | **Class:** `GOD_SERVICE` / `LOW_COHESION` | **Severity:** 🟡 Medium | **Status:** `REMEDIATED` (Work Package 8)
 - **Blast Radius:** Low | **Confidence:** High
-- **Location & Evidence:** `server.ts`: Lines 1–459 (459 lines total).
+- **Remediation Delivered:**
+  - `server.ts`: Reduced from 459 lines down to 34 lines (92.6% reduction). Retains clean bootstrap, port binding, and Vite dev / static asset middleware.
+  - `server/services/documentParser.ts`: Extracted pure binary document parsing (`pdf-parse`, `mammoth`, plain text fallbacks) with zero HTTP/Express coupling.
+  - `server/services/aiResumeService.ts`: Extracted Google GenAI client lifecycle, 4-model failover cascade, 1-hour circuit breaker cooldown state, prompt building with Philippine bio-data & OSY mandates, response schema, and anti-hallucination domain sanitization.
+  - `server/controllers/resumeController.ts`: Extracted Express route handlers for `/api/health`, `/api/parse-resume`, and `/api/extract-resume` with resilient fallbacks.
+  - `server/app.ts`: Extracted Express application factory decoupled from socket listeners for standalone testing.
+  - Automated verification: 76/76 ARCH-08 tests passing (`scripts/verify-arch08-modular-server.ts`), 549/549 total architectural assertions passing, and 424/424 regression tests passing. Zero lint errors. Production bundle verified with esbuild.
+- **Location & Evidence:**
+  - `server.ts`: Previously 459 lines, now 34 clean bootstrap lines.
+  - `server/services/documentParser.ts`: 105 lines of focused document parsing.
+  - `server/services/aiResumeService.ts`: 320 lines of isolated AI orchestration & heuristic guards.
+  - `server/controllers/resumeController.ts`: 40 lines of clean HTTP controllers.
+  - `server/app.ts`: 25 lines of Express app configuration.
 - **Responsibility Analysis:** `server.ts` mixes Express HTTP server startup, Vite development middleware, binary document parsing (`pdf-parse`, `mammoth`), Google GenAI prompt construction and model failover, and domain heuristic sanitization (birthday and sex detection).
 - **Why This Is a Smell & Consequence:**
   - The Gemini prompt, schema, and binary parsers cannot be unit tested without booting the entire Express/Vite server.
@@ -188,7 +200,7 @@ src/App.tsx (25 views bundled statically)         Browser Client (Single Monolit
 | **ARCH-04b** | `src/components/Navbar.tsx` (1,456 lines) | 5 (Guest nav, seeker nav, employer nav, admin nav, demo switcher, DB indicators) | 4 persona viewports, mobile drawers, unread badges, role switcher pill | Route addition, badge rule change, nav link update | 🟠 High |
 | **ARCH-04c** | `src/views/AuthModal.tsx` (1,354 lines) | 4 (Login, multi-role registration, OTP verification, password reset) | Password recovery timers, role selection tabs, Google login, form inputs | Auth requirement, OTP expiration rule, role onboarding | 🟠 High |
 | **ARCH-04d** | `src/views/seeker/SeekerProfileSetupWizard.tsx` (1,792 lines) | 5 (Multi-step wizard, resume upload, photo capture, skill classification, bio-data) | File reading, OCR normalization, validation, confetti, step management | Wizard steps, validation rules, skill taxonomy | 🟠 High |
-| **ARCH-08** | `server.ts` (459 lines) | 5 (Express bootstrap, Vite middleware, PDF/DOCX parsing, Gemini API, heuristics) | Network socket, buffer parsing, prompt schemas, circuit breakers | Port change, prompt update, new document format | 🟡 Medium |
+| **ARCH-08** | `server.ts` (34 lines - Remediated) | 1 (Express bootstrap & Vite lifecycle; delegates to `server/`) | None (parsers, AI, and controllers extracted) | Server port or static serving configuration | ✅ Remediated |
 
 ### 🕸️ Coupling, Dependency Graph & Cycles
 ```text

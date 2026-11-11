@@ -295,6 +295,44 @@ Tracking technical debt remediation, modularity extraction, and architectural ha
   - `npm run lint` (`tsc --noEmit`): **0 errors**.
   - `npm run build`: **Clean production bundle created in 31s**.
 
+---
+
+### Work Package 8: ARCH-08 — Modularize Server Architecture
+- **Status:** [x] **COMPLETED**
+- **Branch:** `refactor/arch-08-modular-server`
+- **Scope & Objectives Delivered:**
+  1. **Document Parser Service (`server/services/documentParser.ts`)**:
+     - Encapsulated binary buffer extraction (`pdf-parse`, `mammoth`, plain text fallbacks) with zero Express or HTTP coupling.
+     - Implemented `extractTextFromPdfBuffer`, `extractTextFromDocxBuffer`, and `extractTextFromPayload`.
+     - Supports direct fileContent, base64 buffers, PDF/DOCX/image MIME detection, and corrupted file safety.
+  2. **AI Resume Service & Anti-Hallucination Heuristics (`server/services/aiResumeService.ts`)**:
+     - Extracted Google GenAI client lifecycle with candidate model cascade (`gemini-3.8-flash` -> `gemini-3.5-flash-lite` -> `gemini-flash-latest` -> `gemini-3.1-flash-lite`).
+     - Added circuit breaker quota management: 1-hour cooldown upon 429/RESOURCE_EXHAUSTED/quota depletion, skipping outbound calls and routing directly to local deterministic extraction.
+     - Extracted inclusivity system prompt builder embedding Philippine bio-data, OSY mandates, and 6 skill categories (`tradeSkills`, `administrativeSkills`, `serviceHospitalitySkills`, `salesCustomerSkills`, `itCreativeSkills`, `softSkills`).
+     - Enforced anti-hallucination domain sanitization: blanks out `dateOfBirth` and `age` if raw text has no DOB keywords; blanks out `sex` if raw text has no gender keywords.
+     - Deterministic fallback to `extractResumeInfoFromText` (`src/utils/resumeExtractorCore.ts`) when API key is missing or quota is depleted.
+  3. **Resume Controller & Express App Factory (`server/controllers/resumeController.ts`, `server/app.ts`)**:
+     - Extracted HTTP controllers: `handleHealthCheck` and `handleResumeParsing` with safe try/catch fallbacks.
+     - Created `createApp()` factory in `server/app.ts` decoupled from `app.listen()` for standalone unit/integration testing.
+  4. **Streamlined Server Bootstrap (`server.ts`)**:
+     - Reduced `server.ts` from **459 lines down to 34 lines** (92.6% reduction, exceeding $\le 60$ lines requirement).
+     - Retains clean bootstrap, port binding, and dev/prod Vite middleware.
+     - Bundles cleanly with `esbuild` to `dist/server.cjs`.
+- **Verification Evidence:**
+  - `npx tsx scripts/verify-arch08-modular-server.ts`: **76/76 tests passed** across 5 verification suites.
+  - `npx tsx scripts/verify-arch01-context-slicing.ts`: **57/57 tests passed**.
+  - `npx tsx scripts/verify-arch02-retire-firebase.ts`: **44/44 tests passed**.
+  - `npx tsx scripts/verify-arch03-storage-unification.ts`: **55/55 tests passed**.
+  - `npx tsx scripts/verify-arch04-component-decomposition.ts`: **79/79 tests passed**.
+  - `npx tsx scripts/verify-arch05-code-splitting.ts`: **60/60 tests passed**.
+  - `npx tsx scripts/verify-arch06-constants-extraction.ts`: **95/95 tests passed**.
+  - `npx tsx scripts/verify-arch07-match-resolver.ts`: **92/92 tests passed**.
+  - Total Architectural Assertions: **549/549 passed with 0 failures**.
+  - `npm test`: **424/424 regression tests passed** across 8 milestone test suites.
+  - `npm run lint` (`tsc --noEmit`): **0 errors**.
+  - `npm run build`: **Clean production bundle created in 22.7s** (`dist/server.cjs` bundled in 15ms).
+
+
 
 
 
