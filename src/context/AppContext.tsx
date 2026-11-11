@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { ToastProvider, useToast } from './ToastContext';
 import { NotificationProvider, useNotification } from './NotificationContext';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -27,7 +27,10 @@ import {
   ChatConversation,
   CompanyReview,
   ProfileViewEvent,
-  CandidateInvitation
+  CandidateInvitation,
+  CandidateMatch,
+  MatchResolverOptions,
+  MatchResult
 } from '../types';
 import { 
   INITIAL_USERS, INITIAL_EMPLOYERS, INITIAL_JOB_SEEKERS, INITIAL_JOB_POSTS, INITIAL_APPLICATIONS, 
@@ -40,6 +43,7 @@ import {
   INITIAL_LRA_EVENTS 
 } from '../data/pesoLguData';
 import { calculateDecisionTreeMatch } from '../utils/decisionTree';
+import { getOrCalculateMatch, invalidateMatchCache } from '../utils/matchResolver';
 import { evaluateResumeForAts } from '../utils/atsEngine';
 import {
   SUPABASE_TABLES,
@@ -105,11 +109,13 @@ interface AppContextType {
   jobSubscriptions: JobAlertSubscription[];
   referralSlips: PesoReferralSlip[];
   localRecruitmentActivities: LocalRecruitmentActivity[];
+  candidateMatches: CandidateMatch[];
   activeToast: ToastNotification | null;
   isSupabaseConnected: boolean;
   isSyncing: boolean;
   
   // Actions
+  getMatch: (seeker: JobSeekerProfile | null | undefined, job: JobPost | null | undefined, options?: MatchResolverOptions) => MatchResult;
   switchUserRole: (userId: string | null) => void;
   switchDemoRole: (target: 'job_seeker' | 'employer' | 'admin' | string) => { success: boolean; user?: User; role?: UserRole; error?: string };
   loginAs: (email: string, password?: string) => { success: boolean; user?: User; isProfileCompleted?: boolean; seekerProfile?: JobSeekerProfile | null; error?: string };
@@ -248,6 +254,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const [jobSubscriptions, setJobSubscriptions] = useState<JobAlertSubscription[]>(INITIAL_JOB_SUBSCRIPTIONS);
   const [referralSlips, setReferralSlips] = useState<PesoReferralSlip[]>(INITIAL_REFERRAL_SLIPS);
   const [localRecruitmentActivities, setLocalRecruitmentActivities] = useState<LocalRecruitmentActivity[]>(INITIAL_LRA_EVENTS);
+  const [candidateMatches, setCandidateMatches] = useState<CandidateMatch[]>([]);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
@@ -379,6 +386,12 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
             unsubs.push(
               subscribeToSupabaseTable<LocalRecruitmentActivity>(SUPABASE_TABLES.LRA_EVENTS, (data) => {
                 if (data && data.length > 0) setLocalRecruitmentActivities(data);
+              })
+            );
+
+            unsubs.push(
+              subscribeToSupabaseTable<CandidateMatch>(SUPABASE_TABLES.CANDIDATE_MATCHES, (data) => {
+                if (data && data.length > 0) setCandidateMatches(data);
               })
             );
           }
@@ -638,27 +651,32 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   // Automatically evaluate and notify matching job seekers when a job vacancy is approved & published
   const notifyAndCacheCandidateMatches = (job: JobPost) => {
+    const newMatches: CandidateMatch[] = [];
+
     jobSeekers.forEach(seeker => {
-      const matchResult = calculateDecisionTreeMatch(seeker, job);
+      const matchResult = getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches });
+
+      const candidateMatchRecord: CandidateMatch = {
+        id: `match-${job.id}-${seeker.id}`,
+        jobId: job.id,
+        jobSeekerId: seeker.id,
+        overallMatch: matchResult.overallMatch,
+        outcome: matchResult.outcome,
+        educationMatchScore: matchResult.educationMatchScore,
+        degreeAlignmentScore: matchResult.degreeAlignmentScore,
+        skillsMatchScore: matchResult.skillsMatchScore,
+        experienceMatchScore: matchResult.experienceMatchScore,
+        certificationsMatchScore: matchResult.certificationsMatchScore,
+        matchedReasons: matchResult.matchedReasons,
+        missingQualifications: matchResult.missingQualifications,
+        decisionReason: matchResult.matchedReasons.slice(0, 3).join('; ') || 'Decision Tree evaluation',
+        calculatedAt: new Date().toISOString(),
+      };
+
+      newMatches.push(candidateMatchRecord);
 
       // Cache candidate match in Supabase
       if (isSupabaseConfigured()) {
-        const candidateMatchRecord = {
-          id: `match-${job.id}-${seeker.id}`,
-          jobId: job.id,
-          jobSeekerId: seeker.id,
-          overallMatch: matchResult.overallMatch,
-          outcome: matchResult.outcome,
-          educationMatchScore: matchResult.educationMatchScore,
-          degreeAlignmentScore: matchResult.degreeAlignmentScore,
-          skillsMatchScore: matchResult.skillsMatchScore,
-          experienceMatchScore: matchResult.experienceMatchScore,
-          certificationsMatchScore: matchResult.certificationsMatchScore,
-          matchedReasons: matchResult.matchedReasons,
-          missingQualifications: matchResult.missingQualifications,
-          decisionReason: matchResult.matchedReasons.slice(0, 3).join('; ') || 'Decision Tree evaluation',
-          calculatedAt: new Date().toISOString(),
-        };
         saveSupabaseRecord(SUPABASE_TABLES.CANDIDATE_MATCHES, candidateMatchRecord).catch(err => {
           console.warn('[Supabase] Candidate match cache warning:', err);
         });
@@ -693,6 +711,15 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         }
       }
     });
+
+    if (newMatches.length > 0) {
+      setCandidateMatches(prev => {
+        const map = new Map<string, CandidateMatch>();
+        prev.forEach(m => map.set(`${m.jobId}:${m.jobSeekerId}`, m));
+        newMatches.forEach(m => map.set(`${m.jobId}:${m.jobSeekerId}`, m));
+        return Array.from(map.values());
+      });
+    }
   };
 
   // Update Job Vacancy Status (Employer Action: Close / Reopen)
@@ -757,8 +784,8 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       return { success: false, message: 'This job vacancy is no longer accepting applications.' };
     }
 
-    // Calculate Decision Tree Match Score
-    const matchResult: MatchResult = calculateDecisionTreeMatch(seeker, job);
+    // Calculate Decision Tree Match Score (prioritizes pre-computed candidate match)
+    const matchResult: MatchResult = getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches });
 
     // Run ATS Resume Evaluation & Tracking Scanner
     const selectedResume = seeker.resumes?.find(r => r.id === resumeId);
@@ -1059,12 +1086,15 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
           };
           saveDocument(COLLECTIONS.JOB_SEEKERS, updated);
 
+          // Invalidate cached match entries for this seeker
+          invalidateMatchCache(seekerId);
+
           // Re-calculate matches for applications
           setApplications(apps => apps.map(app => {
             if (app.jobSeekerId === seekerId || app.jobSeekerId === s.id) {
               const job = jobPosts.find(j => j.id === app.jobId);
               if (job) {
-                const recalculated = calculateDecisionTreeMatch(updated, job);
+                const recalculated = getOrCalculateMatch(updated, job, { forceRecalculate: true });
                 const updatedApp = { 
                   ...app, 
                   matchResult: recalculated,
@@ -2021,7 +2051,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       };
     }
 
-    const match = calculateDecisionTreeMatch(seeker, job);
+    const match = getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches });
     const score = Math.round(match.overallMatch);
 
     const newInvitation: CandidateInvitation = {
@@ -2079,6 +2109,15 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     return invitations.some(inv => inv.jobId === jobId && inv.jobSeekerId === seekerId);
   };
 
+  // Centralized Decision Tree match resolver bound to candidateMatches state
+  const getMatch = useCallback((
+    seeker: JobSeekerProfile | null | undefined, 
+    job: JobPost | null | undefined, 
+    options?: MatchResolverOptions
+  ): MatchResult => {
+    return getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches, ...options });
+  }, [candidateMatches]);
+
   return (
     <AppCoreContext.Provider
       value={{
@@ -2097,9 +2136,11 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         jobSubscriptions,
         referralSlips,
         localRecruitmentActivities,
+        candidateMatches,
         activeToast,
         isSupabaseConnected,
         isSyncing,
+        getMatch,
         switchUserRole,
         switchDemoRole,
         loginAs,

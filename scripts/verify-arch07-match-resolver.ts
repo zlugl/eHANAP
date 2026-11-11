@@ -187,6 +187,56 @@ async function runVerification() {
   }
 
   // -------------------------------------------------------------
+  // Suite 2: AppContext Candidate Matches & Match Resolver Integration
+  // -------------------------------------------------------------
+  console.log('\n>>> [Suite 2] AppContext Candidate Matches & State Integration');
+
+  const appContextPath = path.join(rootDir, 'src/context/AppContext.tsx');
+  assert(fs.existsSync(appContextPath), 'src/context/AppContext.tsx exists on disk');
+
+  if (fs.existsSync(appContextPath)) {
+    const appContextContent = fs.readFileSync(appContextPath, 'utf-8');
+    assert(
+      appContextContent.includes('import { getOrCalculateMatch') ||
+      appContextContent.includes('getOrCalculateMatch,'),
+      'AppContext imports getOrCalculateMatch from matchResolver'
+    );
+    assert(
+      appContextContent.includes('invalidateMatchCache'),
+      'AppContext imports invalidateMatchCache from matchResolver'
+    );
+    assert(
+      appContextContent.includes('candidateMatches: CandidateMatch[];'),
+      'AppContextType defines candidateMatches: CandidateMatch[]'
+    );
+    assert(
+      appContextContent.includes('getMatch:') || appContextContent.includes('getMatch('),
+      'AppContextType defines getMatch resolver function'
+    );
+    assert(
+      appContextContent.includes('SUPABASE_TABLES.CANDIDATE_MATCHES') &&
+      appContextContent.includes('subscribeToSupabaseTable<CandidateMatch>'),
+      'AppContext subscribes to SUPABASE_TABLES.CANDIDATE_MATCHES via Realtime listener'
+    );
+    assert(
+      appContextContent.includes('setCandidateMatches'),
+      'AppContext manages candidateMatches state via setCandidateMatches'
+    );
+    assert(
+      appContextContent.includes('candidateMatches,') || appContextContent.includes('candidateMatches:'),
+      'AppContext exposes candidateMatches in provider value'
+    );
+    assert(
+      appContextContent.includes('getMatch,') || appContextContent.includes('getMatch:'),
+      'AppContext exposes getMatch in provider value'
+    );
+    assert(
+      appContextContent.includes('invalidateMatchCache(seekerId)'),
+      'updateJobSeekerProfile invalidates match cache on profile change'
+    );
+  }
+
+  // -------------------------------------------------------------
   // Summary
   // -------------------------------------------------------------
   console.log(`\n================================================================`);
