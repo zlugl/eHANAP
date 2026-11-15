@@ -101,6 +101,13 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
   };
 
   // Filter & Score active job posts in Roxas
+  const activeFilterCount = (selectedBarangay ? 1 : 0) + 
+    (selectedCategory ? 1 : 0) + 
+    selectedJobTypes.length + 
+    selectedExperienceLevels.length + 
+    selectedCareerLevels.length + 
+    (minSalaryFilter > 0 || maxSalaryFilter > 0 ? 1 : 0);
+
   const filteredJobs = useMemo(() => {
     let result = jobPosts.filter(j => j.status === 'active');
 
@@ -267,6 +274,156 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
     setCurrentPage(1);
   };
 
+  const renderFilterFields = () => (
+    <div className="space-y-6">
+      {/* 1. JOB TYPE */}
+      <div className="space-y-3">
+        <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+          Job Type
+        </h3>
+        <div className="space-y-2.5">
+          {[
+            { label: 'Full Time', count: 18 },
+            { label: 'Part Time', count: 6 },
+            { label: 'Contractor', count: 4 },
+            { label: 'Temporary', count: 2 },
+            { label: 'Intern', count: 5 }
+          ].map(({ label }) => {
+            const checked = selectedJobTypes.includes(label);
+            return (
+              <label 
+                key={label}
+                className="flex items-center gap-3 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none group"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleJobType(label)}
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                />
+                <span className={checked ? 'font-bold text-slate-900' : ''}>
+                  {label}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. SALARY */}
+      <div className="space-y-3 pt-2 border-t border-slate-100">
+        <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+          Monthly Salary (₱)
+        </h3>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="relative">
+            <select
+              value={minSalaryFilter}
+              onChange={(e) => {
+                setMinSalaryFilter(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="w-full text-xs py-2 pl-3 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none font-medium cursor-pointer"
+            >
+              <option value="0">Min</option>
+              <option value="10000">₱10,000</option>
+              <option value="15000">₱15,000</option>
+              <option value="25000">₱25,000</option>
+              <option value="40000">₱40,000</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
+          </div>
+
+          <div className="relative">
+            <select
+              value={maxSalaryFilter}
+              onChange={(e) => {
+                setMaxSalaryFilter(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="w-full text-xs py-2 pl-3 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none font-medium cursor-pointer"
+            >
+              <option value="0">Max</option>
+              <option value="20000">₱20,000</option>
+              <option value="35000">₱35,000</option>
+              <option value="60000">₱60,000</option>
+              <option value="120000">₱120,000+</option>
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
+          </div>
+        </div>
+      </div>
+
+      {/* 3. EXPERIENCE LEVEL */}
+      <div className="space-y-3 pt-2 border-t border-slate-100">
+        <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+          Experience Level
+        </h3>
+        <div className="space-y-2.5">
+          {[
+            'Fresh',
+            '1 - 2 Years',
+            '3 - 5 Years',
+            '6 - 8 Years',
+            '9+ Years'
+          ].map((level) => {
+            const checked = selectedExperienceLevels.includes(level);
+            return (
+              <label 
+                key={level}
+                className="flex items-center gap-3 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none group"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleExperienceLevel(level)}
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                />
+                <span className={checked ? 'font-bold text-slate-900' : ''}>
+                  {level}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 4. CAREER LEVEL */}
+      <div className="space-y-3 pt-2 border-t border-slate-100">
+        <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
+          Career Level
+        </h3>
+        <div className="space-y-2.5">
+          {[
+            'Student',
+            'Entry Level',
+            'Senior',
+            'Manager',
+            'Director'
+          ].map((career) => {
+            const checked = selectedCareerLevels.includes(career);
+            return (
+              <label 
+                key={career}
+                className="flex items-center gap-3 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none group"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleCareerLevel(career)}
+                  className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                />
+                <span className={checked ? 'font-bold text-slate-900' : ''}>
+                  {career}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 font-sans antialiased selection:bg-indigo-500 selection:text-white">
 
@@ -389,20 +546,149 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
             </div>
           </div>
 
-          {/* Quick Filters toggle for Mobile */}
-          <div className="pt-1 lg:hidden flex items-center justify-center">
+          {/* Quick Filter Strip & Filter Launcher for Mobile */}
+          <div className="pt-2 lg:hidden flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
             <button
               type="button"
-              onClick={() => setShowMobileFilters(!showMobileFilters)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              onClick={() => setShowMobileFilters(true)}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer shadow-xs active:scale-95 ${
+                activeFilterCount > 0
+                  ? 'bg-indigo-600 text-white'
+                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+              }`}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              <span>{showMobileFilters ? 'Hide Advanced Filters' : 'Show Advanced Filters'}</span>
+              <span>Filters</span>
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-white text-indigo-700 text-[10px] flex items-center justify-center font-black">
+                  {activeFilterCount}
+                </span>
+              )}
             </button>
+
+            {/* Quick toggle: Full Time */}
+            <button
+              type="button"
+              onClick={() => toggleJobType('Full Time')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer active:scale-95 ${
+                selectedJobTypes.includes('Full Time')
+                  ? 'bg-indigo-500 text-white font-bold'
+                  : 'bg-white/10 text-slate-300 hover:bg-white/20'
+              }`}
+            >
+              Full Time
+            </button>
+
+            {/* Quick toggle: Part Time */}
+            <button
+              type="button"
+              onClick={() => toggleJobType('Part Time')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all shrink-0 cursor-pointer active:scale-95 ${
+                selectedJobTypes.includes('Part Time')
+                  ? 'bg-indigo-500 text-white font-bold'
+                  : 'bg-white/10 text-slate-300 hover:bg-white/20'
+              }`}
+            >
+              Part Time
+            </button>
+
+            {/* Barangay Chip (if selected) */}
+            {selectedBarangay && (
+              <button
+                type="button"
+                onClick={() => setSelectedBarangay('')}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 shrink-0 cursor-pointer"
+              >
+                <span>Brgy. {selectedBarangay}</span>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+
+            {/* Category Chip (if selected) */}
+            {selectedCategory && (
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('')}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-500/30 text-indigo-200 border border-indigo-400/30 shrink-0 cursor-pointer"
+              >
+                <span>{selectedCategory}</span>
+                <X className="w-3 h-3" />
+              </button>
+            )}
+
+            {/* Reset All (if any filters active) */}
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="px-2.5 py-1.5 text-xs text-slate-400 hover:text-white underline shrink-0 cursor-pointer"
+              >
+                Clear all
+              </button>
+            )}
           </div>
 
         </div>
       </section>
+
+      {/* Mobile Slide-Up Filters Bottom Sheet Modal */}
+      {showMobileFilters && (
+        <div
+          className="lg:hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150"
+          onClick={() => setShowMobileFilters(false)}
+        >
+          <div
+            className="w-full sm:max-w-md bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 shrink-0">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-indigo-600" />
+                <h3 className="text-base font-bold text-slate-900">Filter Vacancies</h3>
+                {activeFilterCount > 0 && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    {activeFilterCount} active
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 cursor-pointer"
+                >
+                  Reset all
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileFilters(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 cursor-pointer"
+                  aria-label="Close filters"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Scrollable Body */}
+            <div className="flex-1 overflow-y-auto p-5 space-y-6">
+              {renderFilterFields()}
+            </div>
+
+            {/* Sticky Footer */}
+            <div className="p-4 border-t border-slate-100 bg-slate-50/90 shrink-0 safe-pb">
+              <button
+                type="button"
+                onClick={() => setShowMobileFilters(false)}
+                className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-sm rounded-2xl shadow-lg shadow-indigo-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Show {filteredJobs.length} {filteredJobs.length === 1 ? 'Vacancy' : 'Vacancies'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ======================================================== */}
       {/* 2. MAIN 2-COLUMN LAYOUT (Matches image.png on PC/Laptops) */}
@@ -411,9 +697,9 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
           {/* ---------------------------------------------------- */}
-          {/* LEFT COLUMN: FILTER SIDEBAR                          */}
+          {/* LEFT COLUMN: FILTER SIDEBAR (Desktop Only)           */}
           {/* ---------------------------------------------------- */}
-          <aside className={`lg:col-span-3 space-y-7 ${showMobileFilters ? 'block' : 'hidden lg:block'}`}>
+          <aside className="hidden lg:block lg:col-span-3 space-y-7">
             <div className="bg-white p-6 rounded-2xl border border-slate-200/90 shadow-xs space-y-6">
               
               {/* Header */}
@@ -430,151 +716,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                 </button>
               </div>
 
-              {/* 1. JOB TYPE */}
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                  Job Type
-                </h3>
-                <div className="space-y-2.5">
-                  {[
-                    { label: 'Full Time', count: 18 },
-                    { label: 'Part Time', count: 6 },
-                    { label: 'Contractor', count: 4 },
-                    { label: 'Temporary', count: 2 },
-                    { label: 'Intern', count: 5 }
-                  ].map(({ label }) => {
-                    const checked = selectedJobTypes.includes(label);
-                    return (
-                      <label 
-                        key={label}
-                        className="flex items-center gap-3 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none group"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleJobType(label)}
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
-                        />
-                        <span className={checked ? 'font-bold text-slate-900' : ''}>
-                          {label}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 2. SALARY */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                  Monthly Salary (₱)
-                </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="relative">
-                    <select
-                      value={minSalaryFilter}
-                      onChange={(e) => {
-                        setMinSalaryFilter(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="w-full text-xs py-2 pl-3 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none font-medium cursor-pointer"
-                    >
-                      <option value="0">Min</option>
-                      <option value="10000">₱10,000</option>
-                      <option value="15000">₱15,000</option>
-                      <option value="25000">₱25,000</option>
-                      <option value="40000">₱40,000</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
-                  </div>
-
-                  <div className="relative">
-                    <select
-                      value={maxSalaryFilter}
-                      onChange={(e) => {
-                        setMaxSalaryFilter(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="w-full text-xs py-2 pl-3 pr-6 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none font-medium cursor-pointer"
-                    >
-                      <option value="0">Max</option>
-                      <option value="20000">₱20,000</option>
-                      <option value="35000">₱35,000</option>
-                      <option value="60000">₱60,000</option>
-                      <option value="120000">₱120,000+</option>
-                    </select>
-                    <ChevronDown className="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-3 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              {/* 3. EXPERIENCE LEVEL */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                  Experience Level
-                </h3>
-                <div className="space-y-2.5">
-                  {[
-                    'Fresh',
-                    '1 - 2 Years',
-                    '3 - 5 Years',
-                    '6 - 8 Years',
-                    '9+ Years'
-                  ].map((level) => {
-                    const checked = selectedExperienceLevels.includes(level);
-                    return (
-                      <label 
-                        key={level}
-                        className="flex items-center gap-3 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none group"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleExperienceLevel(level)}
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
-                        />
-                        <span className={checked ? 'font-bold text-slate-900' : ''}>
-                          {level}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* 4. CAREER LEVEL */}
-              <div className="space-y-3 pt-2 border-t border-slate-100">
-                <h3 className="text-xs font-bold text-slate-400 tracking-wider uppercase">
-                  Career Level
-                </h3>
-                <div className="space-y-2.5">
-                  {[
-                    'Student',
-                    'Entry Level',
-                    'Senior',
-                    'Manager',
-                    'Director'
-                  ].map((career) => {
-                    const checked = selectedCareerLevels.includes(career);
-                    return (
-                      <label 
-                        key={career}
-                        className="flex items-center gap-3 text-xs font-medium text-slate-700 hover:text-slate-900 cursor-pointer select-none group"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleCareerLevel(career)}
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
-                        />
-                        <span className={checked ? 'font-bold text-slate-900' : ''}>
-                          {career}
-                        </span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
+              {renderFilterFields()}
 
             </div>
           </aside>
@@ -778,7 +920,7 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                                 type: 'info'
                               });
                             }}
-                            className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                            className="w-11 h-11 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 transition-colors cursor-pointer flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 shrink-0"
                             title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
                           >
                             <Heart className={`w-5 h-5 transition-colors ${

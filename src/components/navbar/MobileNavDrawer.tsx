@@ -70,8 +70,15 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   };
 
   return (
-    <div className="lg:hidden bg-[var(--color-paper-2)] border-b border-[var(--color-rule)] px-4 pt-3 pb-5 space-y-3 shadow-[var(--shadow-lift)] max-h-[calc(100vh-4rem)] overflow-y-auto">
-      {/* Mobile 1-Click Demo Persona Switcher */}
+    <div
+      className="lg:hidden fixed inset-0 top-16 z-50 bg-black/40 backdrop-blur-xs flex flex-col justify-start animate-in fade-in duration-150"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[var(--color-paper-2)] border-b border-[var(--color-rule)] px-4 pt-3 pb-6 space-y-3 shadow-2xl max-h-[calc(100vh-5rem)] overflow-y-auto animate-in slide-in-from-top-2 duration-150"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mobile 1-Click Demo Persona Switcher */}
       <div className="bg-[var(--color-paper-3)] border border-[var(--color-rule)] rounded-md p-2.5 mb-2">
         <p className="text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider mb-1.5">
           Thesis 1-Click Persona Switcher:
@@ -481,5 +488,6 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
         )}
       </div>
     </div>
+  </div>
   );
 };

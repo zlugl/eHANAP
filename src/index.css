@@ -99,6 +99,30 @@
   scrollbar-width: none;
 }
 
+/* Mobile Touch Ergonomics & Safe-Area Utilities */
+.safe-pb {
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+.safe-pt {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+.touch-target {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Prevent iOS Safari auto-zoom on input focus when font-size is below 16px */
+@media screen and (max-width: 640px) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 /* App Screens & Surfaces Craft */
 .app-card {
   background: var(--color-paper-2);

@@ -253,7 +253,7 @@ function AppContent() {
         />
 
       {/* Main View Container */}
-      <main className="flex-1 pb-16 sm:pb-20 lg:pb-0">
+      <main className="flex-1 pb-20 sm:pb-24 lg:pb-0">
         {/* If user tries to access a protected route without permissions */}
         {isUnauthorized ? (
           <div className="max-w-xl mx-auto my-16 p-8 bg-[var(--color-paper-2)] rounded-[var(--radius-card)] border border-[var(--color-rule)] shadow-[var(--shadow-card)] text-center space-y-4">

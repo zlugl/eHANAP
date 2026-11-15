@@ -164,7 +164,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
                 </div>
 
                 {/* Candidate Selector Switcher */}
-                <div className="py-3 flex items-center gap-2 border-b border-[var(--color-rule)]" role="tablist" aria-label="Sample candidate evaluation">
+                <div className="py-3 flex items-center gap-2 border-b border-[var(--color-rule)] overflow-x-auto no-scrollbar max-w-full pb-1" role="tablist" aria-label="Sample candidate evaluation">
                   {CANDIDATES.map((cand, idx) => (
                     <button
                       key={cand.name}
@@ -172,9 +172,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
                       role="tab"
                       aria-selected={activeCandidateIndex === idx}
                       onClick={() => setActiveCandidateIndex(idx)}
-                      className={`btn btn--quiet text-xs py-1 px-3 min-h-[36px] ${
+                      className={`btn btn--quiet text-xs py-1.5 px-3 min-h-[38px] whitespace-nowrap shrink-0 ${
                         activeCandidateIndex === idx
-                          ? 'bg-[var(--color-ink)] text-[var(--color-paper)] border-[var(--color-ink)]'
+                          ? 'bg-[var(--color-ink)] text-[var(--color-paper)] border-[var(--color-ink)] font-semibold'
                           : ''
                       }`}
                     >
@@ -184,7 +184,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
                 </div>
 
                 {/* Candidate Overview */}
-                <div className="py-3 text-xs text-[var(--color-muted)] flex items-center justify-between border-b border-[var(--color-rule)]">
+                <div className="py-3 text-xs text-[var(--color-muted)] flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-b border-[var(--color-rule)]">
                   <span>Educational attainment: <strong className="text-[var(--color-ink)] font-medium">{activeCandidate.education}</strong></span>
                   <span className="text-[var(--color-green)] font-medium">PESO verified profile</span>
                 </div>
@@ -192,14 +192,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
                 {/* Five Evaluation Nodes Table */}
                 <div className="divide-y divide-[var(--color-rule)] text-sm">
                   {activeCandidate.nodes.map((node) => (
-                    <div key={node.label} className="py-2.5 flex items-center justify-between">
-                      <div className="flex items-baseline gap-2">
+                    <div key={node.label} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-2">
+                      <div className="flex items-baseline gap-2 flex-wrap">
                         <span className="font-medium text-[var(--color-ink)]">{node.label}</span>
                         <span className="num text-xs text-[var(--color-muted)]">(weight {node.weight})</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-[var(--color-muted)]">{node.status}</span>
-                        <span className="num font-medium text-[var(--color-ink)] w-12 text-right">
+                      <div className="flex items-center justify-between sm:justify-end gap-3 text-xs sm:text-sm">
+                        <span className="text-[var(--color-muted)]">{node.status}</span>
+                        <span className="num font-semibold text-[var(--color-ink)] sm:w-12 text-right">
                           {node.score}
                         </span>
                       </div>
@@ -220,7 +220,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
       </section>
 
       {/* Narrative Workflow Stage 1.0 */}
-      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
+      <section className="py-12 sm:py-16 lg:py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
         <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             <div className="lg:col-span-5 space-y-4">
@@ -274,7 +274,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
       </section>
 
       {/* Narrative Workflow Stage 2.0 */}
-      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper-2)]">
+      <section className="py-12 sm:py-16 lg:py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper-2)]">
         <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             <div className="lg:col-span-5 space-y-4">
@@ -320,7 +320,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
       </section>
 
       {/* Narrative Workflow Stage 3.0 */}
-      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
+      <section className="py-12 sm:py-16 lg:py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
         <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
             <div className="lg:col-span-5 space-y-4">
@@ -368,27 +368,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
       </section>
 
       {/* Municipal Inquiries (FAQ) */}
-      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper-2)]">
+      <section className="py-12 sm:py-16 lg:py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper-2)]">
         <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
-          <div className="max-w-2xl mb-12">
+          <div className="max-w-2xl mb-8 sm:mb-12">
             <h2 className="font-display text-2xl sm:text-4xl font-semibold tracking-tight text-[var(--color-ink)]">
               Municipal employment inquiries
             </h2>
-            <p className="text-[var(--color-muted)] mt-2">
+            <p className="text-[var(--color-muted)] mt-2 text-sm sm:text-base">
               Common questions on seeker registration, employer accreditation, and candidate matching in Roxas.
             </p>
           </div>
 
           <div className="border-t border-[var(--color-ink)] divide-y divide-[var(--color-rule)]">
             {FAQS.map((faq) => (
-              <div key={faq.question} className="py-6 grid grid-cols-1 md:grid-cols-12 gap-4">
+              <div key={faq.question} className="py-5 sm:py-6 grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
                 <div className="md:col-span-5">
-                  <h3 className="font-medium text-base text-[var(--color-ink)] leading-snug">
+                  <h3 className="font-medium text-sm sm:text-base text-[var(--color-ink)] leading-snug">
                     {faq.question}
                   </h3>
                 </div>
                 <div className="md:col-span-7">
-                  <p className="text-sm text-[var(--color-muted)] leading-relaxed">
+                  <p className="text-xs sm:text-sm text-[var(--color-muted)] leading-relaxed">
                     {faq.answer}
                   </p>
                 </div>
@@ -398,19 +398,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
         </div>
       </section>
 
-      {/* Municipal Facilitation Tiers (Table) */}
-      <section className="py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
+      {/* Municipal Facilitation Tiers (Table & Mobile Cards) */}
+      <section className="py-12 sm:py-16 lg:py-24 border-b border-[var(--color-rule)] bg-[var(--color-paper)]">
         <div className="max-w-[var(--container)] mx-auto px-4 sm:px-8">
-          <div className="max-w-2xl mb-12">
+          <div className="max-w-2xl mb-8 sm:mb-12">
             <h2 className="font-display text-2xl sm:text-4xl font-semibold tracking-tight text-[var(--color-ink)]">
               Accreditation and service criteria
             </h2>
-            <p className="text-[var(--color-muted)] mt-2">
+            <p className="text-[var(--color-muted)] mt-2 text-sm sm:text-base">
               Statutory requirements and system capabilities across each municipal user tier.
             </p>
           </div>
 
-          <div className="overflow-x-auto border-t border-[var(--color-ink)]">
+          {/* Mobile Card Layout for Phone Viewports */}
+          <div className="sm:hidden space-y-3.5 border-t border-[var(--color-ink)] pt-4">
+            {TIERS.map((tier) => (
+              <div key={tier.role} className="p-4 bg-[var(--color-paper-2)] border border-[var(--color-rule)] rounded-[var(--radius-card)] space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-bold text-sm text-[var(--color-ink)]">{tier.role}</span>
+                  <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[var(--color-accent-soft)] text-[var(--color-ink)] border border-[var(--color-rule)] shrink-0">
+                    {tier.scope}
+                  </span>
+                </div>
+                <div className="text-xs text-[var(--color-muted)] flex items-start gap-1.5">
+                  <span className="font-medium text-[var(--color-ink)] shrink-0">Required proof:</span>
+                  <span>{tier.proof}</span>
+                </div>
+                <div className="text-xs text-[var(--color-muted)] flex items-start gap-1.5 pt-2 border-t border-[var(--color-rule)]">
+                  <span className="font-medium text-[var(--color-ink)] shrink-0">Capability:</span>
+                  <span>{tier.service}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop/Tablet Clean Table */}
+          <div className="hidden sm:block overflow-x-auto border-t border-[var(--color-ink)]">
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b border-[var(--color-rule)] text-[var(--color-muted)]">

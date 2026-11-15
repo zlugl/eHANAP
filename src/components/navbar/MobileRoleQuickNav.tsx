@@ -9,7 +9,8 @@ import {
   Users,
   Building2,
   ShieldCheck,
-  FileSpreadsheet
+  FileSpreadsheet,
+  LogIn
 } from 'lucide-react';
 
 export interface MobileRoleQuickNavProps {
@@ -18,6 +19,7 @@ export interface MobileRoleQuickNavProps {
   isSeekerIncomplete: boolean;
   isEmployerIncomplete: boolean;
   onNavigate: (view: string) => void;
+  onOpenAuth?: (mode: 'login' | 'register') => void;
 }
 
 export const MobileRoleQuickNav: React.FC<MobileRoleQuickNavProps> = ({
@@ -25,296 +27,190 @@ export const MobileRoleQuickNav: React.FC<MobileRoleQuickNavProps> = ({
   currentUser,
   isSeekerIncomplete,
   isEmployerIncomplete,
-  onNavigate
+  onNavigate,
+  onOpenAuth
 }) => {
+  // Do not render bottom tab bar on setup wizards or detail views that have their own floating action bars
   if (
-    !currentUser ||
     isSeekerIncomplete ||
     isEmployerIncomplete ||
     currentView === 'seeker-profile-setup' ||
-    currentView === 'employer-profile-setup'
+    currentView === 'employer-profile-setup' ||
+    currentView === 'job-detail'
   ) {
     return null;
   }
 
-  return (
-    <div
-      aria-label="Mobile and Tablet Quick Navigation"
-      className="lg:hidden w-full bg-[var(--color-paper-2)] border-b border-[var(--color-rule)] select-none"
+  const renderTabButton = (
+    label: string,
+    icon: React.ReactNode,
+    isActive: boolean,
+    onClick: () => void
+  ) => (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-current={isActive ? 'page' : undefined}
+      className={`min-h-[48px] py-1 px-1 rounded-xl transition-all flex flex-col items-center justify-center cursor-pointer select-none active:scale-95 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
+        isActive
+          ? 'text-[var(--color-ink)] font-bold'
+          : 'text-[var(--color-muted)] hover:text-[var(--color-ink)] font-medium'
+      }`}
     >
-      <div className="max-w-md sm:max-w-xl mx-auto px-2 sm:px-4 py-1.5">
-        <div className="grid grid-cols-4 sm:grid-cols-5 gap-1 sm:gap-2">
-          {currentUser.role === 'job_seeker' && (
-            <>
-              <button
-                type="button"
-                onClick={() => onNavigate('seeker-dashboard')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'seeker-dashboard'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Home
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'seeker-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Home</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('jobs')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'jobs'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Search
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Jobs</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('seeker-applications')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'seeker-applications'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <FileCheck2
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'seeker-applications' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Applications</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('seeker-interviews')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'seeker-interviews'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Calendar
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'seeker-interviews' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Interviews</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('seeker-profile')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'seeker-profile'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <User
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'seeker-profile' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Profile</span>
-              </button>
-            </>
-          )}
-
-          {currentUser.role === 'employer' && (
-            <>
-              <button
-                type="button"
-                onClick={() => onNavigate('employer-dashboard')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'employer-dashboard'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Home
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'employer-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Home</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('employer-jobs')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'employer-jobs'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Briefcase
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'employer-jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Vacancies</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('employer-applicants')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'employer-applicants'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Users
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'employer-applicants' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Candidates</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('employer-interviews')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'employer-interviews'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Calendar
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'employer-interviews' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Interviews</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('employer-profile')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'employer-profile'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Building2
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'employer-profile' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Profile</span>
-              </button>
-            </>
-          )}
-
-          {currentUser.role === 'admin' && (
-            <>
-              <button
-                type="button"
-                onClick={() => onNavigate('admin-dashboard')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'admin-dashboard'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Home
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'admin-dashboard' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Home</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('admin-verifications')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'admin-verifications'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <ShieldCheck
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'admin-verifications' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Verify</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('admin-jobs')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'admin-jobs'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Briefcase
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'admin-jobs' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Vacancies</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('admin-users')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'admin-users'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <Users
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'admin-users' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Registry</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => onNavigate('admin-reports')}
-                className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-md transition-colors cursor-pointer text-xs focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 ${
-                  currentView === 'admin-reports'
-                    ? 'bg-[var(--color-accent-soft)] text-[var(--color-ink)] font-semibold border border-[var(--color-rule)]'
-                    : 'text-[var(--color-muted)] hover:bg-[var(--color-paper-3)] hover:text-[var(--color-ink)] border border-transparent font-medium'
-                }`}
-              >
-                <FileSpreadsheet
-                  className={`w-4 h-4 mb-0.5 ${
-                    currentView === 'admin-reports' ? 'text-[var(--color-accent)]' : 'text-[var(--color-muted)]'
-                  }`}
-                  aria-hidden="true"
-                />
-                <span className="text-[10px] leading-tight">Reports</span>
-              </button>
-            </>
-          )}
-        </div>
+      <div className={`transition-transform ${isActive ? 'scale-110 text-[var(--color-accent)]' : ''}`}>
+        {icon}
       </div>
-    </div>
+      <span className="text-[10px] leading-tight tracking-tight mt-0.5">{label}</span>
+      {isActive && (
+        <span className="w-1 h-1 rounded-full bg-[var(--color-accent)] mt-0.5 motion-safe:animate-pulse" />
+      )}
+    </button>
+  );
+
+  return (
+    <nav
+      aria-label="Mobile Bottom Navigation"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[var(--color-paper-2)]/95 backdrop-blur-md border-t border-[var(--color-rule)] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] pb-[max(0.35rem,env(safe-area-inset-bottom))] select-none"
+    >
+      <div className="max-w-md sm:max-w-xl mx-auto px-2 pt-1">
+        {/* 1. GUEST NAVIGATION */}
+        {!currentUser && (
+          <div className="grid grid-cols-4 items-center">
+            {renderTabButton(
+              'Home',
+              <Home className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'landing',
+              () => onNavigate('landing')
+            )}
+            {renderTabButton(
+              'Vacancies',
+              <Search className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'jobs',
+              () => onNavigate('jobs')
+            )}
+            {renderTabButton(
+              'Employers',
+              <Building2 className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'employers',
+              () => onNavigate('employers')
+            )}
+            {renderTabButton(
+              'Sign In',
+              <LogIn className="w-4.5 h-4.5" aria-hidden="true" />,
+              false,
+              () => (onOpenAuth ? onOpenAuth('login') : onNavigate('landing'))
+            )}
+          </div>
+        )}
+
+        {/* 2. JOB SEEKER NAVIGATION */}
+        {currentUser?.role === 'job_seeker' && (
+          <div className="grid grid-cols-5 items-center">
+            {renderTabButton(
+              'Home',
+              <Home className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'seeker-dashboard',
+              () => onNavigate('seeker-dashboard')
+            )}
+            {renderTabButton(
+              'Jobs',
+              <Search className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'jobs',
+              () => onNavigate('jobs')
+            )}
+            {renderTabButton(
+              'Applications',
+              <FileCheck2 className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'seeker-applications',
+              () => onNavigate('seeker-applications')
+            )}
+            {renderTabButton(
+              'Interviews',
+              <Calendar className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'seeker-interviews',
+              () => onNavigate('seeker-interviews')
+            )}
+            {renderTabButton(
+              'Profile',
+              <User className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'seeker-profile',
+              () => onNavigate('seeker-profile')
+            )}
+          </div>
+        )}
+
+        {/* 3. EMPLOYER NAVIGATION */}
+        {currentUser?.role === 'employer' && (
+          <div className="grid grid-cols-5 items-center">
+            {renderTabButton(
+              'Home',
+              <Home className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'employer-dashboard',
+              () => onNavigate('employer-dashboard')
+            )}
+            {renderTabButton(
+              'Vacancies',
+              <Briefcase className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'employer-jobs',
+              () => onNavigate('employer-jobs')
+            )}
+            {renderTabButton(
+              'Candidates',
+              <Users className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'employer-applicants',
+              () => onNavigate('employer-applicants')
+            )}
+            {renderTabButton(
+              'Interviews',
+              <Calendar className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'employer-interviews',
+              () => onNavigate('employer-interviews')
+            )}
+            {renderTabButton(
+              'Company',
+              <Building2 className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'employer-profile',
+              () => onNavigate('employer-profile')
+            )}
+          </div>
+        )}
+
+        {/* 4. ADMIN NAVIGATION */}
+        {currentUser?.role === 'admin' && (
+          <div className="grid grid-cols-5 items-center">
+            {renderTabButton(
+              'Home',
+              <Home className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'admin-dashboard',
+              () => onNavigate('admin-dashboard')
+            )}
+            {renderTabButton(
+              'Verify',
+              <ShieldCheck className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'admin-verifications',
+              () => onNavigate('admin-verifications')
+            )}
+            {renderTabButton(
+              'Vacancies',
+              <Briefcase className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'admin-jobs',
+              () => onNavigate('admin-jobs')
+            )}
+            {renderTabButton(
+              'Registry',
+              <Users className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'admin-users',
+              () => onNavigate('admin-users')
+            )}
+            {renderTabButton(
+              'Reports',
+              <FileSpreadsheet className="w-4.5 h-4.5" aria-hidden="true" />,
+              currentView === 'admin-reports',
+              () => onNavigate('admin-reports')
+            )}
+          </div>
+        )}
+      </div>
+    </nav>
   );
 };

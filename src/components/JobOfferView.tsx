@@ -204,8 +204,8 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
             <button
               type="button"
               onClick={onBack}
-              className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer active:scale-95"
-              title="Back to Dashboard"
+              className="w-11 h-11 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:text-slate-900 hover:bg-slate-50 transition-all shadow-2xs cursor-pointer active:scale-95 focus-visible:outline-2 focus-visible:outline-blue-500"
+              title="Back to Vacancies"
               aria-label="Back"
             >
               <ArrowLeft className="w-5 h-5 text-slate-700" />
@@ -224,7 +224,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
             <button
               type="button"
               onClick={handleShare}
-              className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95"
+              className="w-11 h-11 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95 focus-visible:outline-2 focus-visible:outline-blue-500"
               title="Share job opening"
             >
               <Share2 className="w-4.5 h-4.5" />
@@ -234,7 +234,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
             <button
               type="button"
               onClick={(e) => onToggleBookmark(job.id, job.title, e)}
-              className="w-10 h-10 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95"
+              className="w-11 h-11 rounded-full border border-slate-200 bg-white flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 transition-colors shadow-2xs cursor-pointer active:scale-95 focus-visible:outline-2 focus-visible:outline-blue-500"
               title={isBookmarked ? 'Remove bookmark' : 'Bookmark job'}
             >
               <Bookmark className={`w-4.5 h-4.5 transition-all ${isBookmarked ? 'fill-slate-900 text-slate-900' : 'text-slate-500'}`} />
@@ -1006,19 +1006,19 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
       </div>
 
       {/* FLOATING BOTTOM ACTION BAR (Mobile screens only) */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-2xl z-40 p-3 max-w-md mx-auto">
-        <div className="flex items-center gap-2.5">
+      <div className="md:hidden fixed bottom-0 inset-x-0 w-full bg-white/95 backdrop-blur-md border-t border-slate-200/90 shadow-[0_-4px_25px_rgba(0,0,0,0.12)] z-50 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="max-w-lg mx-auto flex items-center gap-3">
           <button
             type="button"
             onClick={(e) => onToggleBookmark(job.id, job.title, e)}
-            className="w-12 h-12 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 flex items-center justify-center text-slate-700 shrink-0 cursor-pointer shadow-xs active:scale-95"
+            className="w-12 h-12 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 flex items-center justify-center text-slate-700 shrink-0 cursor-pointer shadow-xs active:scale-95 focus-visible:outline-2 focus-visible:outline-blue-500"
             title="Bookmark"
           >
             <Bookmark className={`w-5 h-5 ${isBookmarked ? 'fill-slate-900 text-slate-900' : 'text-slate-500'}`} />
           </button>
 
           {existingApp ? (
-            <div className="flex-1 h-12 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 shadow-xs">
+            <div className="flex-1 h-12 bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-xs">
               <CheckCircle className="w-4 h-4 text-emerald-600" />
               <span>Application Submitted</span>
             </div>
@@ -1026,7 +1026,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
             <button
               type="button"
               onClick={handleApply}
-              className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm rounded-2xl shadow-lg shadow-blue-600/30 transition-all flex items-center justify-center gap-2 cursor-pointer focus-visible:outline-2 focus-visible:outline-blue-500"
             >
               <Send className="w-4 h-4" />
               <span>Apply Now</span>

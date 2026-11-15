@@ -10,7 +10,8 @@ import {
   User,
   ChevronLeft,
   Search,
-  FileText
+  FileText,
+  Smartphone
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
@@ -39,12 +40,20 @@ export const MobileDeviceShell: React.FC<MobileDeviceShellProps> = ({
         /* ================= MOBILE DEVICE SHELL CONTAINER ================= */
         <div className="min-h-screen bg-slate-900/95 py-6 px-2 sm:px-6 flex flex-col items-center justify-center">
           
-          {/* Header indicator */}
-          <div className="text-center mb-4 text-white">
+          {/* Header indicator & exit button */}
+          <div className="flex items-center gap-3 mb-4 text-white">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-[11px] font-semibold border border-white/20">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Color UI Design Kit Preview • eHANAP PESO Roxas</span>
+              <span>Mobile Smartphone Preview • eHANAP PESO Roxas</span>
             </div>
+            <button
+              type="button"
+              onClick={onToggleMobileMode}
+              className="px-3 py-1 rounded-full text-[11px] font-bold bg-white/20 hover:bg-white/30 text-white border border-white/30 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Return to full browser view"
+            >
+              Exit Mobile Frame
+            </button>
           </div>
 
           {/* Realistic Smartphone Chassis Frame */}
@@ -150,7 +159,19 @@ export const MobileDeviceShell: React.FC<MobileDeviceShellProps> = ({
         </div>
       ) : (
         /* Normal Responsive Mode */
-        <div>{children}</div>
+        <div>
+          {children}
+          {/* Desktop/Tablet Mobile Preview Toggle Button */}
+          <button
+            type="button"
+            onClick={onToggleMobileMode}
+            className="hidden lg:inline-flex fixed bottom-5 right-5 z-40 items-center gap-2 px-3.5 py-2 rounded-full bg-[var(--color-ink)] text-[var(--color-paper)] text-xs font-semibold shadow-xl border border-[var(--color-rule)] hover:opacity-90 transition-all cursor-pointer active:scale-95 group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+            title="Preview app inside smartphone chassis"
+          >
+            <Smartphone className="w-4 h-4 text-[var(--color-accent)] group-hover:scale-110 transition-transform" />
+            <span>Mobile Device Frame</span>
+          </button>
+        </div>
       )}
     </div>
   );

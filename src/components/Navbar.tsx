@@ -264,27 +264,27 @@ export const Navbar: React.FC<NavbarProps> = ({
                 onOpenSubscriptions={onOpenSubscriptions}
               />
             ) : (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={() => onOpenAuth('login')}
-                  className="btn btn--quiet text-xs min-h-[36px] py-1.5 px-3"
+                  className="hidden md:inline-flex btn btn--quiet text-xs min-h-[36px] py-1.5 px-3"
                   title="Demo accounts for employers and PESO admin"
                 >
                   <Key className="w-3.5 h-3.5 text-[var(--color-accent)]" aria-hidden="true" />
-                  <span className="hidden sm:inline">Demo logins</span>
+                  <span className="hidden lg:inline">Demo logins</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenAuth('login')}
-                  className="btn btn--quiet text-xs min-h-[36px] py-1.5 px-3.5"
+                  className="btn btn--quiet text-xs min-h-[36px] py-1.5 px-3 sm:px-3.5"
                 >
                   <span>Log in</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => onOpenAuth('register')}
-                  className="btn btn--primary text-xs min-h-[36px] py-1.5 px-4"
+                  className="hidden sm:inline-flex btn btn--primary text-xs min-h-[36px] py-1.5 px-4"
                 >
                   <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Create account</span>
@@ -311,6 +311,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         isSeekerIncomplete={isSeekerIncomplete}
         isEmployerIncomplete={isEmployerIncomplete}
         onNavigate={handleNav}
+        onOpenAuth={onOpenAuth}
       />
 
       {/* Mobile Drawer Menu */}
