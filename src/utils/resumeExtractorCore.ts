@@ -215,12 +215,26 @@ export function normalizeEducationalAttainment(val?: string, degree?: string): s
  * Matches an extracted barangay and/or address against the 16 recognized Roxas Barangays
  */
 export function normalizeBarangay(extractedBarangay?: string, address?: string): string {
-  const target = `${extractedBarangay || ''} ${address || ''}`.toLowerCase();
-  for (const b of ROXAS_BARANGAYS) {
-    if (target.includes(b.toLowerCase())) {
-      return b;
+  // 1. Check extractedBarangay first if provided
+  if (extractedBarangay && extractedBarangay.trim()) {
+    const brgyTarget = extractedBarangay.toLowerCase();
+    for (const b of ROXAS_BARANGAYS) {
+      if (brgyTarget.includes(b.toLowerCase())) {
+        return b;
+      }
     }
   }
+
+  // 2. Fall back to scanning address if no match was found in extractedBarangay
+  if (address && address.trim()) {
+    const addressTarget = address.toLowerCase();
+    for (const b of ROXAS_BARANGAYS) {
+      if (addressTarget.includes(b.toLowerCase())) {
+        return b;
+      }
+    }
+  }
+
   return extractedBarangay || '';
 }
 
