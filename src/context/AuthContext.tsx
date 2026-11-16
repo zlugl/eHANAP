@@ -156,7 +156,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsSupabaseConnected(true);
 
           const authSub = onSupabaseAuthStateChange((event, session) => {
-            if (session?.user?.email) {
+            // Capture SIGNED_IN and active session events for OAuth redirect & session hydration
+            if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || session) && session?.user?.email) {
               const sessionEmail = session.user.email.toLowerCase();
               setUsers((latestUsers) => {
                 const match = latestUsers.find((u) => u.email.toLowerCase() === sessionEmail);

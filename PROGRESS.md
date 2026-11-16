@@ -5,7 +5,8 @@ Tracking implementation, verification, and hardening of Supabase native authenti
 ---
 
 ## Baseline Verification
-- **Automated Test Suite**: 424/424 regression tests passing (`npm test`).
+- **Auth OTP & Google OAuth Suite**: 56/56 assertions passing (`npx tsx scripts/verify-auth-otp-oauth.ts`).
+- **Core Platform Regression Suite**: 424/424 regression tests passing (`npm test`).
 - **Static Analysis**: `npm run lint` (`tsc --noEmit`) passes with 0 errors.
 - **Production Build**: `npm run build` bundles successfully.
 - **Architecture Refactoring (ARCH 01–08)**: **COMPLETED** (549/549 architectural assertions passing).
@@ -19,7 +20,7 @@ Tracking implementation, verification, and hardening of Supabase native authenti
 | **1** | **WP-01** | **Native Supabase Sign-Up & 6-Digit Email OTP**<br>- Wire `supabase.auth.signUp` with user metadata.<br>- Replace simulated OTP with `supabase.auth.verifyOtp({ type: 'signup' })`.<br>- Add resend OTP with cooldown timer.<br>- Maintain offline demo code fallback. | **COMPLETED** | `src/context/AuthContext.tsx`<br>`src/views/AuthModal.tsx`<br>`src/services/supabaseService.ts` | 84/84 tests passed in Milestone 02 Auth Suite |
 | **2** | **WP-02** | **Native Supabase Password Recovery OTP**<br>- Replace simulated reset with `supabase.auth.resetPasswordForEmail`.<br>- Implement atomic token verification & password update via `verifyOtp({ type: 'recovery' })` and `updateUser`.<br>- Retain demo account recovery fallback. | **COMPLETED** | `src/context/AuthContext.tsx`<br>`src/views/AuthModal.tsx`<br>`src/services/supabaseService.ts` | 89/89 tests passed in Milestone 02 Auth Suite |
 | **3** | **WP-03** | **Google OAuth Live Pipeline & Apple Removal**<br>- Wire Google OAuth via `signInWithSupabaseOAuth('google')`.<br>- Remove the Apple login button and its mock logic from `AuthModal.tsx`.<br>- Handle post-auth role routing and profile completion.<br>- Decommission Apple Sign In due to lack of Apple Developer license. | **COMPLETED** | `src/services/supabaseService.ts`<br>`src/views/AuthModal.tsx`<br>`src/context/AuthContext.tsx` | 93/93 tests passed in Milestone 02 Auth Suite |
-| **4** | **WP-04** | **Verification Test Suite & Defense Safeguards**<br>- Create automated test script `scripts/verify-auth-otp-oauth.ts`.<br>- Assert both live Supabase branch and offline fallback branch.<br>- Validate zero TypeScript errors and clean production build. | **READY** | `scripts/verify-auth-otp-oauth.ts` | 100% pass on new auth verification assertions |
+| **4** | **WP-04** | **Verification Test Suite & Defense Safeguards**<br>- Create automated test script `scripts/verify-auth-otp-oauth.ts`.<br>- Assert both live Supabase branch and offline fallback branch.<br>- Validate zero TypeScript errors and clean production build. | **COMPLETED** | `scripts/verify-auth-otp-oauth.ts` | 56/56 tests passed in Auth OTP & OAuth Suite |
 
 ---
 
@@ -74,10 +75,15 @@ Tracking implementation, verification, and hardening of Supabase native authenti
 ---
 
 ### Work Package 4: WP-04 — Verification Test Suite & Defense Safeguards
-- **Status:** [ ] **NOT STARTED**
+- **Status:** [x] **COMPLETED**
 - **Tasks**:
-  - [ ] Create `scripts/verify-auth-otp-oauth.ts`.
-  - [ ] Verify `npm run lint` with 0 errors.
-  - [ ] Verify `npm test` with 0 regressions across all 424 test assertions.
-  - [ ] Verify `npm run build` succeeds.
-- **Verification Evidence**: Pending implementation.
+  - [x] Create `scripts/verify-auth-otp-oauth.ts` covering WP-01 (Signup OTP), WP-02 (Password Reset OTP), WP-03 (Google OAuth & Apple Decommissioning), WP-04 (Offline Resilience), and Definition of Done Compliance.
+  - [x] Verify `npx tsx scripts/verify-auth-otp-oauth.ts` passes with 56/56 assertions.
+  - [x] Verify `npm run lint` with 0 compiler errors.
+  - [x] Verify `npm test` with 0 regressions across all 424 test assertions.
+  - [x] Verify `npm run build` succeeds (client and server bundles compiled in 35s).
+- **Verification Evidence**:
+  - `npx tsx scripts/verify-auth-otp-oauth.ts`: 56/56 tests passed across 5 test suites.
+  - `npm test`: 424/424 tests passed across all 8 suites with 0 regressions.
+  - `npm run lint`: 0 TypeScript compiler errors (`tsc --noEmit`).
+  - `npm run build`: Production client and server bundles built cleanly.
