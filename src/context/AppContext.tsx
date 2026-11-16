@@ -50,6 +50,8 @@ import {
   saveRecord as saveSupabaseRecord,
   updateRecord as updateSupabaseRecord,
   deleteRecord as deleteSupabaseRecord,
+  fetchById,
+  ensureSeekerAndUserInSupabase,
   subscribeToSupabaseTable,
   ensureDemoAccountsExistInSupabase,
   seedDemoDataToSupabase,
@@ -65,12 +67,14 @@ import {
 } from '../utils/routeGuards';
 
 // Supabase-exclusive persistence wrapper: automatically saves records to PostgreSQL via Supabase
-const saveDocument = <T extends { id: string }>(table: SupabaseTableName | string, item: T) => {
+const saveDocument = <T extends { id: string }>(table: SupabaseTableName | string, item: T): Promise<T | null> => {
   if (isSupabaseConfigured()) {
-    saveSupabaseRecord(table as SupabaseTableName, item).catch((err) => {
+    return saveSupabaseRecord(table as SupabaseTableName, item).catch((err) => {
       console.warn(`[Supabase] Persistence sync warning for ${table}:`, err);
+      return null;
     });
   }
+  return Promise.resolve(item);
 };
 
 // Supabase-exclusive persistence wrapper: automatically deletes records from PostgreSQL via Supabase
@@ -216,7 +220,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     loginAs,
     continueWithGoogle, // Routes Google OAuth via signInWithSupabaseOAuth in AuthContext
     logout,
-    registerUser,
+    registerUser: authRegisterUser,
     sendOtp,
     verifyOtp,
     resendOtp,
@@ -251,6 +255,38 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     }
     return INITIAL_JOB_SEEKERS;
   });
+
+  const registerUser = useCallback(
+    async (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => {
+      const result = await authRegisterUser(userData, extraProfile);
+      if (result.success && result.user) {
+        if (result.user.role === 'job_seeker') {
+          const stored = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
+          setJobSeekers(stored);
+        } else if (result.user.role === 'employer') {
+          const stored = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
+          setEmployers(stored);
+        }
+      }
+      return result;
+    },
+    [authRegisterUser]
+  );
+
+  useEffect(() => {
+    const handleProfileRegistered = (e: any) => {
+      const role = e.detail?.role;
+      if (role === 'job_seeker') {
+        const stored = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
+        setJobSeekers(stored);
+      } else if (role === 'employer') {
+        const stored = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
+        setEmployers(stored);
+      }
+    };
+    window.addEventListener('ehanap_profile_registered', handleProfileRegistered);
+    return () => window.removeEventListener('ehanap_profile_registered', handleProfileRegistered);
+  }, []);
   const [jobPosts, setJobPosts] = useState<JobPost[]>(INITIAL_JOB_POSTS);
   const [applications, setApplications] = useState<Application[]>(INITIAL_APPLICATIONS);
   const [interviews, setInterviews] = useState<Interview[]>(INITIAL_INTERVIEWS);
@@ -406,11 +442,21 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const currentSeekerProfile = currentUser?.role === 'job_seeker' 
     ? (() => {
-        const found = jobSeekers.find(s => 
+        let found = jobSeekers.find(s => 
           s.userId === currentUser.id || 
           s.id === currentUser.id || 
           (s.email && currentUser.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
         );
+
+        if (!found) {
+          const stored = storageAdapter.getStoredJobSeekers([]);
+          found = stored.find((s: JobSeekerProfile) =>
+            s.userId === currentUser.id || 
+            s.id === currentUser.id || 
+            (s.email && currentUser.email && s.email.toLowerCase() === currentUser.email.toLowerCase())
+          );
+        }
+
         const isLocallyCompleted = isSeekerProfileComplete(currentUser, found);
 
         if (!found) {
@@ -479,6 +525,26 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         return found;
       })()
     : null;
+
+  // Self-healing synchronization: Automatically ensure active user & profile records exist in Supabase
+  useEffect(() => {
+    if (!currentUser || !isSupabaseConfigured() || !isSupabaseConnected) return;
+
+    const syncActiveProfileToSupabase = async () => {
+      try {
+        if (currentUser.role === 'job_seeker' && currentSeekerProfile) {
+          await ensureSeekerAndUserInSupabase(currentSeekerProfile, currentUser);
+        } else if (currentUser.role === 'employer' && currentEmployerProfile) {
+          await saveSupabaseRecord(SUPABASE_TABLES.USERS, currentUser);
+          await saveSupabaseRecord(SUPABASE_TABLES.EMPLOYERS, currentEmployerProfile);
+        }
+      } catch (syncErr) {
+        console.warn('[Supabase] Background self-healing sync warning:', syncErr);
+      }
+    };
+
+    syncActiveProfileToSupabase();
+  }, [currentUser?.id, currentSeekerProfile?.id, currentEmployerProfile?.id, isSupabaseConnected]);
 
   // Audit Logger Helper
   const logAudit = (action: string, entity: string, entityId: string | undefined, details: string) => {
@@ -753,16 +819,17 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
   };
 
   // Apply for Job (Job Seeker Action)
-  const applyForJob = (jobId: string, seekerId: string, resumeId: string, coverNote?: string) => {
+  const applyForJob = async (jobId: string, seekerId: string, resumeId: string, coverNote?: string) => {
     const job = jobPosts.find(j => j.id === jobId);
-    const seeker = jobSeekers.find(s => s.id === seekerId);
+    const seeker = jobSeekers.find(s => s.id === seekerId) ||
+      (currentSeekerProfile && (currentSeekerProfile.id === seekerId || currentSeekerProfile.userId === seekerId) ? currentSeekerProfile : null);
 
     if (!job || !seeker) {
       return { success: false, message: 'Job posting or applicant record not found.' };
     }
 
     // Check if already applied
-    const existing = applications.find(a => a.jobId === jobId && a.jobSeekerId === seekerId);
+    const existing = applications.find(a => a.jobId === jobId && (a.jobSeekerId === seekerId || a.jobSeekerId === seeker.id));
     if (existing) {
       return { success: false, message: 'You have already submitted an application for this position.' };
     }
@@ -770,6 +837,31 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     // Check if job active
     if (job.status !== 'active') {
       return { success: false, message: 'This job vacancy is no longer accepting applications.' };
+    }
+
+    // Defense-in-depth: Ensure seeker profile and user exist in Supabase PostgreSQL before application insertion
+    let finalSeekerId = seeker.id;
+    if (isSupabaseConfigured()) {
+      try {
+        const userToSave = users.find(u => u.id === seeker.userId) || currentUser;
+        const ensured = await ensureSeekerAndUserInSupabase(seeker, userToSave);
+        if (ensured.seeker?.id) {
+          finalSeekerId = ensured.seeker.id;
+        }
+
+        // Ensure employer profile exists in Supabase
+        if (job.employerId) {
+          const empExists = await fetchById<EmployerProfile>(SUPABASE_TABLES.EMPLOYERS, job.employerId);
+          if (!empExists) {
+            const localEmp = employers.find(e => e.id === job.employerId);
+            if (localEmp) {
+              await saveSupabaseRecord(SUPABASE_TABLES.EMPLOYERS, localEmp);
+            }
+          }
+        }
+      } catch (prepErr) {
+        console.warn('[Supabase] Warning preparing foreign keys before application save:', prepErr);
+      }
     }
 
     // Calculate Decision Tree Match Score (prioritizes pre-computed candidate match)
@@ -813,7 +905,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     const newApp: Application = {
       id: `app-${Date.now()}`,
       jobId,
-      jobSeekerId: seekerId,
+      jobSeekerId: finalSeekerId,
       employerId: job.employerId,
       appliedDate: new Date().toISOString(),
       resumeId,
@@ -828,8 +920,8 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       statusHistory: initialHistory,
     };
 
-    setApplications(prev => [newApp, ...prev]);
-    saveDocument(COLLECTIONS.APPLICATIONS, newApp);
+    setApplications(prev => [newApp, ...prev.filter(a => a.id !== newApp.id)]);
+    await saveDocument(COLLECTIONS.APPLICATIONS, newApp);
 
     // Notify Employer
     const employerUser = users.find(u => u.role === 'employer' && employers.some(e => e.id === job.employerId && e.userId === u.id));

@@ -194,6 +194,7 @@ export async function fetchById<T = any>(table: SupabaseTableName, id: string): 
 
 /**
  * Upserts (inserts or updates on conflict of id) a record in Supabase.
+ * Automatically resolves ID/unique key conflicts on users, seeker_profiles, employer_profiles, and applications.
  */
 export async function saveRecord<T extends { id: string }>(table: SupabaseTableName, record: T): Promise<T | null> {
   if (!isSupabaseConfigured()) return record;
@@ -203,7 +204,80 @@ export async function saveRecord<T extends { id: string }>(table: SupabaseTableN
     if (table === SUPABASE_TABLES.USERS && typeof snakeRecord === 'object' && snakeRecord !== null) {
       const { password, ...cleanUser } = snakeRecord as any;
       snakeRecord = cleanUser;
+
+      // Handle duplicate email constraint by reusing the canonical ID already committed to PostgreSQL
+      if (snakeRecord.email) {
+        const cleanEmail = (snakeRecord.email as string).trim().toLowerCase();
+        snakeRecord.email = cleanEmail;
+        const { data: existingUser } = await supabase
+          .from(SUPABASE_TABLES.USERS)
+          .select('id')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (existingUser && existingUser.id !== snakeRecord.id) {
+          snakeRecord.id = existingUser.id;
+          (record as any).id = existingUser.id;
+        }
+      }
+    } else if (table === SUPABASE_TABLES.JOB_SEEKERS && typeof snakeRecord === 'object' && snakeRecord !== null) {
+      // Re-use existing seeker profile ID if one already exists for this user_id or email
+      if (snakeRecord.user_id) {
+        const { data: existingSeeker } = await supabase
+          .from(SUPABASE_TABLES.JOB_SEEKERS)
+          .select('id')
+          .eq('user_id', snakeRecord.user_id)
+          .maybeSingle();
+
+        if (existingSeeker && existingSeeker.id !== snakeRecord.id) {
+          snakeRecord.id = existingSeeker.id;
+          (record as any).id = existingSeeker.id;
+        }
+      } else if (snakeRecord.email) {
+        const cleanEmail = (snakeRecord.email as string).trim().toLowerCase();
+        const { data: existingSeeker } = await supabase
+          .from(SUPABASE_TABLES.JOB_SEEKERS)
+          .select('id, user_id')
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        if (existingSeeker) {
+          snakeRecord.id = existingSeeker.id;
+          if (existingSeeker.user_id) snakeRecord.user_id = existingSeeker.user_id;
+          (record as any).id = existingSeeker.id;
+          if (existingSeeker.user_id) (record as any).userId = existingSeeker.user_id;
+        }
+      }
+    } else if (table === SUPABASE_TABLES.EMPLOYERS && typeof snakeRecord === 'object' && snakeRecord !== null) {
+      if (snakeRecord.user_id) {
+        const { data: existingEmp } = await supabase
+          .from(SUPABASE_TABLES.EMPLOYERS)
+          .select('id')
+          .eq('user_id', snakeRecord.user_id)
+          .maybeSingle();
+
+        if (existingEmp && existingEmp.id !== snakeRecord.id) {
+          snakeRecord.id = existingEmp.id;
+          (record as any).id = existingEmp.id;
+        }
+      }
+    } else if (table === SUPABASE_TABLES.APPLICATIONS && typeof snakeRecord === 'object' && snakeRecord !== null) {
+      // If an application record for this job & seeker already exists, upsert on its existing ID
+      if (snakeRecord.job_id && snakeRecord.job_seeker_id) {
+        const { data: existingApp } = await supabase
+          .from(SUPABASE_TABLES.APPLICATIONS)
+          .select('id')
+          .eq('job_id', snakeRecord.job_id)
+          .eq('job_seeker_id', snakeRecord.job_seeker_id)
+          .maybeSingle();
+
+        if (existingApp && existingApp.id !== snakeRecord.id) {
+          snakeRecord.id = existingApp.id;
+          (record as any).id = existingApp.id;
+        }
+      }
     }
+
     const { data, error } = await supabase
       .from(table)
       .upsert(snakeRecord, { onConflict: 'id' })
@@ -218,6 +292,64 @@ export async function saveRecord<T extends { id: string }>(table: SupabaseTableN
   } catch (err) {
     console.warn(`[Supabase] Exception in saveRecord for ${table}:`, err);
     return null;
+  }
+}
+
+/**
+ * Defense-in-depth helper: Ensures both user and seeker profile rows are committed in Supabase PostgreSQL
+ * before dependent child records (such as job applications) attempt foreign key attachment.
+ */
+export async function ensureSeekerAndUserInSupabase(
+  seeker: JobSeekerProfile,
+  user?: User | null
+): Promise<{ success: boolean; seeker?: JobSeekerProfile; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true, seeker };
+  }
+
+  try {
+    // 1. Ensure user row exists first in Supabase users table
+    let verifiedUserId = seeker.userId;
+    if (user) {
+      const savedUser = await saveRecord(SUPABASE_TABLES.USERS, user);
+      if (savedUser?.id) {
+        verifiedUserId = savedUser.id;
+        seeker.userId = savedUser.id;
+      }
+    } else if (seeker.userId) {
+      const existingUser = await fetchById<User>(SUPABASE_TABLES.USERS, seeker.userId);
+      if (!existingUser) {
+        const fallbackUser: User = {
+          id: seeker.userId,
+          email: seeker.email || `${seeker.id}@jobseeker.ehanap.local`,
+          name: `${seeker.firstName || 'Job'} ${seeker.lastName || 'Seeker'}`.trim(),
+          role: 'job_seeker',
+          isAccountVerified: true,
+          isProfileCompleted: Boolean(seeker.isProfileCompleted),
+          createdAt: new Date().toISOString(),
+        };
+        const savedUser = await saveRecord(SUPABASE_TABLES.USERS, fallbackUser);
+        if (savedUser?.id) {
+          verifiedUserId = savedUser.id;
+          seeker.userId = savedUser.id;
+        }
+      }
+    }
+
+    // 2. Ensure seeker profile row exists in Supabase seeker_profiles table
+    const seekerToSave: JobSeekerProfile = {
+      ...seeker,
+      userId: verifiedUserId,
+    };
+    const savedSeeker = await saveRecord(SUPABASE_TABLES.JOB_SEEKERS, seekerToSave);
+    if (!savedSeeker) {
+      return { success: false, error: 'Failed to persist seeker profile to Supabase.' };
+    }
+
+    return { success: true, seeker: savedSeeker };
+  } catch (err: any) {
+    console.warn('[Supabase] Error ensuring seeker in Supabase:', err);
+    return { success: false, error: err?.message || 'Database sync error' };
   }
 }
 
@@ -353,6 +485,7 @@ export async function ensureAdminAccountExistsInSupabase(): Promise<boolean> {
 
 /**
  * Checks if demo accounts exist in Supabase; seeds them if missing.
+ * Also ensures primary demo personas exist in Supabase auth.users so password logins don't trigger 400 Bad Request.
  */
 export async function ensureDemoAccountsExistInSupabase(): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
@@ -361,8 +494,35 @@ export async function ensureDemoAccountsExistInSupabase(): Promise<boolean> {
     const adminUser = await fetchById<User>(SUPABASE_TABLES.USERS, 'user-peso-admin-01');
     if (!adminUser) {
       console.log('[Supabase] Seeding initial Roxas demo accounts and vacancies into Supabase...');
-      return seedDemoDataToSupabase();
+      await seedDemoDataToSupabase();
     }
+
+    // Ensure primary demo personas exist in Supabase auth.users with their official demo credentials
+    const primaryDemoAuths = [
+      { email: 'peso.admin@roxas.gov.ph', password: 'password123', role: 'admin', name: 'Hon. Roberto D. Alvarez' },
+      { email: 'puregold.roxas@employer.ph', password: 'password123', role: 'employer', name: 'Puregold Price Club Inc. (Roxas)' },
+      { email: 'juan.delacruz@jobseeker.ph', password: 'password123', role: 'job_seeker', name: 'Juan Dela Cruz' },
+    ];
+
+    for (const demo of primaryDemoAuths) {
+      try {
+        await supabase.auth.signUp({
+          email: demo.email,
+          password: demo.password,
+          options: {
+            data: {
+              role: demo.role,
+              name: demo.name,
+              full_name: demo.name,
+              municipality: 'Roxas',
+            },
+          },
+        });
+      } catch {
+        // Quiet fallback if user already registered in Supabase auth
+      }
+    }
+
     return true;
   } catch (error) {
     console.warn('[Supabase] Error verifying demo accounts in Supabase:', error);
@@ -675,7 +835,8 @@ export async function resetPasswordWithOtp(
 }
 
 /**
- * Supabase Auth: Sign in user with email and password
+ * Supabase Auth: Sign in user with email and password.
+ * Includes graceful recovery for demo accounts and newly provisioned offline users.
  */
 export async function signInWithSupabase(
   email: string,
@@ -689,11 +850,35 @@ export async function signInWithSupabase(
     };
   }
 
+  const cleanEmail = (email || '').trim().toLowerCase();
+  const cleanPassword = password || 'password123';
+
   try {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password: password || 'eHANAP@2026',
+    let { data, error } = await supabase.auth.signInWithPassword({
+      email: cleanEmail,
+      password: cleanPassword,
     });
+
+    // If invalid credentials on a demo account or fallback user, provision and retry once
+    if (error && (cleanEmail.endsWith('@jobseeker.ph') || cleanEmail.endsWith('@employer.ph') || cleanEmail.endsWith('@roxas.gov.ph') || cleanEmail.endsWith('@example.com'))) {
+      try {
+        await supabase.auth.signUp({
+          email: cleanEmail,
+          password: cleanPassword,
+          options: { data: { email: cleanEmail } },
+        });
+        const retry = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: cleanPassword,
+        });
+        if (!retry.error) {
+          data = retry.data;
+          error = null;
+        }
+      } catch {
+        // Fall through to returning initial error
+      }
+    }
 
     if (error) {
       return { success: false, error: error.message };

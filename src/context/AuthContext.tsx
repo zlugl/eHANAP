@@ -875,7 +875,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const registerUser = useCallback(
-    (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => {
+    async (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => {
       if (userData.role === 'admin') {
         return {
           success: false,
@@ -889,13 +889,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'An account with this email address already exists.' };
       }
 
-      const newUserId = `user-${Date.now()}`;
+      let newUserId = `user-${Date.now()}`;
       const cleanRegEmail = userData.email.toLowerCase().trim();
 
       clearProfileCompletedInStorage([newUserId, cleanRegEmail], 'job_seeker');
       clearProfileCompletedInStorage([newUserId, cleanRegEmail], 'employer');
 
-      const newUser: User = {
+      let newUser: User = {
         ...userData,
         id: newUserId,
         email: cleanRegEmail,
@@ -904,25 +904,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...(extraProfile?.password ? { password: extraProfile.password } : {}),
       };
 
-      setUsers((prev) => [...prev, newUser]);
       if (isSupabaseConfigured()) {
         const regPassword = extraProfile?.password || 'eHANAP@2026';
-        signUpWithSupabase(cleanRegEmail, regPassword, {
-          name: userData.name,
-          full_name: userData.name,
-          role: userData.role,
-          municipality: 'Roxas',
-        }).catch((err) => {
+        try {
+          await signUpWithSupabase(cleanRegEmail, regPassword, {
+            name: userData.name,
+            full_name: userData.name,
+            role: userData.role,
+            municipality: 'Roxas',
+          });
+        } catch (err) {
           console.warn('[Supabase Auth] Background signup warning:', err);
-        });
+        }
 
-        saveRecord(SUPABASE_TABLES.USERS, newUser).catch((err) => {
+        // Must await saving users record so child foreign keys (seeker_profiles, employer_profiles) succeed
+        try {
+          const savedUser = await saveRecord(SUPABASE_TABLES.USERS, newUser);
+          if (savedUser?.id) {
+            newUserId = savedUser.id;
+            newUser = { ...newUser, id: savedUser.id };
+          }
+        } catch (err) {
           console.warn('[Supabase] Failed to save user record:', err);
-        });
+        }
       }
 
+      setUsers((prev) => {
+        const filtered = prev.filter((u) => u.id !== newUserId && u.email.toLowerCase() !== cleanRegEmail);
+        return [...filtered, newUser];
+      });
+
+      const savedUsers = storageAdapter.getStoredUsers([]);
+      storageAdapter.setStoredUsers([
+        ...savedUsers.filter((u: any) => u.id !== newUserId && u.email?.toLowerCase() !== cleanRegEmail),
+        newUser,
+      ]);
+
       if (userData.role === 'job_seeker') {
-        const newSeeker: JobSeekerProfile = {
+        let newSeeker: JobSeekerProfile = {
           id: `seeker-${Date.now()}`,
           userId: newUserId,
           firstName: extraProfile.firstName || 'New',
@@ -979,14 +998,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updatedAt: new Date().toISOString(),
         };
 
-        const existingSeekers = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
-        storageAdapter.setStoredJobSeekers([...existingSeekers, newSeeker]);
-
         if (isSupabaseConfigured()) {
-          saveRecord(SUPABASE_TABLES.JOB_SEEKERS, newSeeker).catch(() => {});
+          try {
+            const savedSeeker = await saveRecord(SUPABASE_TABLES.JOB_SEEKERS, newSeeker);
+            if (savedSeeker?.id) {
+              newSeeker = { ...newSeeker, id: savedSeeker.id };
+            }
+          } catch (err) {
+            console.warn('[Supabase] Failed to save seeker profile record:', err);
+          }
         }
+
+        const existingSeekers = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
+        storageAdapter.setStoredJobSeekers([
+          ...existingSeekers.filter((s) => s.id !== newSeeker.id && s.userId !== newUserId),
+          newSeeker,
+        ]);
       } else if (userData.role === 'employer') {
-        const newEmp: EmployerProfile = {
+        let newEmp: EmployerProfile = {
           id: `emp-${Date.now()}`,
           userId: newUserId,
           companyName: extraProfile.companyName || userData.name,
@@ -1006,11 +1035,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         if (isSupabaseConfigured()) {
-          saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp).catch(() => {});
+          try {
+            const savedEmp = await saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp);
+            if (savedEmp?.id) {
+              newEmp = { ...newEmp, id: savedEmp.id };
+            }
+          } catch (err) {
+            console.warn('[Supabase] Failed to save employer profile record:', err);
+          }
         }
+
+        const existingEmployers = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
+        storageAdapter.setStoredEmployers([
+          ...existingEmployers.filter((e) => e.id !== newEmp.id && e.userId !== newUserId),
+          newEmp,
+        ]);
       }
 
       setCurrentUser(newUser);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('ehanap_profile_registered', { detail: { role: userData.role, user: newUser } }));
+      }
 
       return { success: true, user: newUser };
     },
