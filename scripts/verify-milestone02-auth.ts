@@ -6,6 +6,7 @@ import {
   resetPasswordWithOtp,
   signInWithSupabase,
   signOutWithSupabase,
+  signInWithSupabaseOAuth,
   getSupabaseSession,
   getSupabaseUser,
   onSupabaseAuthStateChange,
@@ -109,6 +110,18 @@ async function runMilestone02Tests() {
   });
   assert(typeof listenerSub.unsubscribe === 'function', 'onSupabaseAuthStateChange returns clean unsubscribe handle');
   listenerSub.unsubscribe();
+
+  // Google OAuth live pipeline & Apple decommissioning assertions (WP-03)
+  const googleOAuthResult = await signInWithSupabaseOAuth('google');
+  assert(googleOAuthResult.success === true, 'signInWithSupabaseOAuth succeeds with google provider');
+  assert(Boolean(googleOAuthResult.data), 'signInWithSupabaseOAuth returns data payload');
+
+  const appleOAuthResult = await signInWithSupabaseOAuth('apple' as any);
+  assert(appleOAuthResult.success === false, 'signInWithSupabaseOAuth rejects decommissioned apple provider');
+  assert(
+    Boolean(appleOAuthResult.error && appleOAuthResult.error.includes('Apple Sign In has been decommissioned')),
+    'signInWithSupabaseOAuth provides clear error message when apple provider is attempted'
+  );
 
   // ---------------------------------------------------------------------------
   // Suite 2: Multi-Role Personas & Demo Account Metadata

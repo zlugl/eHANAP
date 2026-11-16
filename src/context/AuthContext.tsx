@@ -162,8 +162,100 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const match = latestUsers.find((u) => u.email.toLowerCase() === sessionEmail);
                 if (match) {
                   setCurrentUser(match);
+                  storageAdapter.removeItem('ehanap_oauth_intended_role');
+                  return latestUsers;
                 }
-                return latestUsers;
+
+                // If no matching user exists in local state, provision newly authenticated OAuth user:
+                const rawIntended = storageAdapter.getItem<UserRole>('ehanap_oauth_intended_role', 'job_seeker');
+                const intendedRole: UserRole = (rawIntended === 'employer' || rawIntended === 'job_seeker') ? rawIntended : 'job_seeker';
+                storageAdapter.removeItem('ehanap_oauth_intended_role');
+
+                const metadata = session.user.user_metadata || {};
+                const name = metadata.full_name || metadata.name || sessionEmail.split('@')[0];
+                const newUserId = `user-${Date.now()}`;
+                const avatarUrl = metadata.avatar_url || undefined;
+
+                if (intendedRole === 'employer') {
+                  clearProfileCompletedInStorage([newUserId, sessionEmail], 'employer');
+                  const newUser: User = {
+                    id: newUserId,
+                    email: sessionEmail,
+                    name,
+                    role: 'employer',
+                    isProfileCompleted: false,
+                    isAccountVerified: true,
+                    createdAt: new Date().toISOString(),
+                    avatar: avatarUrl,
+                  };
+                  const newEmp: EmployerProfile = {
+                    id: `emp-${Date.now()}`,
+                    userId: newUserId,
+                    companyName: name || 'Business Establishment',
+                    representativeName: name || 'Authorized Representative',
+                    contactNumber: '',
+                    email: sessionEmail,
+                    address: 'Roxas, Oriental Mindoro',
+                    municipality: 'Roxas',
+                    industry: 'Information Technology',
+                    companyDescription: '',
+                    status: 'pending',
+                    isProfileCompleted: false,
+                    logoUrl: avatarUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
+                    createdAt: new Date().toISOString(),
+                  };
+                  setCurrentUser(newUser);
+                  if (isSupabaseConfigured()) {
+                    saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
+                    saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp).catch(() => {});
+                  }
+                  return [...latestUsers, newUser];
+                } else {
+                  clearProfileCompletedInStorage([newUserId, sessionEmail], 'job_seeker');
+                  const nameParts = name.trim().split(/\s+/);
+                  const firstName = nameParts[0] || 'Job';
+                  const lastName = nameParts.slice(1).join(' ') || 'Seeker';
+                  const newUser: User = {
+                    id: newUserId,
+                    email: sessionEmail,
+                    name,
+                    role: 'job_seeker',
+                    isProfileCompleted: false,
+                    isAccountVerified: true,
+                    createdAt: new Date().toISOString(),
+                    avatar: avatarUrl,
+                  };
+                  const newSeeker: JobSeekerProfile = {
+                    id: `seeker-${Date.now()}`,
+                    userId: newUserId,
+                    firstName,
+                    lastName,
+                    dateOfBirth: '2000-01-01',
+                    email: sessionEmail,
+                    contactNumber: '',
+                    address: 'Bagumbayan, Roxas',
+                    municipality: 'Roxas',
+                    profilePicture: avatarUrl,
+                    professionalSummary: 'Job seeker registered via Google OAuth on eHANAP Roxas.',
+                    educationalAttainment: "Bachelor's Degree",
+                    primaryDegree: '',
+                    technicalSkills: [],
+                    softSkills: ['Communication', 'Teamwork'],
+                    education: [],
+                    workExperience: [],
+                    certifications: [],
+                    resumes: [],
+                    isProfileCompleted: false,
+                    employmentStatus: 'unemployed',
+                    updatedAt: new Date().toISOString(),
+                  };
+                  setCurrentUser(newUser);
+                  if (isSupabaseConfigured()) {
+                    saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
+                    saveRecord(SUPABASE_TABLES.JOB_SEEKERS, newSeeker).catch(() => {});
+                  }
+                  return [...latestUsers, newUser];
+                }
               });
             }
           });
@@ -452,6 +544,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name,
               role: 'employer',
               isProfileCompleted: false,
+              isAccountVerified: true,
               createdAt: new Date().toISOString(),
               avatar: avatarUrl,
             };
@@ -504,6 +597,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name,
               role: 'job_seeker',
               isProfileCompleted: false,
+              isAccountVerified: true,
               createdAt: new Date().toISOString(),
               avatar: avatarUrl,
             };

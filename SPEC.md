@@ -1,4 +1,4 @@
-# eHANAP — Specification: Supabase Native Authentication, Email OTP Verification & Social OAuth (Google & Apple)
+# eHANAP — Specification: Supabase Native Authentication, Email OTP Verification & Google OAuth (Apple Sign In Removed)
 
 **Target System:** eHANAP — Public Employment Service Office (PESO) Employment Facilitation Platform  
 **Jurisdiction:** Municipality of Roxas, Oriental Mindoro, Philippines  
@@ -12,13 +12,13 @@
 During user testing and registration audits of eHANAP, key authentication and identity verification flows were identified as either simulated or incomplete:
 1. **Account Registration Email OTP**: During account creation, users are routed to an email verification step requesting a 6-digit code. Currently, this uses an in-memory/sessionStorage simulation (`AuthContext.tsx`) with a pop-up toast revealing the generated code or accepting `123456`.
 2. **Password Recovery OTP**: The "Forgot Password" workflow similarly requires a 6-digit verification code sent to the user's email, relying on the same simulation.
-3. **Social Authentication (Google & Apple)**: The landing modal presents social login buttons for Google and Apple. Google initiates an OAuth redirect via Supabase (or demo fallback), whereas Apple is wired to a mock timeout logging into a default persona.
+3. **Social Authentication (Google OAuth & Apple Sign In Removal)**: The landing modal previously presented social login buttons for Google and Apple. Because the project does not have an Apple Developer Program license (required for Apple Services IDs and `.p8` private keys), **Apple Sign In is removed**. Social authentication is consolidated strictly to **Google OAuth**.
 
 ### Core Strategic Directive
 Rather than introducing third-party SaaS identity or SMS providers (such as Twilio, SendGrid, or Firebase Auth), **Supabase** will natively shoulder full responsibility for:
 - Email sign-up and secure credential storage.
 - 6-digit Email OTP confirmation (`verifyOtp`) for account verification and password resets.
-- OAuth 2.0 social authentication for both **Google** and **Apple**.
+- OAuth 2.0 social authentication for **Google** (Apple Sign In removed due to lack of an Apple Developer license).
 - Offline / Academic Demo resilience: Retaining instant 1-click persona switching for thesis defense and offline evaluation.
 
 ---
@@ -46,8 +46,7 @@ Rather than introducing third-party SaaS identity or SMS providers (such as Twil
   │      │   ├── Native Email OTP Dispatcher                       ├── public.users
   │      │   │   (Inbuilt SMTP / Custom SMTP)                      ├── public.job_seekers
   │      │   ├── Token Verification (type: 'signup' | 'recovery')  ├── public.employers
-  │      │   ├── Google OAuth 2.0 Provider                         └── RLS Security Policies
-  │      │   └── Apple OAuth 2.0 Provider
+  │      │   └── Google OAuth 2.0 Provider (Apple OAuth Removed)   └── RLS Security Policies
   │      │
   │      └── (Offline / Demo Fallback) ─────────► [ storageAdapter.ts + In-Memory Store ]
   │                                               (Preserves 1-click thesis defense demo personas)
@@ -58,7 +57,7 @@ Rather than introducing third-party SaaS identity or SMS providers (such as Twil
 | :--- | :--- | :--- | :--- |
 | **Auth Email OTP** | Identity & email ownership validation | Job Seekers, Employers | `AuthModal.tsx` ➔ `AuthContext.tsx` ➔ Supabase Auth (`verifyOtp`) |
 | **Password Reset OTP** | Account credential recovery | Registered Users | `AuthModal.tsx` ➔ Supabase Auth (`resetPasswordForEmail` + `verifyOtp`) |
-| **Social OAuth** | One-tap federated sign-in | Job Seekers, Employers | `AuthModal.tsx` ➔ Supabase Auth (`signInWithOAuth`) |
+| **Social OAuth** | One-tap federated sign-in (Google) | Job Seekers, Employers | `AuthModal.tsx` ➔ Supabase Auth (`signInWithOAuth({ provider: 'google' })`) *(Apple Sign In removed)* |
 | **PESO Accreditation** | Municipal legal compliance (DTI, Mayor's Permit, BIR 2303) | Registered Employers only | `EmployerProfilePage.tsx` ➔ `AdminVerificationsPage.tsx` ➔ PostgreSQL |
 
 ---
@@ -130,7 +129,7 @@ Rather than introducing third-party SaaS identity or SMS providers (such as Twil
 
 ---
 
-### Flow 3: Google & Apple Social OAuth Authentication
+### Flow 3: Google Social OAuth Authentication (Apple Sign In Removed)
 
 #### A. Google OAuth Flow
 1. User clicks the **Google** icon button in `AuthModal.tsx`.
@@ -150,19 +149,12 @@ Rather than introducing third-party SaaS identity or SMS providers (such as Twil
    - If user is new: Creates matching `public.users` and profile records (`job_seekers` or `employers`) and forwards to setup wizard.
    - If user exists: Hydrates profile and routes to appropriate dashboard.
 
-#### B. Apple OAuth Flow
-1. User clicks the **Apple** icon button in `AuthModal.tsx`.
-2. Front-end invokes `signInWithSupabaseOAuth('apple')`:
-   ```typescript
-   await supabase.auth.signInWithOAuth({
-     provider: 'apple',
-     options: {
-       redirectTo: `${window.location.origin}`
-     }
-   });
-   ```
-3. Apple redirects to Supabase's callback URL (`https://<project-id>.supabase.co/auth/v1/callback`).
-4. User identity token is validated and profile extracted (email and full name provided on first consent).
+#### B. Apple Sign In Removal Justification & Decommissioning
+- **Reason for Removal**: Sign in with Apple mandates an active Apple Developer Program membership ($99/year license) to provision an App ID, configure Services IDs, and issue `.p8` private keys for token exchange. Because no Apple Developer license is held for this municipal thesis project, Apple Sign In cannot be registered or verified in production.
+- **Decommissioning Actions**:
+  - Remove the Apple sign-in button and its mock timeout simulation from `AuthModal.tsx`.
+  - Simplify the social login UI in `AuthModal.tsx` to feature Google OAuth exclusively.
+  - Remove `'apple'` provider handling and references from `supabaseService.ts` and auth types.
 
 ---
 
@@ -196,13 +188,9 @@ Rather than introducing third-party SaaS identity or SMS providers (such as Twil
    - `https://<your-project-id>.supabase.co/auth/v1/callback`
 5. Save **Client ID** and **Client Secret** into Supabase under **Authentication > Providers > Google**.
 
-### 4.3 Apple Developer Program Configuration
-1. In [Apple Developer Member Center](https://developer.apple.com/account/):
-   - Register **App ID** with *Sign in with Apple* capability.
-   - Register **Services ID** (e.g., `ph.gov.roxas.ehanap.client`) with domain and redirect URI:
-     `https://<your-project-id>.supabase.co/auth/v1/callback`
-   - Generate a private key (.p8 file) for *Sign in with Apple*.
-2. Save **Services ID** (Client ID), **Team ID**, **Key ID**, and **Private Key** (.p8 text) into Supabase under **Authentication > Providers > Apple**.
+### 4.3 Apple Sign In: Excluded / Not Applicable
+- **Status:** **REMOVED / OUT OF SCOPE**
+- Apple Developer Program requires an active paid developer account ($99/year). Because this project does not possess an Apple Developer license, Apple OAuth cannot be registered in the Apple Developer Member Center and is formally removed from Supabase provider configuration and frontend UI.
 
 ---
 
@@ -213,7 +201,7 @@ To guarantee 100% reliability during local academic thesis defense, connectivity
 2. When offline or not configured:
    - `sendOtp` falls back cleanly to generating a local code displayed in an accessible banner/toast.
    - Master code `'123456'` remains valid for seamless evaluative testing.
-   - Google and Apple logins cleanly mount demo personas (`Maria Santos` for Seeker, `Mindoro Harvest` for Employer) with zero crashes or hanging states.
+   - Google login cleanly mounts demo personas (`Maria Santos` for Seeker, `Mindoro Harvest` for Employer) with zero crashes or hanging states. (Apple login button is removed from UI).
    - Demo Persona Switcher pill (`DemoPersonaPill.tsx`) remains directly accessible for 1-click evaluation.
 
 ---
@@ -224,7 +212,7 @@ To guarantee 100% reliability during local academic thesis defense, connectivity
 | :--- | :--- | :--- | :--- |
 | **WP-01** | `AUTH-OTP-SIGNUP` | **Native Supabase Sign-Up & 6-Digit OTP**<br>Replace simulated OTP in registration with `supabase.auth.signUp` and `verifyOtp(type: 'signup')`. Add resend timer. | [AuthContext.tsx](file:///home/keil/eHANAP/src/context/AuthContext.tsx), [AuthModal.tsx](file:///home/keil/eHANAP/src/views/AuthModal.tsx), [supabaseService.ts](file:///home/keil/eHANAP/src/services/supabaseService.ts) |
 | **WP-02** | `AUTH-OTP-RECOVERY` | **Native Supabase Password Recovery OTP**<br>Replace simulated recovery with `supabase.auth.resetPasswordForEmail` and `verifyOtp(type: 'recovery')`. | [AuthContext.tsx](file:///home/keil/eHANAP/src/context/AuthContext.tsx), [AuthModal.tsx](file:///home/keil/eHANAP/src/views/AuthModal.tsx) |
-| **WP-03** | `AUTH-OAUTH-PROVIDERS` | **Google & Apple OAuth Live Pipeline**<br>Update `signInWithSupabaseOAuth` to support `'apple'` and `'google'`. Wire Apple button in `AuthModal.tsx`. Handle post-auth role routing and profile completion. | [supabaseService.ts](file:///home/keil/eHANAP/src/services/supabaseService.ts), [AuthModal.tsx](file:///home/keil/eHANAP/src/views/AuthModal.tsx), [AuthContext.tsx](file:///home/keil/eHANAP/src/context/AuthContext.tsx) |
+| **WP-03** | `AUTH-OAUTH-PROVIDERS` | **Google OAuth Live Pipeline & Apple Removal**<br>Wire Google OAuth via `signInWithSupabaseOAuth('google')`. Remove the Apple login button and its mock logic from `AuthModal.tsx`. Handle post-auth role routing and profile completion. | [supabaseService.ts](file:///home/keil/eHANAP/src/services/supabaseService.ts), [AuthModal.tsx](file:///home/keil/eHANAP/src/views/AuthModal.tsx), [AuthContext.tsx](file:///home/keil/eHANAP/src/context/AuthContext.tsx) |
 | **WP-04** | `AUTH-VERIFY-SUITE` | **Verification Test Suite & Offline Safeguards**<br>Automated verification script asserting live and offline behavior across all 3 flows, ensuring zero lint/build regressions. | `scripts/verify-auth-otp-oauth.ts` |
 
 ---
@@ -234,7 +222,7 @@ To guarantee 100% reliability during local academic thesis defense, connectivity
 1. Registration form sends a genuine 6-digit OTP code to the registrant's email via Supabase Auth when configured.
 2. Entering the 6-digit code in `AuthModal.tsx` verifies the token with Supabase and sets `isAccountVerified: true`.
 3. Password reset dispatches recovery OTP and updates user password in Supabase.
-4. Clicking **Google** or **Apple** initiates standard Supabase OAuth redirect flow.
+4. Clicking **Google** initiates standard Supabase OAuth redirect flow. Apple Sign In button is completely removed from `AuthModal.tsx`.
 5. Offline / demo fallback operates without network errors if Supabase keys are absent or unreachable.
 6. `npm run lint` (`tsc --noEmit`) passes with 0 errors.
 7. `npm test` passes with 0 regressions.

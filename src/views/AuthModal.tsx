@@ -41,14 +41,7 @@ interface AuthModalProps {
   onSuccessRole?: (role: string, user?: any, isProfileCompleted?: boolean) => void;
 }
 
-// 1. Apple Icon
-const AppleIcon = () => (
-  <svg className="w-5 h-5 fill-current text-[var(--color-ink)]" viewBox="0 0 170 170" aria-hidden="true">
-    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.69-7.85-12-14.44-6.1-9.35-10.82-20.02-14.15-32.01-3.33-11.99-5-23.49-5-34.5 0-14.36 3.75-26.68 11.24-36.96 7.5-10.29 17.2-15.52 29.11-15.71 4.58 0 9.87 1.25 15.87 3.75 6 2.5 10.15 3.79 12.46 3.87 1.91-.12 6.16-1.42 12.76-3.88 6.6-2.46 12.01-3.6 16.24-3.43 13.43.51 24.23 5.43 32.4 14.76-11.75 7.12-17.51 16.9-17.29 29.34.22 9.68 4.04 17.84 11.47 24.49 7.42 6.65 16.14 10.51 26.15 11.58-2.24 6.74-4.82 13.53-7.75 20.36zM119.22 31.84c0-7.72 2.76-14.99 8.28-21.81 5.53-6.82 12.39-10.74 20.59-11.76.13 1.01.2 1.91.2 2.7 0 7.6-2.85 15.01-8.56 22.23-5.71 7.22-12.82 11.29-21.32 12.2-.14-1.22-.2-2.41-.2-3.56z" />
-  </svg>
-);
-
-// 2. Google Icon
+// Google Icon
 const GoogleIcon = () => (
   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
     <path
@@ -67,13 +60,6 @@ const GoogleIcon = () => (
       fill="currentColor"
       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
     />
-  </svg>
-);
-
-// 3. Facebook Icon
-const FacebookIcon = () => (
-  <svg className="w-5 h-5 fill-current text-[var(--color-ink)]" viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
   </svg>
 );
 
@@ -389,17 +375,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  // 4. Social Auth (Google / Apple / Facebook)
+  // 4. Social Auth (Google OAuth exclusively; Apple Sign In decommissioned)
   const handleGoogleAuth = async () => {
     setIsLoading(true);
     setErrorMessage('');
     try {
       const res = await continueWithGoogle(role === 'admin' ? 'job_seeker' : role);
       setIsLoading(false);
-      if (!res.success || !res.user) {
+      if (!res.success) {
         if (res.error && !res.error.includes('closed') && !res.error.includes('cancelled')) {
           setErrorMessage(res.error);
         }
+        return;
+      }
+      // If live OAuth redirect is initiated, browser will navigate away
+      if (!res.user) {
         return;
       }
       onClose();
@@ -413,33 +403,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setIsLoading(false);
       setErrorMessage(err?.message || 'Google authentication failed.');
     }
-  };
-
-  const handleSocialQuickSignIn = (provider: 'Apple' | 'Facebook') => {
-    showToast({
-      title: `${provider} Sign In`,
-      message: `Connecting via ${provider}... Authenticating account.`,
-      type: 'info'
-    });
-    // Log in with role-appropriate default verified account
-    setTimeout(() => {
-      if (role === 'admin') {
-        loginAs('peso.admin@roxas.gov.ph');
-        onClose();
-        if (onSuccessRole) onSuccessRole('admin');
-        else if (onSuccess) onSuccess();
-      } else if (role === 'employer') {
-        loginAs('hr@mindoroharvest.ph');
-        onClose();
-        if (onSuccessRole) onSuccessRole('employer');
-        else if (onSuccess) onSuccess();
-      } else {
-        loginAs('maria.santos@gmail.com');
-        onClose();
-        if (onSuccessRole) onSuccessRole('job_seeker');
-        else if (onSuccess) onSuccess();
-      }
-    }, 400);
   };
 
   // 5. Password Recovery
@@ -1168,36 +1131,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            {/* Social Logins: Apple, Google, Facebook */}
-            <div className="flex items-center justify-center gap-4 pt-1">
-              {/* Apple */}
-              <button
-                type="button"
-                onClick={() => handleSocialQuickSignIn('Apple')}
-                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                title="Sign in with Apple"
-              >
-                <AppleIcon />
-              </button>
-
-              {/* Google */}
+            {/* Social Login: Google OAuth exclusively */}
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleGoogleAuth}
-                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                className="w-full py-2.5 px-4 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center gap-3 text-sm font-medium text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] shadow-xs"
                 title="Sign in with Google"
               >
                 <GoogleIcon />
-              </button>
-
-              {/* Facebook */}
-              <button
-                type="button"
-                onClick={() => handleSocialQuickSignIn('Facebook')}
-                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                title="Sign in with Facebook"
-              >
-                <FacebookIcon />
+                <span>Sign in with Google</span>
               </button>
             </div>
 
@@ -1371,36 +1314,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            {/* Social Logins: Apple, Google, Facebook */}
-            <div className="flex items-center justify-center gap-4 pt-1">
-              {/* Apple */}
-              <button
-                type="button"
-                onClick={() => handleSocialQuickSignIn('Apple')}
-                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                title="Sign up with Apple"
-              >
-                <AppleIcon />
-              </button>
-
-              {/* Google */}
+            {/* Social Login: Google OAuth exclusively */}
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleGoogleAuth}
-                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                className="w-full py-2.5 px-4 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center gap-3 text-sm font-medium text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] shadow-xs"
                 title="Sign up with Google"
               >
                 <GoogleIcon />
-              </button>
-
-              {/* Facebook */}
-              <button
-                type="button"
-                onClick={() => handleSocialQuickSignIn('Facebook')}
-                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                title="Sign up with Facebook"
-              >
-                <FacebookIcon />
+                <span>Sign up with Google</span>
               </button>
             </div>
 

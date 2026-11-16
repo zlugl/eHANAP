@@ -18,7 +18,7 @@ Tracking implementation, verification, and hardening of Supabase native authenti
 | :---: | :---: | :--- | :---: | :--- | :--- |
 | **1** | **WP-01** | **Native Supabase Sign-Up & 6-Digit Email OTP**<br>- Wire `supabase.auth.signUp` with user metadata.<br>- Replace simulated OTP with `supabase.auth.verifyOtp({ type: 'signup' })`.<br>- Add resend OTP with cooldown timer.<br>- Maintain offline demo code fallback. | **COMPLETED** | `src/context/AuthContext.tsx`<br>`src/views/AuthModal.tsx`<br>`src/services/supabaseService.ts` | 84/84 tests passed in Milestone 02 Auth Suite |
 | **2** | **WP-02** | **Native Supabase Password Recovery OTP**<br>- Replace simulated reset with `supabase.auth.resetPasswordForEmail`.<br>- Implement atomic token verification & password update via `verifyOtp({ type: 'recovery' })` and `updateUser`.<br>- Retain demo account recovery fallback. | **COMPLETED** | `src/context/AuthContext.tsx`<br>`src/views/AuthModal.tsx`<br>`src/services/supabaseService.ts` | 89/89 tests passed in Milestone 02 Auth Suite |
-| **3** | **WP-03** | **Google & Apple OAuth Live Pipeline**<br>- Extend `signInWithSupabaseOAuth` to support `'apple'` and `'google'`.<br>- Wire Apple button in `AuthModal.tsx` to live OAuth flow.<br>- Handle OAuth redirect callback, role hydration, and profile wizard routing. | **READY** | `src/services/supabaseService.ts`<br>`src/views/AuthModal.tsx`<br>`src/context/AuthContext.tsx` | OAuth initiation for Google & Apple |
+| **3** | **WP-03** | **Google OAuth Live Pipeline & Apple Removal**<br>- Wire Google OAuth via `signInWithSupabaseOAuth('google')`.<br>- Remove the Apple login button and its mock logic from `AuthModal.tsx`.<br>- Handle post-auth role routing and profile completion.<br>- Decommission Apple Sign In due to lack of Apple Developer license. | **COMPLETED** | `src/services/supabaseService.ts`<br>`src/views/AuthModal.tsx`<br>`src/context/AuthContext.tsx` | 93/93 tests passed in Milestone 02 Auth Suite |
 | **4** | **WP-04** | **Verification Test Suite & Defense Safeguards**<br>- Create automated test script `scripts/verify-auth-otp-oauth.ts`.<br>- Assert both live Supabase branch and offline fallback branch.<br>- Validate zero TypeScript errors and clean production build. | **READY** | `scripts/verify-auth-otp-oauth.ts` | 100% pass on new auth verification assertions |
 
 ---
@@ -57,13 +57,19 @@ Tracking implementation, verification, and hardening of Supabase native authenti
 
 ---
 
-### Work Package 3: WP-03 — Google & Apple OAuth Live Pipeline
-- **Status:** [ ] **NOT STARTED**
+### Work Package 3: WP-03 — Google OAuth Live Pipeline & Apple Removal
+- **Status:** [x] **COMPLETED**
 - **Tasks**:
-  - [ ] Update `signInWithSupabaseOAuth` in `src/services/supabaseService.ts` to type and support `provider: 'google' | 'apple'`.
-  - [ ] Wire the Apple sign-in button in `src/views/AuthModal.tsx` to call `signInWithSupabaseOAuth('apple')`.
-  - [ ] Ensure role selection (`job_seeker` vs `employer`) is respected upon return from OAuth provider.
-- **Verification Evidence**: Pending implementation.
+  - [x] Enforce Google OAuth provider in `signInWithSupabaseOAuth` in `src/services/supabaseService.ts` and reject decommissioned Apple provider with clear informative error message.
+  - [x] Decommission Apple Sign In and mock timeout simulation from `src/views/AuthModal.tsx`; simplify social login UI to feature Google OAuth exclusively for both sign-in and sign-up.
+  - [x] Wire `handleGoogleAuth` in `src/views/AuthModal.tsx` to handle both live redirect and offline demo evaluation without hanging states.
+  - [x] Implement post-OAuth redirect session handling in `src/context/AuthContext.tsx` via `onSupabaseAuthStateChange`, honoring `ehanap_oauth_intended_role` for new user creation, profile provisioning (`job_seekers` or `employers`), and routing to setup wizards.
+  - [x] Set `isAccountVerified: true` on Google OAuth users and retain offline demo fallback.
+- **Verification Evidence**:
+  - `npx tsx scripts/verify-milestone02-auth.ts`: 93/93 tests passed (including Google OAuth initiation, data return, and Apple decommissioning rejection).
+  - `npm test`: 424/424 tests passed across all 8 verification suites with 0 regressions.
+  - `npm run lint`: 0 TypeScript compiler errors (`tsc --noEmit`).
+  - `npm run build`: Production client and server bundles built cleanly.
 
 ---
 

@@ -782,16 +782,24 @@ export function onSupabaseAuthStateChange(
 
 /**
  * Supabase Auth: Sign in or register via OAuth provider (Google)
+ * Note: Apple Sign In has been decommissioned due to lack of an Apple Developer Program license.
  */
 export async function signInWithSupabaseOAuth(
   provider: 'google' = 'google',
   options?: { redirectTo?: string; queryParams?: Record<string, string> }
 ): Promise<{ success: boolean; data?: any; error?: string }> {
+  if ((provider as string) !== 'google') {
+    return {
+      success: false,
+      error: `Unsupported OAuth provider: "${provider}". Apple Sign In has been decommissioned. Only Google OAuth is supported.`,
+    };
+  }
+
   if (!isSupabaseConfigured()) {
     return {
       success: true,
       data: {
-        provider,
+        provider: 'google',
         url: null,
         user: {
           id: `offline-oauth-${Date.now()}`,
@@ -808,7 +816,7 @@ export async function signInWithSupabaseOAuth(
   try {
     const redirectTo = options?.redirectTo || (typeof window !== 'undefined' ? window.location.origin : undefined);
     const { data, error } = await supabase.auth.signInWithOAuth({
-      provider,
+      provider: 'google',
       options: {
         redirectTo,
         queryParams: options?.queryParams || { prompt: 'select_account' },
