@@ -6,6 +6,11 @@ import { storageAdapter } from '../lib/storageAdapter';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   testSupabaseConnection,
+  signUpWithSupabase,
+  verifySupabaseOtp,
+  resendSupabaseOtp,
+  sendPasswordResetEmail,
+  resetPasswordWithOtp,
   signInWithSupabase,
   signOutWithSupabase,
   signInWithSupabaseOAuth,
@@ -65,14 +70,36 @@ export interface AuthContextType {
   registerUser: (
     userData: Omit<User, 'id' | 'createdAt'>,
     extraProfile: any
-  ) => {
+  ) => Promise<{
+    success: boolean;
+    user?: User;
+    error?: string;
+  }> | {
     success: boolean;
     user?: User;
     error?: string;
   };
-  sendOtp: (identifier: string, channel?: 'email' | 'mobile' | string) => { success: boolean; code?: string; error?: string };
-  verifyOtp: (identifier: string, code: string) => { success: boolean; error?: string };
-  recoverPassword: (identifier: string, code: string, newPassword: string) => { success: boolean; error?: string };
+  sendOtp: (
+    identifier: string,
+    channel?: 'email' | 'mobile' | string
+  ) => Promise<{ success: boolean; code?: string; error?: string }> | { success: boolean; code?: string; error?: string };
+  verifyOtp: (
+    identifier: string,
+    code: string,
+    type?: 'signup' | 'recovery'
+  ) => Promise<{ success: boolean; error?: string }>;
+  resendOtp?: (
+    identifier: string,
+    type?: 'signup' | 'recovery'
+  ) => Promise<{ success: boolean; code?: string; error?: string }>;
+  requestPasswordReset?: (
+    email: string
+  ) => Promise<{ success: boolean; code?: string; error?: string }>;
+  recoverPassword: (
+    identifier: string,
+    code: string,
+    newPassword: string
+  ) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -570,10 +597,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const verifyOtp = useCallback(
-    (identifier: string, code: string) => {
+    async (
+      identifier: string,
+      code: string,
+      type: 'signup' | 'recovery' = 'signup'
+    ): Promise<{ success: boolean; error?: string }> => {
       const cleanId = identifier.trim().toLowerCase();
-      let stored = otpStore.current.get(cleanId);
+      const trimmedCode = code.trim();
 
+      // Master demo code fallback for academic thesis defense and offline evaluation
+      const isMasterCode = trimmedCode === '123456';
+
+      let stored = otpStore.current.get(cleanId);
       if (!stored) {
         try {
           const raw = sessionStorage.getItem(`otp_${cleanId}`);
@@ -583,59 +618,165 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      if (
-        code.trim() === '123456' ||
-        (stored && stored.code === code.trim() && Date.now() <= stored.expiresAt)
-      ) {
-        otpStore.current.delete(cleanId);
-        try {
-          sessionStorage.removeItem(`otp_${cleanId}`);
-        } catch {}
+      const isLocalValid = Boolean(
+        stored && stored.code === trimmedCode && Date.now() <= stored.expiresAt
+      );
 
-        const targetUser = users.find(
-          (u) => u.email.toLowerCase() === cleanId || (u.phone && u.phone.includes(cleanId))
-        );
-        if (targetUser) {
-          const updatedUser = { ...targetUser, isAccountVerified: true };
-          setUsers((prev) => prev.map((u) => (u.id === targetUser.id ? updatedUser : u)));
-          if (isSupabaseConfigured()) {
-            saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
-          }
+      // If Supabase is configured and not master demo code / local fallback
+      if (isSupabaseConfigured() && !isMasterCode && !isLocalValid) {
+        const supabaseRes = await verifySupabaseOtp(cleanId, trimmedCode, type);
+        if (!supabaseRes.success) {
+          return {
+            success: false,
+            error: supabaseRes.error || 'Invalid or expired verification code.',
+          };
         }
-
-        return { success: true };
+      } else if (!isMasterCode && !isLocalValid) {
+        if (stored && Date.now() > stored.expiresAt) {
+          return {
+            success: false,
+            error: 'Verification code has expired. Please request a new code.',
+          };
+        }
+        return {
+          success: false,
+          error: 'Invalid verification code. Please check the code sent to your email/mobile.',
+        };
       }
 
-      if (stored && Date.now() > stored.expiresAt) {
-        return { success: false, error: 'Verification code has expired. Please request a new code.' };
-      }
+      // Cleanup local state
+      otpStore.current.delete(cleanId);
+      try {
+        sessionStorage.removeItem(`otp_${cleanId}`);
+      } catch {}
 
-      return {
-        success: false,
-        error: 'Invalid verification code. Please check the code sent to your email/mobile.',
-      };
-    },
-    [users]
-  );
-
-  const recoverPassword = useCallback(
-    (identifier: string, code: string, newPassword: string) => {
-      const verification = verifyOtp(identifier, code);
-      if (!verification.success) {
-        return verification;
-      }
-
-      const cleanId = identifier.trim().toLowerCase();
-      const user = users.find(
+      const targetUser = users.find(
         (u) => u.email.toLowerCase() === cleanId || (u.phone && u.phone.includes(cleanId))
       );
-      if (!user) {
-        return { success: false, error: 'No account found with this email or mobile number.' };
+      if (targetUser) {
+        const updatedUser = { ...targetUser, isAccountVerified: true };
+        setUsers((prev) => prev.map((u) => (u.id === targetUser.id ? updatedUser : u)));
+        if (isSupabaseConfigured()) {
+          saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
+        }
       }
 
       return { success: true };
     },
-    [users, verifyOtp]
+    [users]
+  );
+
+  const resendOtp = useCallback(
+    async (
+      identifier: string,
+      type: 'signup' | 'recovery' = 'signup'
+    ): Promise<{ success: boolean; code?: string; error?: string }> => {
+      const cleanId = (identifier || '').trim().toLowerCase();
+      if (!cleanId) {
+        return { success: false, error: 'Please enter a valid email address.' };
+      }
+
+      if (isSupabaseConfigured()) {
+        const res = await resendSupabaseOtp(cleanId, 'signup');
+        if (!res.success) {
+          return { success: false, error: res.error };
+        }
+        return { success: true };
+      }
+
+      // Offline / Demo fallback
+      return sendOtp(cleanId, 'email');
+    },
+    [sendOtp]
+  );
+
+  const requestPasswordReset = useCallback(
+    async (email: string): Promise<{ success: boolean; code?: string; error?: string }> => {
+      const cleanEmail = (email || '').trim().toLowerCase();
+      if (!cleanEmail || !cleanEmail.includes('@')) {
+        return { success: false, error: 'Please enter a valid registered email.' };
+      }
+
+      if (isSupabaseConfigured()) {
+        const res = await sendPasswordResetEmail(cleanEmail);
+        if (!res.success) {
+          return { success: false, error: res.error || 'Failed to dispatch password recovery email.' };
+        }
+        return { success: true };
+      }
+
+      // Offline / Demo fallback
+      return sendOtp(cleanEmail, 'email');
+    },
+    [sendOtp]
+  );
+
+  const recoverPassword = useCallback(
+    async (identifier: string, code: string, newPassword: string) => {
+      const cleanId = identifier.trim().toLowerCase();
+      const trimmedCode = code.trim();
+
+      if (!newPassword || newPassword.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters.' };
+      }
+
+      // Master demo code fallback for academic thesis defense and offline evaluation
+      const isMasterCode = trimmedCode === '123456';
+
+      let stored = otpStore.current.get(cleanId);
+      if (!stored) {
+        try {
+          const raw = sessionStorage.getItem(`otp_${cleanId}`);
+          if (raw) stored = JSON.parse(raw);
+        } catch {}
+      }
+      const isLocalValid = Boolean(
+        stored && stored.code === trimmedCode && Date.now() <= stored.expiresAt
+      );
+
+      // If Supabase is configured and not master demo code / local token
+      if (isSupabaseConfigured() && !isMasterCode && !isLocalValid) {
+        const resetRes = await resetPasswordWithOtp(cleanId, trimmedCode, newPassword);
+        if (!resetRes.success) {
+          return {
+            success: false,
+            error: resetRes.error || 'Password reset failed. Please check your OTP code.',
+          };
+        }
+      } else if (!isMasterCode && !isLocalValid) {
+        if (stored && Date.now() > stored.expiresAt) {
+          return {
+            success: false,
+            error: 'Verification code has expired. Please request a new code.',
+          };
+        }
+        return {
+          success: false,
+          error: 'Invalid verification code. Please check the code sent to your email.',
+        };
+      }
+
+      // Cleanup local OTP token
+      otpStore.current.delete(cleanId);
+      try {
+        sessionStorage.removeItem(`otp_${cleanId}`);
+      } catch {}
+
+      // Update password in local memory & storage so loginAs succeeds immediately
+      const user = users.find(
+        (u) => u.email.toLowerCase() === cleanId || (u.phone && u.phone.includes(cleanId))
+      );
+      if (user) {
+        const updatedUser = { ...user, password: newPassword, isAccountVerified: true };
+        setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
+        if (isSupabaseConfigured()) {
+          saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
+        }
+      }
+
+      return { success: true };
+    },
+    [users]
   );
 
   const registerUser = useCallback(
@@ -670,7 +811,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setUsers((prev) => [...prev, newUser]);
       if (isSupabaseConfigured()) {
-        saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
+        const regPassword = extraProfile?.password || 'eHANAP@2026';
+        signUpWithSupabase(cleanRegEmail, regPassword, {
+          name: userData.name,
+          full_name: userData.name,
+          role: userData.role,
+          municipality: 'Roxas',
+        }).catch((err) => {
+          console.warn('[Supabase Auth] Background signup warning:', err);
+        });
+
+        saveRecord(SUPABASE_TABLES.USERS, newUser).catch((err) => {
+          console.warn('[Supabase] Failed to save user record:', err);
+        });
       }
 
       if (userData.role === 'job_seeker') {
@@ -791,6 +944,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerUser,
         sendOtp,
         verifyOtp,
+        resendOtp,
+        requestPasswordReset,
         recoverPassword,
       }}
     >

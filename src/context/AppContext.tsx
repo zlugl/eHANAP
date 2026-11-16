@@ -119,9 +119,11 @@ interface AppContextType {
   loginAs: (email: string, password?: string) => { success: boolean; user?: User; isProfileCompleted?: boolean; seekerProfile?: JobSeekerProfile | null; error?: string };
   continueWithGoogle: (intendedRole?: UserRole) => Promise<{ success: boolean; isNewUser?: boolean; user?: User; seekerProfile?: JobSeekerProfile; employerProfile?: EmployerProfile; error?: string }>;
   logout: () => void;
-  sendOtp: (identifier: string) => { success: boolean; code: string };
-  verifyOtp: (identifier: string, code: string) => { success: boolean; error?: string };
-  recoverPassword: (identifier: string, code: string, newPassword: string) => { success: boolean; error?: string };
+  sendOtp: (identifier: string, channel?: string) => Promise<{ success: boolean; code?: string; error?: string }> | { success: boolean; code?: string; error?: string };
+  verifyOtp: (identifier: string, code: string, type?: 'signup' | 'recovery') => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
+  resendOtp?: (identifier: string, type?: 'signup' | 'recovery') => Promise<{ success: boolean; code?: string; error?: string }>;
+  requestPasswordReset?: (email: string) => Promise<{ success: boolean; code?: string; error?: string }>;
+  recoverPassword: (identifier: string, code: string, newPassword: string) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
   verifyEmployer: (employerId: string, status: EmployerStatus, notes?: string) => void;
   createJobPost: (jobData: Omit<JobPost, 'id' | 'postedDate' | 'status' | 'companyVerified'>) => JobPost;
   reviewJobVacancy: (jobId: string, status: 'active' | 'for_compliance' | 'rejected' | 'closed', remarks?: string) => void;
@@ -162,7 +164,10 @@ interface AppContextType {
   markAllNotificationsRead: (recipientId: string) => void;
   deleteNotification: (notificationId: string) => void;
   clearAllNotifications: (recipientId: string) => void;
-  registerUser: (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => { success: boolean; user?: User; error?: string };
+  registerUser: (
+    userData: Omit<User, 'id' | 'createdAt'>,
+    extraProfile: any
+  ) => Promise<{ success: boolean; user?: User; error?: string }> | { success: boolean; user?: User; error?: string };
   resetToDemoData: () => Promise<void>;
 
   // Subscription & Toast Actions
@@ -214,6 +219,8 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     registerUser,
     sendOtp,
     verifyOtp,
+    resendOtp,
+    requestPasswordReset,
     recoverPassword,
   } = auth;
 
@@ -2123,7 +2130,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         isSyncing,
         getMatch,
         switchUserRole, switchDemoRole, loginAs, continueWithGoogle, logout,
-        sendOtp, verifyOtp, recoverPassword, verifyEmployer, createJobPost,
+        sendOtp, verifyOtp, resendOtp, requestPasswordReset, recoverPassword, verifyEmployer, createJobPost,
         reviewJobVacancy, updateJobVacancyStatus, updateJobPost, deleteJobPost,
         applyForJob, updateApplicationStatus, submitApplicationFeedback,
         scheduleInterview, respondToInterview, updateJobSeekerProfile,

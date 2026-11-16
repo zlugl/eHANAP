@@ -92,6 +92,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     continueWithGoogle, 
     sendOtp,
     verifyOtp,
+    resendOtp,
+    requestPasswordReset,
     recoverPassword 
   } = useAuth();
   const { showToast } = useToast();
@@ -121,6 +123,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isOtpStep, setIsOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [demoOtpCode, setDemoOtpCode] = useState('');
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Forgot Password State
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -187,11 +190,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setShowPassword(false);
       setShowForgotPassword(false);
       setIsOtpStep(false);
+      setResendCooldown(0);
       setIsLoading(false);
       setLoginEmail('');
       setLoginPassword('');
     }
   }, [isOpen, initialMode, initialRole, initialShowSplash]);
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   // Lock root document and body scroll when AuthModal is open so the background window doesn't scroll
   useEffect(() => {
@@ -237,7 +249,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // 2. Submit Create Account (Sign Up)
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -297,7 +309,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       password: regPassword
     };
 
-    const result = registerUser(userData, extraProfile);
+    const result = await registerUser(userData, extraProfile);
     setIsLoading(false);
 
     if (!result.success || !result.user) {
@@ -306,9 +318,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     // Dispatch verification OTP
-    const otpRes = sendOtp(regEmail.trim().toLowerCase(), 'email');
-    if (otpRes.code) setDemoOtpCode(otpRes.code);
+    const otpRes = await sendOtp(regEmail.trim().toLowerCase(), 'email');
+    if (otpRes && 'code' in otpRes && otpRes.code) setDemoOtpCode(otpRes.code);
     setIsOtpStep(true);
+    setResendCooldown(60);
 
     showToast({
       title: 'Verification Code Dispatched',
@@ -318,7 +331,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // 3. Verify OTP
-  const handleVerifyOtp = (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -328,7 +341,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setIsLoading(true);
-    const res = verifyOtp(regEmail.trim().toLowerCase(), otpCode.trim());
+    const res = await verifyOtp(regEmail.trim().toLowerCase(), otpCode.trim(), 'signup');
     setIsLoading(false);
 
     if (!res.success) {
@@ -342,6 +355,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     // Every newly registered account must complete profile setup
     if (onSuccessRole) onSuccessRole(role, loginRes?.user, false);
     else if (onSuccess) onSuccess();
+  };
+
+  // 3b. Resend OTP
+  const handleResendOtp = async () => {
+    if (resendCooldown > 0 || isLoading) return;
+    setIsLoading(true);
+    setErrorMessage('');
+
+    try {
+      if (resendOtp) {
+        const res = await resendOtp(regEmail.trim().toLowerCase(), 'signup');
+        if (!res.success) {
+          setErrorMessage(res.error || 'Failed to resend verification code. Please try again.');
+          setIsLoading(false);
+          return;
+        }
+        if (res.code) setDemoOtpCode(res.code);
+      } else {
+        const res = await sendOtp(regEmail.trim().toLowerCase(), 'email');
+        if (res && 'code' in res && res.code) setDemoOtpCode(res.code);
+      }
+      setResendCooldown(60);
+      showToast({
+        title: 'New Code Sent',
+        message: `A fresh verification code was dispatched to ${regEmail.trim()}.`,
+        type: 'info'
+      });
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to resend verification code.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // 4. Social Auth (Google / Apple / Facebook)
@@ -398,19 +443,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // 5. Password Recovery
-  const handleRequestPasswordOtp = (e: React.FormEvent) => {
+  const handleRequestPasswordOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
       setErrorMessage('Please enter a valid registered email.');
       return;
     }
-    const res = sendOtp(forgotEmail.trim().toLowerCase(), 'email');
+    setIsLoading(true);
+    let res: { success: boolean; code?: string; error?: string };
+    if (requestPasswordReset) {
+      res = await requestPasswordReset(forgotEmail.trim().toLowerCase());
+    } else {
+      res = await sendOtp(forgotEmail.trim().toLowerCase(), 'email');
+    }
+    setIsLoading(false);
+
     if (!res.success) {
       setErrorMessage(res.error || 'Failed to dispatch recovery code.');
       return;
     }
-    if (res.code) setDemoOtpCode(res.code);
+    if ('code' in res && res.code) setDemoOtpCode(res.code);
     setForgotStep('verify');
     showToast({
       title: 'Recovery Code Dispatched',
@@ -419,7 +472,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     });
   };
 
-  const handleResetPassword = (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     if (newPassword.length < 6) {
@@ -430,7 +483,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setErrorMessage('Passwords do not match.');
       return;
     }
-    const res = recoverPassword(forgotEmail.trim().toLowerCase(), newPassword, forgotOtp.trim());
+    setIsLoading(true);
+    const res = await recoverPassword(forgotEmail.trim().toLowerCase(), forgotOtp.trim(), newPassword);
+    setIsLoading(false);
+
     if (!res.success) {
       setErrorMessage(res.error || 'Password reset failed. Please check your OTP code.');
       return;
@@ -676,9 +732,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
                 <button
                   type="submit"
-                  className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                  disabled={isLoading}
+                  className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
                 >
-                  Send Recovery Code
+                  {isLoading ? 'Sending Recovery Code...' : 'Send Recovery Code'}
                 </button>
               </form>
             )}
@@ -701,7 +758,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     maxLength={6}
                     placeholder="123456"
                     value={forgotOtp}
-                    onChange={(e) => setForgotOtp(e.target.value)}
+                    onChange={(e) => setForgotOtp(e.target.value.replace(/[^0-9]/g, ''))}
                     className="w-full bg-[var(--color-paper)] border border-[var(--color-rule)] rounded-xl px-4 py-3 text-center text-base font-mono tabular-nums font-bold text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                   />
                 </div>
@@ -729,10 +786,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
                 <button
                   type="submit"
-                  className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                  disabled={isLoading}
+                  className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
                 >
-                  Update Password
+                  {isLoading ? 'Updating Password...' : 'Update Password'}
                 </button>
+                <p className="text-center text-xs text-[var(--color-ink-muted)]">
+                  Didn’t receive code?{' '}
+                  <button
+                    type="button"
+                    disabled={isLoading}
+                    onClick={handleRequestPasswordOtp}
+                    className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                  >
+                    Resend Code
+                  </button>
+                </p>
               </form>
             )}
 
@@ -762,14 +831,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="text-center space-y-1">
               <h2 className="text-2xl font-bold text-[var(--color-ink)] font-display tracking-tight">Verify Email</h2>
               <p className="text-xs text-[var(--color-ink-muted)]">
-                A verification code was sent to <strong className="text-[var(--color-ink)]">{regEmail}</strong>
+                A 6-digit verification code was sent to <strong className="text-[var(--color-ink)]">{regEmail}</strong>
               </p>
             </div>
+
+            {errorMessage && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-center text-xs text-red-700 font-medium">
+                {errorMessage}
+              </div>
+            )}
 
             {demoOtpCode && (
               <div className="p-3 bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-xl text-center text-xs text-[var(--color-ink)]">
                 <span>Verification Code: </span>
                 <strong className="font-mono tabular-nums font-bold">{demoOtpCode}</strong>
+                <span className="text-[10px] text-[var(--color-ink-muted)] block mt-0.5">
+                  (Demo / Offline evaluation master code: <code className="font-mono font-bold">123456</code>)
+                </span>
               </div>
             )}
 
@@ -802,14 +880,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               Didn’t receive code?{' '}
               <button
                 type="button"
-                onClick={() => {
-                  const res = sendOtp(regEmail, 'email');
-                  if (res.code) setDemoOtpCode(res.code);
-                  showToast({ title: 'New Code Sent', message: 'Check your email inbox.', type: 'info' });
-                }}
-                className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                disabled={resendCooldown > 0 || isLoading}
+                onClick={handleResendOtp}
+                className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
               >
-                Resend Code
+                {resendCooldown > 0 ? `Resend Code (${resendCooldown}s)` : 'Resend Code'}
               </button>
             </p>
           </div>

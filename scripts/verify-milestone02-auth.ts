@@ -1,5 +1,9 @@
 import {
   signUpWithSupabase,
+  verifySupabaseOtp,
+  resendSupabaseOtp,
+  sendPasswordResetEmail,
+  resetPasswordWithOtp,
   signInWithSupabase,
   signOutWithSupabase,
   getSupabaseSession,
@@ -58,6 +62,33 @@ async function runMilestone02Tests() {
   assert(signUpResult.success === true, 'signUpWithSupabase succeeds with valid payload');
   assert(Boolean(signUpResult.user), 'signUpWithSupabase returns user object');
   assert(signUpResult.user?.email === 'new.seeker@test.ph', 'signUpWithSupabase preserves user email');
+
+  // Native 6-digit email OTP verification & resend assertions (WP-01)
+  const masterOtpResult = await verifySupabaseOtp('new.seeker@test.ph', '123456', 'signup');
+  assert(masterOtpResult.success === true, 'verifySupabaseOtp accepts master demo code 123456');
+
+  const invalidOtpResult = await verifySupabaseOtp('new.seeker@test.ph', '000000', 'signup');
+  assert(invalidOtpResult.success === false, 'verifySupabaseOtp rejects invalid OTP token');
+  assert(Boolean(invalidOtpResult.error), 'verifySupabaseOtp provides clear error message on rejection');
+
+  const resendResult = await resendSupabaseOtp('new.seeker@test.ph', 'signup');
+  assert(typeof resendResult.success === 'boolean', 'resendSupabaseOtp returns execution status');
+
+  // Native password recovery OTP assertions (WP-02)
+  const resetEmailResult = await sendPasswordResetEmail('juan.delacruz@jobseeker.ph');
+  assert(resetEmailResult.success === true, 'sendPasswordResetEmail succeeds with valid email');
+
+  const emptyResetEmailResult = await sendPasswordResetEmail('');
+  assert(emptyResetEmailResult.success === false, 'sendPasswordResetEmail rejects empty email');
+
+  const masterRecoveryResult = await resetPasswordWithOtp('juan.delacruz@jobseeker.ph', '123456', 'newPassword123');
+  assert(masterRecoveryResult.success === true, 'resetPasswordWithOtp accepts master demo code 123456');
+
+  const invalidRecoveryResult = await resetPasswordWithOtp('juan.delacruz@jobseeker.ph', '000000', 'newPassword123');
+  assert(invalidRecoveryResult.success === false, 'resetPasswordWithOtp rejects invalid OTP token');
+
+  const shortPasswordResult = await resetPasswordWithOtp('juan.delacruz@jobseeker.ph', '123456', '123');
+  assert(shortPasswordResult.success === false, 'resetPasswordWithOtp rejects short password (< 6 characters)');
 
   const signInResult = await signInWithSupabase('juan.delacruz@jobseeker.ph', 'password123');
   assert(signInResult.success === true, 'signInWithSupabase succeeds');
