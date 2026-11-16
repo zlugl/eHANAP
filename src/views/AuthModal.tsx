@@ -39,6 +39,7 @@ interface AuthModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   onSuccessRole?: (role: string, user?: any, isProfileCompleted?: boolean) => void;
+  onNavigate?: (view: string, params?: any) => void;
 }
 
 // Google Icon
@@ -70,7 +71,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialShowSplash = false,
   onClose,
   onSuccess,
-  onSuccessRole
+  onSuccessRole,
+  onNavigate
 }) => {
   const { 
     loginAs, 
@@ -1287,9 +1289,27 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
                 <span className="text-xs sm:text-sm text-[var(--color-ink-muted)]">
                   Agree with{' '}
-                  <span className="text-[var(--color-accent)] font-medium underline cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onNavigate?.('terms');
+                    }}
+                    className="text-[var(--color-accent)] font-medium underline cursor-pointer hover:opacity-85"
+                  >
                     Terms & Condition
-                  </span>
+                  </button>
+                  {' '}&amp;{' '}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onNavigate?.('privacy');
+                    }}
+                    className="text-[var(--color-accent)] font-medium underline cursor-pointer hover:opacity-85"
+                  >
+                    Privacy Policy
+                  </button>
                 </span>
               </div>
 
