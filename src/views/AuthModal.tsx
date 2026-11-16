@@ -710,18 +710,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <p className="text-xs text-[var(--color-ink-muted)]">
                   Enter the 6-digit code sent to <strong className="text-[var(--color-ink)]">{forgotEmail}</strong> and your new password.
                 </p>
-                {demoOtpCode && (
-                  <div className="p-2.5 bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-xl text-[11px] text-[var(--color-ink)]">
-                    Test Code: <strong className="font-mono tabular-nums">{demoOtpCode}</strong>
-                  </div>
-                )}
                 <div>
                   <label className="text-xs font-semibold text-[var(--color-ink)] block mb-1">6-Digit Code</label>
                   <input
                     type="text"
                     required
                     maxLength={6}
-                    placeholder="123456"
+                    placeholder="------"
                     value={forgotOtp}
                     onChange={(e) => setForgotOtp(e.target.value.replace(/[^0-9]/g, ''))}
                     className="w-full bg-[var(--color-paper)] border border-[var(--color-rule)] rounded-xl px-4 py-3 text-center text-base font-mono tabular-nums font-bold text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
@@ -803,16 +798,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             {errorMessage && (
               <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-center text-xs text-red-700 font-medium">
                 {errorMessage}
-              </div>
-            )}
-
-            {demoOtpCode && (
-              <div className="p-3 bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-xl text-center text-xs text-[var(--color-ink)]">
-                <span>Verification Code: </span>
-                <strong className="font-mono tabular-nums font-bold">{demoOtpCode}</strong>
-                <span className="text-[10px] text-[var(--color-ink-muted)] block mt-0.5">
-                  (Demo / Offline evaluation master code: <code className="font-mono font-bold">123456</code>)
-                </span>
               </div>
             )}
 
