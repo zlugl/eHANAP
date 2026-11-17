@@ -21,7 +21,7 @@ import {
   UserProfileDropdown,
   MobileRoleQuickNav,
   MobileNavDrawer
-} from './navbar';
+} from './navbar/index';
 
 export interface NavbarProps {
   currentView: string;

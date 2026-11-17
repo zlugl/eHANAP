@@ -25,8 +25,9 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[eHANAP Oriental Mindoro Server] Running at http://0.0.0.0:${PORT}`);
+  app.listen(PORT, () => {
+    console.log(`\n  ➜  Local:   http://localhost:${PORT}/`);
+    console.log(`  ➜  Server:  [eHANAP Oriental Mindoro Server] Running at http://localhost:${PORT}\n`);
   });
 }
 

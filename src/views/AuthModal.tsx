@@ -39,10 +39,16 @@ interface AuthModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   onSuccessRole?: (role: string, user?: any, isProfileCompleted?: boolean) => void;
-  onNavigate?: (view: string, params?: any) => void;
 }
 
-// Google Icon
+// 1. Apple Icon
+const AppleIcon = () => (
+  <svg className="w-5 h-5 fill-current text-[var(--color-ink)]" viewBox="0 0 170 170" aria-hidden="true">
+    <path d="M150.37 130.25c-2.45 5.66-5.35 10.87-8.71 15.66-4.58 6.53-8.33 11.05-11.22 13.56-4.48 4.12-9.28 6.23-14.42 6.35-3.69 0-8.14-1.05-13.32-3.18-5.19-2.12-9.97-3.17-14.34-3.17-4.58 0-9.49 1.05-14.75 3.17-5.26 2.13-9.5 3.24-12.74 3.35-4.35.13-9.16-1.9-14.42-6.08-3.69-3.04-7.69-7.85-12-14.44-6.1-9.35-10.82-20.02-14.15-32.01-3.33-11.99-5-23.49-5-34.5 0-14.36 3.75-26.68 11.24-36.96 7.5-10.29 17.2-15.52 29.11-15.71 4.58 0 9.87 1.25 15.87 3.75 6 2.5 10.15 3.79 12.46 3.87 1.91-.12 6.16-1.42 12.76-3.88 6.6-2.46 12.01-3.6 16.24-3.43 13.43.51 24.23 5.43 32.4 14.76-11.75 7.12-17.51 16.9-17.29 29.34.22 9.68 4.04 17.84 11.47 24.49 7.42 6.65 16.14 10.51 26.15 11.58-2.24 6.74-4.82 13.53-7.75 20.36zM119.22 31.84c0-7.72 2.76-14.99 8.28-21.81 5.53-6.82 12.39-10.74 20.59-11.76.13 1.01.2 1.91.2 2.7 0 7.6-2.85 15.01-8.56 22.23-5.71 7.22-12.82 11.29-21.32 12.2-.14-1.22-.2-2.41-.2-3.56z" />
+  </svg>
+);
+
+// 2. Google Icon
 const GoogleIcon = () => (
   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
     <path
@@ -64,6 +70,13 @@ const GoogleIcon = () => (
   </svg>
 );
 
+// 3. Facebook Icon
+const FacebookIcon = () => (
+  <svg className="w-5 h-5 fill-current text-[var(--color-ink)]" viewBox="0 0 24 24" aria-hidden="true">
+    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+  </svg>
+);
+
 export const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   initialMode = 'login',
@@ -71,8 +84,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   initialShowSplash = false,
   onClose,
   onSuccess,
-  onSuccessRole,
-  onNavigate
+  onSuccessRole
 }) => {
   const { 
     loginAs, 
@@ -80,8 +92,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     continueWithGoogle, 
     sendOtp,
     verifyOtp,
-    resendOtp,
-    requestPasswordReset,
     recoverPassword 
   } = useAuth();
   const { showToast } = useToast();
@@ -111,7 +121,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [isOtpStep, setIsOtpStep] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [demoOtpCode, setDemoOtpCode] = useState('');
-  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Forgot Password State
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -178,20 +187,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setShowPassword(false);
       setShowForgotPassword(false);
       setIsOtpStep(false);
-      setResendCooldown(0);
       setIsLoading(false);
       setLoginEmail('');
       setLoginPassword('');
     }
   }, [isOpen, initialMode, initialRole, initialShowSplash]);
-
-  useEffect(() => {
-    if (resendCooldown <= 0) return;
-    const timer = setInterval(() => {
-      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [resendCooldown]);
 
   // Lock root document and body scroll when AuthModal is open so the background window doesn't scroll
   useEffect(() => {
@@ -237,7 +237,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // 2. Submit Create Account (Sign Up)
-  const handleRegisterSubmit = async (e: React.FormEvent) => {
+  const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -297,7 +297,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       password: regPassword
     };
 
-    const result = await registerUser(userData, extraProfile);
+    const result = registerUser(userData, extraProfile);
     setIsLoading(false);
 
     if (!result.success || !result.user) {
@@ -306,10 +306,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     // Dispatch verification OTP
-    const otpRes = await sendOtp(regEmail.trim().toLowerCase(), 'email');
-    if (otpRes && 'code' in otpRes && otpRes.code) setDemoOtpCode(otpRes.code);
+    const otpRes = sendOtp(regEmail.trim().toLowerCase(), 'email');
+    if (otpRes.code) setDemoOtpCode(otpRes.code);
     setIsOtpStep(true);
-    setResendCooldown(60);
 
     showToast({
       title: 'Verification Code Dispatched',
@@ -319,7 +318,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   };
 
   // 3. Verify OTP
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyOtp = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -329,7 +328,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
 
     setIsLoading(true);
-    const res = await verifyOtp(regEmail.trim().toLowerCase(), otpCode.trim(), 'signup');
+    const res = verifyOtp(regEmail.trim().toLowerCase(), otpCode.trim());
     setIsLoading(false);
 
     if (!res.success) {
@@ -345,53 +344,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     else if (onSuccess) onSuccess();
   };
 
-  // 3b. Resend OTP
-  const handleResendOtp = async () => {
-    if (resendCooldown > 0 || isLoading) return;
-    setIsLoading(true);
-    setErrorMessage('');
-
-    try {
-      if (resendOtp) {
-        const res = await resendOtp(regEmail.trim().toLowerCase(), 'signup');
-        if (!res.success) {
-          setErrorMessage(res.error || 'Failed to resend verification code. Please try again.');
-          setIsLoading(false);
-          return;
-        }
-        if (res.code) setDemoOtpCode(res.code);
-      } else {
-        const res = await sendOtp(regEmail.trim().toLowerCase(), 'email');
-        if (res && 'code' in res && res.code) setDemoOtpCode(res.code);
-      }
-      setResendCooldown(60);
-      showToast({
-        title: 'New Code Sent',
-        message: `A fresh verification code was dispatched to ${regEmail.trim()}.`,
-        type: 'info'
-      });
-    } catch (err: any) {
-      setErrorMessage(err?.message || 'Failed to resend verification code.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // 4. Social Auth (Google OAuth exclusively; Apple Sign In decommissioned)
+  // 4. Social Auth (Google / Apple / Facebook)
   const handleGoogleAuth = async () => {
     setIsLoading(true);
     setErrorMessage('');
     try {
       const res = await continueWithGoogle(role === 'admin' ? 'job_seeker' : role);
       setIsLoading(false);
-      if (!res.success) {
+      if (!res.success || !res.user) {
         if (res.error && !res.error.includes('closed') && !res.error.includes('cancelled')) {
           setErrorMessage(res.error);
         }
-        return;
-      }
-      // If live OAuth redirect is initiated, browser will navigate away
-      if (!res.user) {
         return;
       }
       onClose();
@@ -407,28 +370,47 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const handleSocialQuickSignIn = (provider: 'Apple' | 'Facebook') => {
+    showToast({
+      title: `${provider} Sign In`,
+      message: `Connecting via ${provider}... Authenticating account.`,
+      type: 'info'
+    });
+    // Log in with role-appropriate default verified account
+    setTimeout(() => {
+      if (role === 'admin') {
+        loginAs('peso.admin@roxas.gov.ph');
+        onClose();
+        if (onSuccessRole) onSuccessRole('admin');
+        else if (onSuccess) onSuccess();
+      } else if (role === 'employer') {
+        loginAs('hr@mindoroharvest.ph');
+        onClose();
+        if (onSuccessRole) onSuccessRole('employer');
+        else if (onSuccess) onSuccess();
+      } else {
+        loginAs('maria.santos@gmail.com');
+        onClose();
+        if (onSuccessRole) onSuccessRole('job_seeker');
+        else if (onSuccess) onSuccess();
+      }
+    }, 400);
+  };
+
   // 5. Password Recovery
-  const handleRequestPasswordOtp = async (e: React.FormEvent) => {
+  const handleRequestPasswordOtp = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     if (!forgotEmail.trim() || !forgotEmail.includes('@')) {
       setErrorMessage('Please enter a valid registered email.');
       return;
     }
-    setIsLoading(true);
-    let res: { success: boolean; code?: string; error?: string };
-    if (requestPasswordReset) {
-      res = await requestPasswordReset(forgotEmail.trim().toLowerCase());
-    } else {
-      res = await sendOtp(forgotEmail.trim().toLowerCase(), 'email');
-    }
-    setIsLoading(false);
-
+    const res = sendOtp(forgotEmail.trim().toLowerCase(), 'email');
     if (!res.success) {
       setErrorMessage(res.error || 'Failed to dispatch recovery code.');
       return;
     }
-    if ('code' in res && res.code) setDemoOtpCode(res.code);
+    if (res.code) setDemoOtpCode(res.code);
     setForgotStep('verify');
     showToast({
       title: 'Recovery Code Dispatched',
@@ -437,7 +419,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     });
   };
 
-  const handleResetPassword = async (e: React.FormEvent) => {
+  const handleResetPassword = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     if (newPassword.length < 6) {
@@ -448,10 +430,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setErrorMessage('Passwords do not match.');
       return;
     }
-    setIsLoading(true);
-    const res = await recoverPassword(forgotEmail.trim().toLowerCase(), forgotOtp.trim(), newPassword);
-    setIsLoading(false);
-
+    const res = recoverPassword(forgotEmail.trim().toLowerCase(), newPassword, forgotOtp.trim());
     if (!res.success) {
       setErrorMessage(res.error || 'Password reset failed. Please check your OTP code.');
       return;
@@ -697,10 +676,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
+                  className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                 >
-                  {isLoading ? 'Sending Recovery Code...' : 'Send Recovery Code'}
+                  Send Recovery Code
                 </button>
               </form>
             )}
@@ -710,15 +688,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <p className="text-xs text-[var(--color-ink-muted)]">
                   Enter the 6-digit code sent to <strong className="text-[var(--color-ink)]">{forgotEmail}</strong> and your new password.
                 </p>
+                {demoOtpCode && (
+                  <div className="p-2.5 bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-xl text-[11px] text-[var(--color-ink)]">
+                    Test Code: <strong className="font-mono tabular-nums">{demoOtpCode}</strong>
+                  </div>
+                )}
                 <div>
                   <label className="text-xs font-semibold text-[var(--color-ink)] block mb-1">6-Digit Code</label>
                   <input
                     type="text"
                     required
                     maxLength={6}
-                    placeholder="------"
+                    placeholder="123456"
                     value={forgotOtp}
-                    onChange={(e) => setForgotOtp(e.target.value.replace(/[^0-9]/g, ''))}
+                    onChange={(e) => setForgotOtp(e.target.value)}
                     className="w-full bg-[var(--color-paper)] border border-[var(--color-rule)] rounded-xl px-4 py-3 text-center text-base font-mono tabular-nums font-bold text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                   />
                 </div>
@@ -746,22 +729,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
                 <button
                   type="submit"
-                  disabled={isLoading}
-                  className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
+                  className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                 >
-                  {isLoading ? 'Updating Password...' : 'Update Password'}
+                  Update Password
                 </button>
-                <p className="text-center text-xs text-[var(--color-ink-muted)]">
-                  Didn’t receive code?{' '}
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={handleRequestPasswordOtp}
-                    className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                  >
-                    Resend Code
-                  </button>
-                </p>
               </form>
             )}
 
@@ -791,13 +762,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <div className="text-center space-y-1">
               <h2 className="text-2xl font-bold text-[var(--color-ink)] font-display tracking-tight">Verify Email</h2>
               <p className="text-xs text-[var(--color-ink-muted)]">
-                A 6-digit verification code was sent to <strong className="text-[var(--color-ink)]">{regEmail}</strong>
+                A verification code was sent to <strong className="text-[var(--color-ink)]">{regEmail}</strong>
               </p>
             </div>
 
-            {errorMessage && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-center text-xs text-red-700 font-medium">
-                {errorMessage}
+            {demoOtpCode && (
+              <div className="p-3 bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-xl text-center text-xs text-[var(--color-ink)]">
+                <span>Verification Code: </span>
+                <strong className="font-mono tabular-nums font-bold">{demoOtpCode}</strong>
               </div>
             )}
 
@@ -830,11 +802,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               Didn’t receive code?{' '}
               <button
                 type="button"
-                disabled={resendCooldown > 0 || isLoading}
-                onClick={handleResendOtp}
-                className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                onClick={() => {
+                  const res = sendOtp(regEmail, 'email');
+                  if (res.code) setDemoOtpCode(res.code);
+                  showToast({ title: 'New Code Sent', message: 'Check your email inbox.', type: 'info' });
+                }}
+                className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
               >
-                {resendCooldown > 0 ? `Resend Code (${resendCooldown}s)` : 'Resend Code'}
+                Resend Code
               </button>
             </p>
           </div>
@@ -1118,16 +1093,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            {/* Social Login: Google OAuth exclusively */}
-            <div className="pt-1">
+            {/* Social Logins: Apple, Google, Facebook */}
+            <div className="flex items-center justify-center gap-4 pt-1">
+              {/* Apple */}
+              <button
+                type="button"
+                onClick={() => handleSocialQuickSignIn('Apple')}
+                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                title="Sign in with Apple"
+              >
+                <AppleIcon />
+              </button>
+
+              {/* Google */}
               <button
                 type="button"
                 onClick={handleGoogleAuth}
-                className="w-full py-2.5 px-4 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center gap-3 text-sm font-medium text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] shadow-xs"
+                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                 title="Sign in with Google"
               >
                 <GoogleIcon />
-                <span>Sign in with Google</span>
+              </button>
+
+              {/* Facebook */}
+              <button
+                type="button"
+                onClick={() => handleSocialQuickSignIn('Facebook')}
+                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                title="Sign in with Facebook"
+              >
+                <FacebookIcon />
               </button>
             </div>
 
@@ -1274,27 +1269,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
                 <span className="text-xs sm:text-sm text-[var(--color-ink-muted)]">
                   Agree with{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onNavigate?.('terms');
-                    }}
-                    className="text-[var(--color-accent)] font-medium underline cursor-pointer hover:opacity-85"
-                  >
+                  <span className="text-[var(--color-accent)] font-medium underline cursor-pointer">
                     Terms & Condition
-                  </button>
-                  {' '}&amp;{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onClose();
-                      onNavigate?.('privacy');
-                    }}
-                    className="text-[var(--color-accent)] font-medium underline cursor-pointer hover:opacity-85"
-                  >
-                    Privacy Policy
-                  </button>
+                  </span>
                 </span>
               </div>
 
@@ -1319,16 +1296,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </span>
             </div>
 
-            {/* Social Login: Google OAuth exclusively */}
-            <div className="pt-1">
+            {/* Social Logins: Apple, Google, Facebook */}
+            <div className="flex items-center justify-center gap-4 pt-1">
+              {/* Apple */}
+              <button
+                type="button"
+                onClick={() => handleSocialQuickSignIn('Apple')}
+                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                title="Sign up with Apple"
+              >
+                <AppleIcon />
+              </button>
+
+              {/* Google */}
               <button
                 type="button"
                 onClick={handleGoogleAuth}
-                className="w-full py-2.5 px-4 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center gap-3 text-sm font-medium text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] shadow-xs"
+                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                 title="Sign up with Google"
               >
                 <GoogleIcon />
-                <span>Sign up with Google</span>
+              </button>
+
+              {/* Facebook */}
+              <button
+                type="button"
+                onClick={() => handleSocialQuickSignIn('Facebook')}
+                className="w-12 h-12 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                title="Sign up with Facebook"
+              >
+                <FacebookIcon />
               </button>
             </div>
 

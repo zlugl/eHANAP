@@ -1,4 +1,4 @@
-import { User, JobSeekerProfile, EmployerProfile, CandidateInvitation } from '../types';
+import { User, JobSeekerProfile, CandidateInvitation } from '../types';
 
 /**
  * eHANAP Centralized Storage Keys
@@ -8,7 +8,6 @@ export const STORAGE_KEYS = {
   LEGACY_BOOKMARKS: 'seeker_bookmarked_jobs',
   USERS: 'ehanap_users',
   JOB_SEEKERS: 'ehanap_job_seekers',
-  EMPLOYERS: 'ehanap_employers',
   INVITATIONS: 'ehanap_invitations',
   PROFILE_COMPLETED_PREFIX: 'ehanap_profile_completed_',
   EMPLOYER_COMPLETED_PREFIX: 'ehanap_employer_completed_',
@@ -188,15 +187,6 @@ export function setStoredJobSeekers(seekers: JobSeekerProfile[]): void {
   setItem(STORAGE_KEYS.JOB_SEEKERS, seekers);
 }
 
-export function getStoredEmployers(fallback: EmployerProfile[] = []): EmployerProfile[] {
-  const data = getItem<EmployerProfile[]>(STORAGE_KEYS.EMPLOYERS, fallback);
-  return Array.isArray(data) ? data : fallback;
-}
-
-export function setStoredEmployers(employers: EmployerProfile[]): void {
-  setItem(STORAGE_KEYS.EMPLOYERS, employers);
-}
-
 export function getStoredInvitations(fallback: CandidateInvitation[] = []): CandidateInvitation[] {
   const data = getItem<CandidateInvitation[]>(STORAGE_KEYS.INVITATIONS, fallback);
   return Array.isArray(data) ? data : fallback;
@@ -228,8 +218,6 @@ export const storageAdapter = {
   setStoredUsers,
   getStoredJobSeekers,
   setStoredJobSeekers,
-  getStoredEmployers,
-  setStoredEmployers,
   getStoredInvitations,
   setStoredInvitations,
 };

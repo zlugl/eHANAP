@@ -194,17 +194,13 @@ export const ApplyForJobWindow: React.FC<ApplyForJobWindowProps> = ({
     setIsSubmitting(true);
     setErrorMsg('');
 
-    setTimeout(async () => {
-      try {
-        await applyForJob(
-          job.id,
-          currentSeekerProfile.id,
-          attachedResume.id || currentSeekerProfile.activeResumeId || 'res-1',
-          coverNote
-        );
-      } catch (err: any) {
-        console.warn('[Application] Error submitting job application:', err);
-      }
+    setTimeout(() => {
+      applyForJob(
+        job.id,
+        currentSeekerProfile.id,
+        attachedResume.id || currentSeekerProfile.activeResumeId || 'res-1',
+        coverNote
+      );
 
       setIsSubmitting(false);
       setShowCongratulations(true);

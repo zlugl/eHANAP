@@ -1,12 +1,7 @@
 import {
   signUpWithSupabase,
-  verifySupabaseOtp,
-  resendSupabaseOtp,
-  sendPasswordResetEmail,
-  resetPasswordWithOtp,
   signInWithSupabase,
   signOutWithSupabase,
-  signInWithSupabaseOAuth,
   getSupabaseSession,
   getSupabaseUser,
   onSupabaseAuthStateChange,
@@ -64,33 +59,6 @@ async function runMilestone02Tests() {
   assert(Boolean(signUpResult.user), 'signUpWithSupabase returns user object');
   assert(signUpResult.user?.email === 'new.seeker@test.ph', 'signUpWithSupabase preserves user email');
 
-  // Native 6-digit email OTP verification & resend assertions (WP-01)
-  const masterOtpResult = await verifySupabaseOtp('new.seeker@test.ph', '123456', 'signup');
-  assert(masterOtpResult.success === true, 'verifySupabaseOtp accepts master demo code 123456');
-
-  const invalidOtpResult = await verifySupabaseOtp('new.seeker@test.ph', '000000', 'signup');
-  assert(invalidOtpResult.success === false, 'verifySupabaseOtp rejects invalid OTP token');
-  assert(Boolean(invalidOtpResult.error), 'verifySupabaseOtp provides clear error message on rejection');
-
-  const resendResult = await resendSupabaseOtp('new.seeker@test.ph', 'signup');
-  assert(typeof resendResult.success === 'boolean', 'resendSupabaseOtp returns execution status');
-
-  // Native password recovery OTP assertions (WP-02)
-  const resetEmailResult = await sendPasswordResetEmail('juan.delacruz@jobseeker.ph');
-  assert(resetEmailResult.success === true, 'sendPasswordResetEmail succeeds with valid email');
-
-  const emptyResetEmailResult = await sendPasswordResetEmail('');
-  assert(emptyResetEmailResult.success === false, 'sendPasswordResetEmail rejects empty email');
-
-  const masterRecoveryResult = await resetPasswordWithOtp('juan.delacruz@jobseeker.ph', '123456', 'newPassword123');
-  assert(masterRecoveryResult.success === true, 'resetPasswordWithOtp accepts master demo code 123456');
-
-  const invalidRecoveryResult = await resetPasswordWithOtp('juan.delacruz@jobseeker.ph', '000000', 'newPassword123');
-  assert(invalidRecoveryResult.success === false, 'resetPasswordWithOtp rejects invalid OTP token');
-
-  const shortPasswordResult = await resetPasswordWithOtp('juan.delacruz@jobseeker.ph', '123456', '123');
-  assert(shortPasswordResult.success === false, 'resetPasswordWithOtp rejects short password (< 6 characters)');
-
   const signInResult = await signInWithSupabase('juan.delacruz@jobseeker.ph', 'password123');
   assert(signInResult.success === true, 'signInWithSupabase succeeds');
   assert(Boolean(signInResult.user), 'signInWithSupabase returns authenticated user');
@@ -110,18 +78,6 @@ async function runMilestone02Tests() {
   });
   assert(typeof listenerSub.unsubscribe === 'function', 'onSupabaseAuthStateChange returns clean unsubscribe handle');
   listenerSub.unsubscribe();
-
-  // Google OAuth live pipeline & Apple decommissioning assertions (WP-03)
-  const googleOAuthResult = await signInWithSupabaseOAuth('google');
-  assert(googleOAuthResult.success === true, 'signInWithSupabaseOAuth succeeds with google provider');
-  assert(Boolean(googleOAuthResult.data), 'signInWithSupabaseOAuth returns data payload');
-
-  const appleOAuthResult = await signInWithSupabaseOAuth('apple' as any);
-  assert(appleOAuthResult.success === false, 'signInWithSupabaseOAuth rejects decommissioned apple provider');
-  assert(
-    Boolean(appleOAuthResult.error && appleOAuthResult.error.includes('Apple Sign In has been decommissioned')),
-    'signInWithSupabaseOAuth provides clear error message when apple provider is attempted'
-  );
 
   // ---------------------------------------------------------------------------
   // Suite 2: Multi-Role Personas & Demo Account Metadata

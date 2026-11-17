@@ -223,7 +223,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
   };
 
   // Quick Apply
-  const handleQuickApply = async (job: DisplayJob, e?: React.MouseEvent) => {
+  const handleQuickApply = (job: DisplayJob, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (!currentSeekerProfile) {
       showToast({
@@ -234,7 +234,7 @@ export const SeekerDashboard: React.FC<SeekerDashboardProps> = ({ onNavigate, on
       return;
     }
 
-    await applyForJob(
+    applyForJob(
       job.id,
       currentSeekerProfile.id,
       currentSeekerProfile.activeResumeId || currentSeekerProfile.resumes?.[0]?.id || 'res-1'
