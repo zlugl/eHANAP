@@ -21,14 +21,10 @@ export const Footer: React.FC<{ onNavigate?: (view: string) => void }> = ({ onNa
             <p className="text-xs text-[var(--color-muted)] leading-relaxed">
               Localized job and skills matching marketplace designed for the Public Employment Service Office (PESO) of Roxas, Oriental Mindoro.
             </p>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('privacy')}
-              className="flex items-center gap-2 text-xs text-[var(--color-green)] font-medium hover:underline cursor-pointer text-left"
-            >
-              <Shield className="w-4 h-4 shrink-0" aria-hidden="true" />
+            <div className="flex items-center gap-2 text-xs text-[var(--color-green)] font-medium">
+              <Shield className="w-4 h-4" aria-hidden="true" />
               <span>Compliant with Data Privacy Act (RA 10173)</span>
-            </button>
+            </div>
           </div>
 
           {/* Quick Links */}
@@ -82,24 +78,6 @@ export const Footer: React.FC<{ onNavigate?: (view: string) => void }> = ({ onNa
                   PESO administration
                 </button>
               </li>
-              <li>
-                <button 
-                  type="button"
-                  onClick={() => onNavigate?.('privacy')} 
-                  className="hover:text-[var(--color-ink)] transition-colors whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50"
-                >
-                  Privacy Policy
-                </button>
-              </li>
-              <li>
-                <button 
-                  type="button"
-                  onClick={() => onNavigate?.('terms')} 
-                  className="hover:text-[var(--color-ink)] transition-colors whitespace-nowrap focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50"
-                >
-                  Terms of Service
-                </button>
-              </li>
             </ul>
           </div>
 
@@ -148,23 +126,7 @@ export const Footer: React.FC<{ onNavigate?: (view: string) => void }> = ({ onNa
               BSCS research project by M. F. Lomboy, L. J. Escalona, and R. M. Sacapaño · Advised by Dr. John Edgar S. Anthony.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => onNavigate?.('privacy')}
-              className="hover:text-[var(--color-ink)] transition-colors underline cursor-pointer"
-            >
-              Privacy Policy
-            </button>
-            <span>·</span>
-            <button
-              type="button"
-              onClick={() => onNavigate?.('terms')}
-              className="hover:text-[var(--color-ink)] transition-colors underline cursor-pointer"
-            >
-              Terms of Service
-            </button>
-            <span>·</span>
+          <div className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5 text-[var(--color-muted)]" aria-hidden="true" />
               <span>Roxas, Oriental Mindoro</span>

@@ -39,14 +39,8 @@ const AdminReportsPage = lazy(() => import('./views/admin/AdminReportsPage').the
 const AdminAuditLogsPage = lazy(() => import('./views/admin/AdminAuditLogsPage').then(m => ({ default: m.AdminAuditLogsPage })));
 const AdminJobMatchingPage = lazy(() => import('./views/admin/AdminJobMatchingPage').then(m => ({ default: m.AdminJobMatchingPage })));
 const AdminLraPage = lazy(() => import('./views/admin/AdminLraPage').then(m => ({ default: m.AdminLraPage })));
-
-// Public Compliance Views (Code-Split / Lazy Loaded)
-const PrivacyPage = lazy(() => import('./views/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
-const TermsPage = lazy(() => import('./views/TermsPage').then(m => ({ default: m.TermsPage })));
-
 import { 
   isRouteAllowedForRole, 
-  isPublicRoute,
   getRequiredRoleForRoute, 
   getRoleDefaultView,
   isSeekerProfileComplete,
@@ -62,22 +56,7 @@ import { SeekerBookmarksModal } from './components/SeekerBookmarksModal';
 
 function AppContent() {
   const { currentUser, currentSeekerProfile, currentEmployerProfile, jobSeekers, employers, showToast } = useApp();
-  const [currentView, setCurrentView] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      const pathname = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
-      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-      const searchParams = new URLSearchParams(window.location.search);
-      const queryView = searchParams.get('view') || searchParams.get('page');
-      const candidate = queryView || hash || pathname;
-      if (candidate === 'privacy' || candidate === 'terms') {
-        return candidate;
-      }
-      if (candidate && isPublicRoute(candidate)) {
-        return candidate;
-      }
-    }
-    return 'landing';
-  });
+  const [currentView, setCurrentView] = useState<string>('landing');
   const [viewParams, setViewParams] = useState<any>({});
   
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -183,34 +162,7 @@ function AppContent() {
     setCurrentView(cleanView || 'landing');
     if (params) setViewParams(params);
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (typeof window !== 'undefined' && window.history?.pushState) {
-      const targetPath = cleanView === 'landing' ? '/' : `/${cleanView}`;
-      if (window.location.pathname !== targetPath) {
-        window.history.pushState({ view: cleanView }, '', targetPath);
-      }
-    }
   };
-
-  // Sync with browser back/forward and hash changes
-  React.useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const onPopState = () => {
-      const pathname = window.location.pathname.replace(/^\/+|\/+$/g, '').toLowerCase();
-      const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-      const searchParams = new URLSearchParams(window.location.search);
-      const queryView = searchParams.get('view') || searchParams.get('page');
-      const candidate = queryView || hash || pathname || 'landing';
-      if (isRouteAllowedForRole(candidate, currentUser?.role)) {
-        setCurrentView(candidate);
-      }
-    };
-    window.addEventListener('popstate', onPopState);
-    window.addEventListener('hashchange', onPopState);
-    return () => {
-      window.removeEventListener('popstate', onPopState);
-      window.removeEventListener('hashchange', onPopState);
-    };
-  }, [currentUser]);
 
   // Seeker profile setup gate: If seeker profile is not completed, enforce setup wizard across all resolutions
   React.useEffect(() => {
@@ -480,15 +432,6 @@ function AppContent() {
               {currentView === 'admin-lra' && (
                 <AdminLraPage onNavigate={handleNavigate} />
               )}
-
-              {/* Public Compliance Views */}
-              {currentView === 'privacy' && (
-                <PrivacyPage onNavigate={handleNavigate} />
-              )}
-
-              {currentView === 'terms' && (
-                <TermsPage onNavigate={handleNavigate} />
-              )}
               </Suspense>
             </motion.div>
           </AnimatePresence>
@@ -510,7 +453,6 @@ function AppContent() {
         isOpen={authModalOpen}
         initialMode={authMode}
         initialRole={authRole}
-        onNavigate={handleNavigate}
         onClose={() => setAuthModalOpen(false)}
         onSuccessRole={(role, loggedInUser, isCompletedArg) => {
           if (role === 'job_seeker') {

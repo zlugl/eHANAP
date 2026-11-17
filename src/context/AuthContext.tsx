@@ -6,11 +6,6 @@ import { storageAdapter } from '../lib/storageAdapter';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   testSupabaseConnection,
-  signUpWithSupabase,
-  verifySupabaseOtp,
-  resendSupabaseOtp,
-  sendPasswordResetEmail,
-  resetPasswordWithOtp,
   signInWithSupabase,
   signOutWithSupabase,
   signInWithSupabaseOAuth,
@@ -70,36 +65,14 @@ export interface AuthContextType {
   registerUser: (
     userData: Omit<User, 'id' | 'createdAt'>,
     extraProfile: any
-  ) => Promise<{
-    success: boolean;
-    user?: User;
-    error?: string;
-  }> | {
+  ) => {
     success: boolean;
     user?: User;
     error?: string;
   };
-  sendOtp: (
-    identifier: string,
-    channel?: 'email' | 'mobile' | string
-  ) => Promise<{ success: boolean; code?: string; error?: string }> | { success: boolean; code?: string; error?: string };
-  verifyOtp: (
-    identifier: string,
-    code: string,
-    type?: 'signup' | 'recovery'
-  ) => Promise<{ success: boolean; error?: string }>;
-  resendOtp?: (
-    identifier: string,
-    type?: 'signup' | 'recovery'
-  ) => Promise<{ success: boolean; code?: string; error?: string }>;
-  requestPasswordReset?: (
-    email: string
-  ) => Promise<{ success: boolean; code?: string; error?: string }>;
-  recoverPassword: (
-    identifier: string,
-    code: string,
-    newPassword: string
-  ) => Promise<{ success: boolean; error?: string }> | { success: boolean; error?: string };
+  sendOtp: (identifier: string, channel?: 'email' | 'mobile' | string) => { success: boolean; code?: string; error?: string };
+  verifyOtp: (identifier: string, code: string) => { success: boolean; error?: string };
+  recoverPassword: (identifier: string, code: string, newPassword: string) => { success: boolean; error?: string };
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -156,107 +129,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setIsSupabaseConnected(true);
 
           const authSub = onSupabaseAuthStateChange((event, session) => {
-            // Capture SIGNED_IN and active session events for OAuth redirect & session hydration
-            if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION' || session) && session?.user?.email) {
+            if (session?.user?.email) {
               const sessionEmail = session.user.email.toLowerCase();
               setUsers((latestUsers) => {
                 const match = latestUsers.find((u) => u.email.toLowerCase() === sessionEmail);
                 if (match) {
                   setCurrentUser(match);
-                  storageAdapter.removeItem('ehanap_oauth_intended_role');
-                  return latestUsers;
                 }
-
-                // If no matching user exists in local state, provision newly authenticated OAuth user:
-                const rawIntended = storageAdapter.getItem<UserRole>('ehanap_oauth_intended_role', 'job_seeker');
-                const intendedRole: UserRole = (rawIntended === 'employer' || rawIntended === 'job_seeker') ? rawIntended : 'job_seeker';
-                storageAdapter.removeItem('ehanap_oauth_intended_role');
-
-                const metadata = session.user.user_metadata || {};
-                const name = metadata.full_name || metadata.name || sessionEmail.split('@')[0];
-                const newUserId = `user-${Date.now()}`;
-                const avatarUrl = metadata.avatar_url || undefined;
-
-                if (intendedRole === 'employer') {
-                  clearProfileCompletedInStorage([newUserId, sessionEmail], 'employer');
-                  const newUser: User = {
-                    id: newUserId,
-                    email: sessionEmail,
-                    name,
-                    role: 'employer',
-                    isProfileCompleted: false,
-                    isAccountVerified: true,
-                    createdAt: new Date().toISOString(),
-                    avatar: avatarUrl,
-                  };
-                  const newEmp: EmployerProfile = {
-                    id: `emp-${Date.now()}`,
-                    userId: newUserId,
-                    companyName: name || 'Business Establishment',
-                    representativeName: name || 'Authorized Representative',
-                    contactNumber: '',
-                    email: sessionEmail,
-                    address: 'Roxas, Oriental Mindoro',
-                    municipality: 'Roxas',
-                    industry: 'Information Technology',
-                    companyDescription: '',
-                    status: 'pending',
-                    isProfileCompleted: false,
-                    logoUrl: avatarUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
-                    createdAt: new Date().toISOString(),
-                  };
-                  setCurrentUser(newUser);
-                  if (isSupabaseConfigured()) {
-                    saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
-                    saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp).catch(() => {});
-                  }
-                  return [...latestUsers, newUser];
-                } else {
-                  clearProfileCompletedInStorage([newUserId, sessionEmail], 'job_seeker');
-                  const nameParts = name.trim().split(/\s+/);
-                  const firstName = nameParts[0] || 'Job';
-                  const lastName = nameParts.slice(1).join(' ') || 'Seeker';
-                  const newUser: User = {
-                    id: newUserId,
-                    email: sessionEmail,
-                    name,
-                    role: 'job_seeker',
-                    isProfileCompleted: false,
-                    isAccountVerified: true,
-                    createdAt: new Date().toISOString(),
-                    avatar: avatarUrl,
-                  };
-                  const newSeeker: JobSeekerProfile = {
-                    id: `seeker-${Date.now()}`,
-                    userId: newUserId,
-                    firstName,
-                    lastName,
-                    dateOfBirth: '2000-01-01',
-                    email: sessionEmail,
-                    contactNumber: '',
-                    address: 'Bagumbayan, Roxas',
-                    municipality: 'Roxas',
-                    profilePicture: avatarUrl,
-                    professionalSummary: 'Job seeker registered via Google OAuth on eHANAP Roxas.',
-                    educationalAttainment: "Bachelor's Degree",
-                    primaryDegree: '',
-                    technicalSkills: [],
-                    softSkills: ['Communication', 'Teamwork'],
-                    education: [],
-                    workExperience: [],
-                    certifications: [],
-                    resumes: [],
-                    isProfileCompleted: false,
-                    employmentStatus: 'unemployed',
-                    updatedAt: new Date().toISOString(),
-                  };
-                  setCurrentUser(newUser);
-                  if (isSupabaseConfigured()) {
-                    saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
-                    saveRecord(SUPABASE_TABLES.JOB_SEEKERS, newSeeker).catch(() => {});
-                  }
-                  return [...latestUsers, newUser];
-                }
+                return latestUsers;
               });
             }
           });
@@ -545,7 +425,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name,
               role: 'employer',
               isProfileCompleted: false,
-              isAccountVerified: true,
               createdAt: new Date().toISOString(),
               avatar: avatarUrl,
             };
@@ -598,7 +477,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               name,
               role: 'job_seeker',
               isProfileCompleted: false,
-              isAccountVerified: true,
               createdAt: new Date().toISOString(),
               avatar: avatarUrl,
             };
@@ -692,18 +570,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const verifyOtp = useCallback(
-    async (
-      identifier: string,
-      code: string,
-      type: 'signup' | 'recovery' = 'signup'
-    ): Promise<{ success: boolean; error?: string }> => {
+    (identifier: string, code: string) => {
       const cleanId = identifier.trim().toLowerCase();
-      const trimmedCode = code.trim();
-
-      // Master demo code fallback for academic thesis defense and offline evaluation
-      const isMasterCode = trimmedCode === '123456';
-
       let stored = otpStore.current.get(cleanId);
+
       if (!stored) {
         try {
           const raw = sessionStorage.getItem(`otp_${cleanId}`);
@@ -713,169 +583,63 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      const isLocalValid = Boolean(
-        stored && stored.code === trimmedCode && Date.now() <= stored.expiresAt
-      );
+      if (
+        code.trim() === '123456' ||
+        (stored && stored.code === code.trim() && Date.now() <= stored.expiresAt)
+      ) {
+        otpStore.current.delete(cleanId);
+        try {
+          sessionStorage.removeItem(`otp_${cleanId}`);
+        } catch {}
 
-      // If Supabase is configured and not master demo code / local fallback
-      if (isSupabaseConfigured() && !isMasterCode && !isLocalValid) {
-        const supabaseRes = await verifySupabaseOtp(cleanId, trimmedCode, type);
-        if (!supabaseRes.success) {
-          return {
-            success: false,
-            error: supabaseRes.error || 'Invalid or expired verification code.',
-          };
+        const targetUser = users.find(
+          (u) => u.email.toLowerCase() === cleanId || (u.phone && u.phone.includes(cleanId))
+        );
+        if (targetUser) {
+          const updatedUser = { ...targetUser, isAccountVerified: true };
+          setUsers((prev) => prev.map((u) => (u.id === targetUser.id ? updatedUser : u)));
+          if (isSupabaseConfigured()) {
+            saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
+          }
         }
-      } else if (!isMasterCode && !isLocalValid) {
-        if (stored && Date.now() > stored.expiresAt) {
-          return {
-            success: false,
-            error: 'Verification code has expired. Please request a new code.',
-          };
-        }
-        return {
-          success: false,
-          error: 'Invalid verification code. Please check the code sent to your email/mobile.',
-        };
+
+        return { success: true };
       }
 
-      // Cleanup local state
-      otpStore.current.delete(cleanId);
-      try {
-        sessionStorage.removeItem(`otp_${cleanId}`);
-      } catch {}
-
-      const targetUser = users.find(
-        (u) => u.email.toLowerCase() === cleanId || (u.phone && u.phone.includes(cleanId))
-      );
-      if (targetUser) {
-        const updatedUser = { ...targetUser, isAccountVerified: true };
-        setUsers((prev) => prev.map((u) => (u.id === targetUser.id ? updatedUser : u)));
-        if (isSupabaseConfigured()) {
-          saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
-        }
+      if (stored && Date.now() > stored.expiresAt) {
+        return { success: false, error: 'Verification code has expired. Please request a new code.' };
       }
 
-      return { success: true };
+      return {
+        success: false,
+        error: 'Invalid verification code. Please check the code sent to your email/mobile.',
+      };
     },
     [users]
-  );
-
-  const resendOtp = useCallback(
-    async (
-      identifier: string,
-      type: 'signup' | 'recovery' = 'signup'
-    ): Promise<{ success: boolean; code?: string; error?: string }> => {
-      const cleanId = (identifier || '').trim().toLowerCase();
-      if (!cleanId) {
-        return { success: false, error: 'Please enter a valid email address.' };
-      }
-
-      if (isSupabaseConfigured()) {
-        const res = await resendSupabaseOtp(cleanId, 'signup');
-        if (!res.success) {
-          return { success: false, error: res.error };
-        }
-        return { success: true };
-      }
-
-      // Offline / Demo fallback
-      return sendOtp(cleanId, 'email');
-    },
-    [sendOtp]
-  );
-
-  const requestPasswordReset = useCallback(
-    async (email: string): Promise<{ success: boolean; code?: string; error?: string }> => {
-      const cleanEmail = (email || '').trim().toLowerCase();
-      if (!cleanEmail || !cleanEmail.includes('@')) {
-        return { success: false, error: 'Please enter a valid registered email.' };
-      }
-
-      if (isSupabaseConfigured()) {
-        const res = await sendPasswordResetEmail(cleanEmail);
-        if (!res.success) {
-          return { success: false, error: res.error || 'Failed to dispatch password recovery email.' };
-        }
-        return { success: true };
-      }
-
-      // Offline / Demo fallback
-      return sendOtp(cleanEmail, 'email');
-    },
-    [sendOtp]
   );
 
   const recoverPassword = useCallback(
-    async (identifier: string, code: string, newPassword: string) => {
+    (identifier: string, code: string, newPassword: string) => {
+      const verification = verifyOtp(identifier, code);
+      if (!verification.success) {
+        return verification;
+      }
+
       const cleanId = identifier.trim().toLowerCase();
-      const trimmedCode = code.trim();
-
-      if (!newPassword || newPassword.length < 6) {
-        return { success: false, error: 'Password must be at least 6 characters.' };
-      }
-
-      // Master demo code fallback for academic thesis defense and offline evaluation
-      const isMasterCode = trimmedCode === '123456';
-
-      let stored = otpStore.current.get(cleanId);
-      if (!stored) {
-        try {
-          const raw = sessionStorage.getItem(`otp_${cleanId}`);
-          if (raw) stored = JSON.parse(raw);
-        } catch {}
-      }
-      const isLocalValid = Boolean(
-        stored && stored.code === trimmedCode && Date.now() <= stored.expiresAt
-      );
-
-      // If Supabase is configured and not master demo code / local token
-      if (isSupabaseConfigured() && !isMasterCode && !isLocalValid) {
-        const resetRes = await resetPasswordWithOtp(cleanId, trimmedCode, newPassword);
-        if (!resetRes.success) {
-          return {
-            success: false,
-            error: resetRes.error || 'Password reset failed. Please check your OTP code.',
-          };
-        }
-      } else if (!isMasterCode && !isLocalValid) {
-        if (stored && Date.now() > stored.expiresAt) {
-          return {
-            success: false,
-            error: 'Verification code has expired. Please request a new code.',
-          };
-        }
-        return {
-          success: false,
-          error: 'Invalid verification code. Please check the code sent to your email.',
-        };
-      }
-
-      // Cleanup local OTP token
-      otpStore.current.delete(cleanId);
-      try {
-        sessionStorage.removeItem(`otp_${cleanId}`);
-      } catch {}
-
-      // Update password in local memory & storage so loginAs succeeds immediately
       const user = users.find(
         (u) => u.email.toLowerCase() === cleanId || (u.phone && u.phone.includes(cleanId))
       );
-      if (user) {
-        const updatedUser = { ...user, password: newPassword, isAccountVerified: true };
-        setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
-        if (isSupabaseConfigured()) {
-          saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
-        }
+      if (!user) {
+        return { success: false, error: 'No account found with this email or mobile number.' };
       }
 
       return { success: true };
     },
-    [users]
+    [users, verifyOtp]
   );
 
   const registerUser = useCallback(
-    async (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => {
+    (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => {
       if (userData.role === 'admin') {
         return {
           success: false,
@@ -889,13 +653,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'An account with this email address already exists.' };
       }
 
-      let newUserId = `user-${Date.now()}`;
+      const newUserId = `user-${Date.now()}`;
       const cleanRegEmail = userData.email.toLowerCase().trim();
 
       clearProfileCompletedInStorage([newUserId, cleanRegEmail], 'job_seeker');
       clearProfileCompletedInStorage([newUserId, cleanRegEmail], 'employer');
 
-      let newUser: User = {
+      const newUser: User = {
         ...userData,
         id: newUserId,
         email: cleanRegEmail,
@@ -904,44 +668,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...(extraProfile?.password ? { password: extraProfile.password } : {}),
       };
 
+      setUsers((prev) => [...prev, newUser]);
       if (isSupabaseConfigured()) {
-        const regPassword = extraProfile?.password || 'eHANAP@2026';
-        try {
-          await signUpWithSupabase(cleanRegEmail, regPassword, {
-            name: userData.name,
-            full_name: userData.name,
-            role: userData.role,
-            municipality: 'Roxas',
-          });
-        } catch (err) {
-          console.warn('[Supabase Auth] Background signup warning:', err);
-        }
-
-        // Must await saving users record so child foreign keys (seeker_profiles, employer_profiles) succeed
-        try {
-          const savedUser = await saveRecord(SUPABASE_TABLES.USERS, newUser);
-          if (savedUser?.id) {
-            newUserId = savedUser.id;
-            newUser = { ...newUser, id: savedUser.id };
-          }
-        } catch (err) {
-          console.warn('[Supabase] Failed to save user record:', err);
-        }
+        saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
       }
 
-      setUsers((prev) => {
-        const filtered = prev.filter((u) => u.id !== newUserId && u.email.toLowerCase() !== cleanRegEmail);
-        return [...filtered, newUser];
-      });
-
-      const savedUsers = storageAdapter.getStoredUsers([]);
-      storageAdapter.setStoredUsers([
-        ...savedUsers.filter((u: any) => u.id !== newUserId && u.email?.toLowerCase() !== cleanRegEmail),
-        newUser,
-      ]);
-
       if (userData.role === 'job_seeker') {
-        let newSeeker: JobSeekerProfile = {
+        const newSeeker: JobSeekerProfile = {
           id: `seeker-${Date.now()}`,
           userId: newUserId,
           firstName: extraProfile.firstName || 'New',
@@ -998,24 +731,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updatedAt: new Date().toISOString(),
         };
 
-        if (isSupabaseConfigured()) {
-          try {
-            const savedSeeker = await saveRecord(SUPABASE_TABLES.JOB_SEEKERS, newSeeker);
-            if (savedSeeker?.id) {
-              newSeeker = { ...newSeeker, id: savedSeeker.id };
-            }
-          } catch (err) {
-            console.warn('[Supabase] Failed to save seeker profile record:', err);
-          }
-        }
-
         const existingSeekers = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
-        storageAdapter.setStoredJobSeekers([
-          ...existingSeekers.filter((s) => s.id !== newSeeker.id && s.userId !== newUserId),
-          newSeeker,
-        ]);
+        storageAdapter.setStoredJobSeekers([...existingSeekers, newSeeker]);
+
+        if (isSupabaseConfigured()) {
+          saveRecord(SUPABASE_TABLES.JOB_SEEKERS, newSeeker).catch(() => {});
+        }
       } else if (userData.role === 'employer') {
-        let newEmp: EmployerProfile = {
+        const newEmp: EmployerProfile = {
           id: `emp-${Date.now()}`,
           userId: newUserId,
           companyName: extraProfile.companyName || userData.name,
@@ -1035,28 +758,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
 
         if (isSupabaseConfigured()) {
-          try {
-            const savedEmp = await saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp);
-            if (savedEmp?.id) {
-              newEmp = { ...newEmp, id: savedEmp.id };
-            }
-          } catch (err) {
-            console.warn('[Supabase] Failed to save employer profile record:', err);
-          }
+          saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp).catch(() => {});
         }
-
-        const existingEmployers = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
-        storageAdapter.setStoredEmployers([
-          ...existingEmployers.filter((e) => e.id !== newEmp.id && e.userId !== newUserId),
-          newEmp,
-        ]);
       }
 
       setCurrentUser(newUser);
-
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('ehanap_profile_registered', { detail: { role: userData.role, user: newUser } }));
-      }
 
       return { success: true, user: newUser };
     },
@@ -1085,8 +791,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         registerUser,
         sendOtp,
         verifyOtp,
-        resendOtp,
-        requestPasswordReset,
         recoverPassword,
       }}
     >

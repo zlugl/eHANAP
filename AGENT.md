@@ -13,22 +13,22 @@ The system serves three primary user roles:
 2. **Employers**: Roxas-based businesses posting vacancies, undergoing PESO compliance verification, and accessing the **Automated Candidate Ranking Engine** to discover and recruit top-matching candidates.
 3. **PESO / LGU Admin**: Municipal employment monitors approving job posts, managing Local Recruitment Activities (LRA for regional partners like Puregold Calapan), verifying business compliance, and monitoring municipal employment growth metrics.
 
-## Active Phase: Supabase Native Authentication, Email OTP & Social OAuth
+## Active Phase: Modularity & Architecture Debt Remediation
 
-The structural modularity refactoring (ARCH 01–08) is complete, with 549/549 architectural assertions passing. The active phase focuses on implementing **native Supabase Authentication**, **6-digit email OTP verification for registration and password recovery**, and **Google & Apple OAuth 2.0 integration** as specified in [SPEC.md](SPEC.md) and tracked in [PROGRESS.md](PROGRESS.md).
+The initial 7 implementation milestones are complete, verified by 424 automated test assertions. The active phase focuses on technical debt reduction, modular context slicing, and architectural boundary enforcement as prioritized in the Modularity Audit in [SPEC.md](SPEC.md).
 
 ## Hard Rules
 
-- **Work Package Scope**: Implement exactly one work package per session (from [SPEC.md](SPEC.md) and [PROGRESS.md](PROGRESS.md)). Stop cleanly at its boundary.
+- **Work Package Scope**: Implement exactly one refactoring work package per session (from [SPEC.md](SPEC.md) and [PROGRESS.md](PROGRESS.md)). Stop cleanly at its boundary.
 - **Approved Tech Stack**:
   - **Frontend**: React 19, Vite, Tailwind CSS v4, Motion, Lucide React, Recharts.
   - **Backend**: Express + Node.js (`server.ts` with TypeScript execution via TSX).
   - **Database & Auth Target**: **Supabase** (PostgreSQL, Supabase Auth, Row Level Security, Supabase Storage).
   - **AI / Parsing Utilities**: `@google/genai` (Google GenAI SDK), `pdf-parse`, `mammoth`.
-- **Authentication & Verification Directives**:
-  - **Supabase Native First**: Use native Supabase Auth methods (`signUp`, `verifyOtp`, `resetPasswordForEmail`, `signInWithOAuth`) rather than introducing third-party email/SMS services (e.g. Twilio, SendGrid).
-  - **Dual-Mode Offline Fallback**: Always maintain offline/demo fallback logic (`isSupabaseConfigured()`) so evaluators and thesis panelists can demo the application instantly using demo personas without external internet access or unconfigured keys.
-  - **Verification Boundary**: Keep user identity OTP (`AuthModal.tsx`) strictly separated from municipal PESO employer document accreditation (`AdminVerificationsPage.tsx`).
+- **Database Architecture Directive**:
+  - Transition cleanly to exclusive **Supabase** persistence per academic thesis panel directive (retire Firebase Firestore and Firebase Auth per ARCH-02).
+  - Never leave half-migrated ghost references or conflicting dual writes.
+  - Retain backwards-compatible mock fallback loaders for rapid offline demonstration and thesis defense stability.
 - **Core Thesis Invariant — Automated Candidate Ranking**:
   - When an employer posts a job (and upon PESO approval), the system must automatically evaluate registered seekers and display a **Ranked Candidate List** ordered by compatibility score percentage (0–100%).
   - Matching evaluation must be explainable (education level, degree alignment, required vs preferred skills, verified assessment credentials, years of experience).
@@ -37,10 +37,10 @@ The structural modularity refactoring (ARCH 01–08) is complete, with 549/549 a
   - Job postings must pass PESO approval before appearing publicly on seeker boards.
 - **Verification Standards**:
   - Pass `npm run lint` (`tsc --noEmit`) with 0 errors before concluding any work package.
-  - Pass `npm test` (all 424 regression test assertions) before and after any modification.
-  - Never claim a feature is complete without verifiable runtime evidence.
+  - Pass `npm test` (all 424 test assertions) before and after any structural modification.
+  - Never claim a refactoring is complete without verifiable runtime evidence.
 
-## Definition of Done for an Authentication Work Package
+## Definition of Done for a Refactoring Work Package
 
 1. `npm run lint` (`tsc --noEmit`) passes with 0 errors.
 2. `npm test` passes all verification suites with 0 regressions.

@@ -196,9 +196,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   const [contactNumber, setContactNumber] = useState(currentSeekerProfile?.contactNumber || '');
   const [email, setEmail] = useState(currentSeekerProfile?.email || '');
   const [address, setAddress] = useState(currentSeekerProfile?.address || '');
-  const [barangay, setBarangay] = useState(
-    currentSeekerProfile?.barangay || normalizeBarangay('', currentSeekerProfile?.address) || ''
-  );
+  const [barangay, setBarangay] = useState(currentSeekerProfile?.barangay || '');
   const [municipality, setMunicipality] = useState(currentSeekerProfile?.municipality || 'Roxas');
 
   // Education state
@@ -1010,14 +1008,13 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
               </div>
 
               <div>
-                <label htmlFor="seeker-setup-barangay" className="block text-xs font-semibold text-[var(--color-ink)] mb-1">
+                <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">
                   Barangay
                 </label>
                 <select
-                  id="seeker-setup-barangay"
-                  value={barangay}
+                  value={normalizeBarangay(barangay, address)}
                   onChange={e => setBarangay(e.target.value)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors cursor-pointer"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 >
                   <option value="">Select Barangay (Roxas)</option>
                   {ROXAS_BARANGAYS.map(b => (
