@@ -34,18 +34,16 @@ interface EmployerProfilePageProps {
 export const EmployerProfilePage: React.FC<EmployerProfilePageProps> = ({ onNavigate }) => {
   const { currentEmployerProfile, updateEmployerProfile, verifyEmployer, showToast } = useApp();
 
-  if (!currentEmployerProfile) return null;
-
-  const [companyName, setCompanyName] = useState(currentEmployerProfile.companyName || '');
-  const [representativeName, setRepresentativeName] = useState(currentEmployerProfile.representativeName || '');
-  const [industry, setIndustry] = useState(currentEmployerProfile.industry || JOB_CATEGORIES[0]);
-  const [municipality, setMunicipality] = useState(currentEmployerProfile.municipality || 'Roxas');
-  const [address, setAddress] = useState(currentEmployerProfile.address || '');
-  const [contactNumber, setContactNumber] = useState(currentEmployerProfile.contactNumber || '');
-  const [email, setEmail] = useState(currentEmployerProfile.email || '');
-  const [website, setWebsite] = useState(currentEmployerProfile.website || '');
-  const [companyDescription, setCompanyDescription] = useState(currentEmployerProfile.companyDescription || currentEmployerProfile.description || '');
-  const [logoUrl, setLogoUrl] = useState(currentEmployerProfile.logoUrl || '');
+  const [companyName, setCompanyName] = useState(currentEmployerProfile?.companyName || '');
+  const [representativeName, setRepresentativeName] = useState(currentEmployerProfile?.representativeName || '');
+  const [industry, setIndustry] = useState(currentEmployerProfile?.industry || JOB_CATEGORIES[0]);
+  const [municipality, setMunicipality] = useState(currentEmployerProfile?.municipality || 'Roxas');
+  const [address, setAddress] = useState(currentEmployerProfile?.address || '');
+  const [contactNumber, setContactNumber] = useState(currentEmployerProfile?.contactNumber || '');
+  const [email, setEmail] = useState(currentEmployerProfile?.email || '');
+  const [website, setWebsite] = useState(currentEmployerProfile?.website || '');
+  const [companyDescription, setCompanyDescription] = useState(currentEmployerProfile?.companyDescription || currentEmployerProfile?.description || '');
+  const [logoUrl, setLogoUrl] = useState(currentEmployerProfile?.logoUrl || '');
   const [isSaved, setIsSaved] = useState(false);
 
   const employerLogoInputRef = React.useRef<HTMLInputElement | null>(null);
@@ -76,23 +74,46 @@ export const EmployerProfilePage: React.FC<EmployerProfilePageProps> = ({ onNavi
   };
   
   // PESO Regulatory Requirements State
-  const [mayorsPermitFile, setMayorsPermitFile] = useState(currentEmployerProfile.mayorsPermitFile || currentEmployerProfile.businessPermitFile || '');
-  const [dtiSecFile, setDtiSecFile] = useState(currentEmployerProfile.dtiSecFile || '');
-  const [sanitaryPermitFile, setSanitaryPermitFile] = useState(currentEmployerProfile.sanitaryPermitFile || '');
-  const [letterOfIntentFile, setLetterOfIntentFile] = useState(currentEmployerProfile.letterOfIntentFile || '');
-  const [aitrFile, setAitrFile] = useState(currentEmployerProfile.aitrFile || '');
-  const [sedulaFile, setSedulaFile] = useState(currentEmployerProfile.sedulaFile || '');
-  const [barangayClearanceFile, setBarangayClearanceFile] = useState(currentEmployerProfile.barangayClearanceFile || '');
-  const [esoCertFile, setEsoCertFile] = useState(currentEmployerProfile.esoCertFile || '');
-  const [zoningCertFile, setZoningCertFile] = useState(currentEmployerProfile.zoningCertFile || '');
-  const [buildingPermitFile, setBuildingPermitFile] = useState(currentEmployerProfile.buildingPermitFile || '');
-  const [tourismClearanceFile, setTourismClearanceFile] = useState(currentEmployerProfile.tourismClearanceFile || '');
-  const [mtoReceiptFile, setMtoReceiptFile] = useState(currentEmployerProfile.mtoReceiptFile || '');
-  const [fireSafetyClearanceFile, setFireSafetyClearanceFile] = useState(currentEmployerProfile.fireSafetyClearanceFile || '');
+  const [mayorsPermitFile, setMayorsPermitFile] = useState(currentEmployerProfile?.mayorsPermitFile || currentEmployerProfile?.businessPermitFile || '');
+  const [dtiSecFile, setDtiSecFile] = useState(currentEmployerProfile?.dtiSecFile || '');
+  const [sanitaryPermitFile, setSanitaryPermitFile] = useState(currentEmployerProfile?.sanitaryPermitFile || '');
+  const [letterOfIntentFile, setLetterOfIntentFile] = useState(currentEmployerProfile?.letterOfIntentFile || '');
+  const [aitrFile, setAitrFile] = useState(currentEmployerProfile?.aitrFile || '');
+  const [sedulaFile, setSedulaFile] = useState(currentEmployerProfile?.sedulaFile || '');
+  const [barangayClearanceFile, setBarangayClearanceFile] = useState(currentEmployerProfile?.barangayClearanceFile || '');
+  const [esoCertFile, setEsoCertFile] = useState(currentEmployerProfile?.esoCertFile || '');
+  const [zoningCertFile, setZoningCertFile] = useState(currentEmployerProfile?.zoningCertFile || '');
+  const [buildingPermitFile, setBuildingPermitFile] = useState(currentEmployerProfile?.buildingPermitFile || '');
+  const [tourismClearanceFile, setTourismClearanceFile] = useState(currentEmployerProfile?.tourismClearanceFile || '');
+  const [mtoReceiptFile, setMtoReceiptFile] = useState(currentEmployerProfile?.mtoReceiptFile || '');
+  const [fireSafetyClearanceFile, setFireSafetyClearanceFile] = useState(currentEmployerProfile?.fireSafetyClearanceFile || '');
 
-  const [businessPermitNo, setBusinessPermitNo] = useState(currentEmployerProfile.businessPermitNo || '');
-  const [dtiSecRegistration, setDtiSecRegistration] = useState(currentEmployerProfile.dtiSecRegistration || '');
-  const [bir2303No, setBir2303No] = useState(currentEmployerProfile.bir2303No || '');
+  const [businessPermitNo, setBusinessPermitNo] = useState(currentEmployerProfile?.businessPermitNo || '');
+  const [dtiSecRegistration, setDtiSecRegistration] = useState(currentEmployerProfile?.dtiSecRegistration || '');
+  const [bir2303No, setBir2303No] = useState(currentEmployerProfile?.bir2303No || '');
+
+  if (!currentEmployerProfile) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[var(--color-paper)] border border-[var(--color-rule)] rounded-2xl p-6 text-center space-y-3">
+          <Building2 className="w-8 h-8 text-[var(--color-accent)] mx-auto" aria-hidden="true" />
+          <h2 className="text-lg font-bold text-[var(--color-ink)]">Employer Profile Unavailable</h2>
+          <p className="text-xs text-[var(--color-ink-muted)]">
+            Your establishment profile is still loading or needs initial setup.
+          </p>
+          {onNavigate && (
+            <button
+              type="button"
+              onClick={() => onNavigate('employer-profile-setup')}
+              className="btn btn--primary text-xs px-4 py-2 rounded-xl cursor-pointer"
+            >
+              Go to Profile Setup
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const isForCompliance = currentEmployerProfile.status === 'for_compliance';
 

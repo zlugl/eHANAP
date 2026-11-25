@@ -1,334 +1,154 @@
-# Production Architecture & Code Smell Audit - eHANAP
-**Audited commit/date:** 2026-11-10 (Commit: `cf9cabf`)
-**Overall Architectural Health:** 🟠 Significant Architectural Problems
+# Production & Code Quality Audit — eHANAP
+**Audited date:** 2026-11-25
+**Baseline checks:** `npx tsc --noEmit` (0 errors), `npx tsx scripts/verify-milestone07.ts` (424/424 tests passing)
 
-## Executive Summary
-eHANAP possesses well-isolated, deterministic domain logic (`decisionTree.ts`, `atsEngine.ts`) with 424 automated verification tests passing, but suffers from severe architectural concentration in its application and presentation layers. The central bottleneck is a 3,156-line monolithic `AppContext.tsx` on which 48 of 55 source files (87%) directly depend, coupling UI components to 25 distinct state slices, dual-database writes, and demo switching. A high-risk split-brain persistence mechanism writes concurrently to both Supabase PostgreSQL and Firebase Firestore with leaked infrastructure primitives, while over 65 uncoordinated `localStorage` calls cause active state desynchronization (notably between job detail bookmarks and seeker dashboard bookmarks). Furthermore, massive God Views (e.g., `SeekerProfilePage.tsx` at 2,905 lines and `Navbar.tsx` at 1,456 lines) and zero route-level code splitting create significant merge-conflict bottlenecks and runtime overhead. The highest-value refactoring is slicing `AppContext` into focused domain contexts (Auth, Notifications/Toasts, Jobs, Seekers) alongside unifying browser storage behind a centralized adapter.
-
----
-
-## Architecture & Boundaries at a Glance
-```text
-[ CODE MODULE STRUCTURE ]                         [ ACTUAL RUNTIME TOPOLOGY ]
-src/App.tsx (25 views bundled statically)         Browser Client (Single Monolithic Bundle)
-  │                                                  │
-  ├──► src/context/AppContext.tsx (God Context)      ├──► React Virtual DOM (48 files re-render on any state tick)
-  │      ├── Auth, OTP, Demo Switcher                ├──► localStorage (65+ scattered calls, desynced keys)
-  │      ├── Dual-Persistence Sync Logic             ├──► Supabase Cloud API (PostgreSQL + RLS + Realtime)
-  │      ├── 25 Entity State Slices                  ├──► Firebase Firestore API (Dual-write split brain)
-  │      └── Decision Tree / ATS Orchestration       └──► Firebase Auth (Google OAuth popup bypass)
-  │                                                  │
-  ├──► src/views/ & src/components/                  │ (HTTP JSON POST /api/resume/parse)
-  │      └── Pairwise Decision Tree (Render Loop)    ▼
-  │                                               Node.js Backend (server.ts - 459 lines)
-  └──► src/utils/ (Pure Domain Core)                 ├── Express HTTP Server + Vite Dev Middleware
-         ├── decisionTree.ts (Pure node scoring)     ├── Mammoth DOCX & pdf-parse Buffer Extractors
-         └── atsEngine.ts (Keyword / layout rules)   └── Google GenAI SDK (Gemini 3.8 Flash + Circuit Breaker)
-```
-
-| Architectural Boundary | Current Responsibility | Boundary Quality | Main Structural Concern |
-| :--- | :--- | :--- | :--- |
-| **Presentation / Views** (`src/views/*`, `src/components/*`) | Multi-role dashboards, forms, editorial Hallmark UI | **Leaky / Bloated** | Mega-views (`SeekerProfilePage` 2,905 lines, `Navbar` 1,456 lines); re-evaluates pairwise Decision Tree in render loops |
-| **Routing & Shell** (`src/App.tsx`) | Role guards, profile completion gates, navigation | **Leaky** | Static imports of all 25 views; directly inspects raw `localStorage` for profile completion flags |
-| **Application / State** (`src/context/AppContext.tsx`) | Global state, auth, data sync, domain orchestration | **Absent (God Context)** | 3,156 lines, 25 state slices, 40+ methods; 48 of 55 source files (87%) depend directly upon it |
-| **Domain Core** (`src/utils/decisionTree.ts`, `atsEngine.ts`) | Decision Tree classification, ATS evaluation | **Clear** | Well-isolated pure functions, deterministic, zero DOM/network coupling, 100% testable |
-| **Data Access** (`src/services/*`, `src/lib/*`) | Supabase & Firestore persistence, transformers | **Leaky / Split-Brain** | Dual persistence writes simultaneously to Supabase and Firestore; auth and database primitives mixed in single files |
-| **Infrastructure / Server** (`server.ts`) | Express API, Vite middleware, document parsing, AI | **Leaky** | Single 459-line server file mixes HTTP lifecycle, Vite middleware, binary document parsing, and Gemini prompt templates |
+**What this repo does:** eHANAP is a web job-matching platform built for the Public Employment Service Office (PESO) in Roxas, Oriental Mindoro. Job seekers upload resumes or Philippine Bio-Data sheets, employers post vacancies and review ranked candidates, and PESO administrators verify business permits, run recruitment drives, and issue referral slips. **Assumed load:** a municipal pilot with hundreds to a few thousand local users, a few dozen employers, and one or two PESO staff online at the same time on a single Node/Express server backed by Supabase.
 
 ---
 
-## 🔥 Top Architecture Smells
+## Audit Findings
 
-### 1. Monolithic Global Context as Universal State & Business Hub
-- **ID:** ARCH-01 | **Class:** `GOD_MODULE` / `LOW_COHESION` / `HIGH_COUPLING` | **Severity:** 🔴 Critical | **Status:** `CURRENT`
-- **Blast Radius:** High | **Confidence:** High
-- **Location & Evidence:** `src/context/AppContext.tsx` (Lines 1–3,156; 3,156 lines total). Consumed directly by 48 out of 55 source files (87% of repository files import `useApp`).
-- **Responsibility Analysis:** `AppContext` currently owns 25 state variables (`users`, `employers`, `jobSeekers`, `jobPosts`, `applications`, `interviews`, `notifications`, `auditLogs`, `announcements`, `jobSubscriptions`, `referralSlips`, `localRecruitmentActivities`, `activeToast`, `conversations`, `chatMessages`, `companyReviews`, `profileViews`, `invitations`, etc.), multi-backend database dual-persistence, Supabase/Firebase authentication, OTP generation, demo persona switching, ATS resume scoring, Decision Tree recalculation, and UI toast timers.
-- **Why This Is a Smell & Consequence:**
-  - *Re-render cascade:* Any state change in the application (e.g., dismissing a toast, marking a single notification as read, typing into a chat message input) triggers context updates that force re-rendering across 48 consumer components.
-  - *Zero isolation & high blast radius:* Modifying logic for chat or referral slips risks introducing unintended regressions into candidate ranking, job application workflows, or employer verification.
-  - *Blocks isolated testing:* Independent views cannot be mounted or tested in isolation without mocking the entire 3,156-line context state interface.
-- **Incremental Refactoring Plan:**
-  1. *Step 1: Extract UI Feedback Context:* Move `activeToast`, `showToast`, `dismissToast`, and notification read/unread handlers into an isolated `ToastContext` and `NotificationContext`.
-  2. *Step 2: Extract Auth & Session Context:* Move user session, demo switcher, and login/logout methods into a dedicated `AuthContext` (`currentUser`, `currentRole`, `switchDemoRole`).
-  3. *Step 3: Extract Domain State Stores:* Split entity collections into domain-specific contexts (`JobPostContext`, `ApplicationContext`, `EmployerContext`, `SeekerContext`).
-- **Trade-off:** Requires wrapping the application root with composite/nested providers and updating consumer import statements.
+### Must fix
 
----
+1. **Open database access lets anyone read or delete all data** (`supabase_schema.sql:L578-591`, `supabase/migrations/20261109000001_initial_ehanap_schema.sql:L538-550`)
+   - **What this is:** Row Level Security (RLS — database rules that decide which user can read or change each row) policies across all 13 Supabase tables.
+   - **Problem:** Every table has `FOR ALL USING (true) WITH CHECK (true)` for `anon` (unauthenticated visitors) and `authenticated` users. Since the public Supabase anon key ships in the browser bundle, any visitor can read all seekers' birthdays, addresses, and phone numbers, approve their own company, or wipe all tables via `resetSupabaseDatabase()`.
+   - **Fix:** Replace `USING (true)` with owner- and role-scoped policies using `auth.uid()`, restricting `employer_profiles.status`, `job_posts.status`, and `audit_logs` writes to PESO admin accounts.
+   - **If we skip it:** Anyone with browser DevTools can steal personal constituent data or erase the live municipal database.
 
-### 2. Split-Brain Dual Persistence & Leaked Firebase Dependencies
-- **ID:** ARCH-02 | **Class:** `DEPLOYMENT_COUPLING` / `LEAKED_INFRASTRUCTURE` / `SHARED_STATE` | **Severity:** 🔴 Critical | **Status:** `REMEDIATED` (Work Package 3)
-- **Blast Radius:** High | **Confidence:** High
-- **Location & Evidence:** `src/context/AppContext.tsx:98-118`, `src/services/firestoreService.ts` (Lines 1–265), `src/lib/firebase.ts` (Lines 1–25), `package.json:28` (`firebase: ^12.17.1`).
-- **Responsibility Analysis:** While the academic thesis directive mandated migrating cleanly to Supabase (PostgreSQL), `saveDocument` and `deleteDocument` in `AppContext.tsx` execute dual-writes to both Supabase and Firestore simultaneously. In addition, Google OAuth in `AppContext.tsx:947-1139` authenticates against Firebase (`firebase/auth`) rather than Supabase Auth.
-- **Why This Is a Smell & Consequence:**
-  - *Silent data divergence (split brain):* Writes to Supabase and Firestore occur without distributed transaction guarantees. If network connectivity fails intermittently, records diverge between databases.
-  - *Bundle bloat & deployment friction:* Production bundles retain the full Firebase client library (~250KB minified/gzipped) alongside `@supabase/supabase-js`.
-  - *Direct thesis violation:* Exposes the project to panel critique regarding incomplete database migration.
-- **Incremental Refactoring Plan:**
-  1. *Step 1: Migrate Google OAuth to Supabase:* Replace `signInWithPopup(auth, GoogleAuthProvider)` with `supabase.auth.signInWithOAuth({ provider: 'google' })`.
-  2. *Step 2: Isolate and Deprecate Dual-Persistence Writes:* Transition `saveDocument` to write exclusively to `supabaseService.ts`, isolating Firestore writes behind an explicit opt-in legacy flag.
-  3. *Step 3: Remove Firebase SDK:* Delete `src/services/firestoreService.ts`, `src/lib/firebase.ts`, and prune `firebase` from `package.json`.
-- **Trade-off:** Requires establishing the Google OAuth client credentials in the Supabase Cloud dashboard.
+2. **Sign-in skips password checks, accepts `123456` as OTP, and password reset is broken** (`src/context/AuthContext.tsx:L259-299, L586-589, L621-638`, `src/views/AuthModal.tsx:L433`)
+   - **What this is:** User login, 6-digit one-time passcode (OTP) verification, and password recovery.
+   - **Problem:** `loginAs` only checks `found.password` if that field exists and ignores errors from `signInWithSupabase`, so any user loaded from Supabase (where `users` has no `password` column) can be logged into with any random password—including the PESO admin account. `verifyOtp` also accepts `'123456'` for everyone, and `AuthModal.tsx` passes `(email, newPassword, forgotOtp)` into `recoverPassword(identifier, code, newPassword)` with the code and password swapped, while `recoverPassword` never updates the password.
+   - **Fix:** Await `signInWithSupabase` when Supabase is configured and reject login if it fails, remove the `'123456'` backdoor in `src/context/AuthContext.tsx:L586-589`, fix the argument order in `src/views/AuthModal.tsx:L433`, and update the password on reset.
+   - **If we skip it:** Anyone can log in as the PESO administrator with a bogus password, bypass OTP checks, and never reset a forgotten password.
 
----
+3. **Saving users to Supabase fails silently because `password` is not a table column** (`src/context/AuthContext.tsx:L662-674`, `src/services/supabaseService.ts:L198-218`, `supabase_schema.sql:L26-37`)
+   - **What this is:** Persisting newly registered and demo accounts into the Supabase `users` table.
+   - **Problem:** `registerUser` attaches `password` to `newUser` and calls `saveRecord('users', newUser)`, which sends `{ ..., password }` to PostgreSQL. Because the `users` table has no `password` column, Supabase rejects the insert and `saveRecord` swallows the error.
+   - **Fix:** Register credentials through `signUpWithSupabase(email, password)` and omit `password` from the object passed to `saveRecord(SUPABASE_TABLES.USERS, ...)`.
+   - **If we skip it:** New users are never saved to the Supabase `users` table, causing linked `seeker_profiles` and `employer_profiles` inserts to fail foreign-key checks.
 
-### 3. Fragmented & Desynchronized LocalStorage State (Leaked Infrastructure)
-- **ID:** ARCH-03 | **Class:** `SHARED_STATE` / `LEAKED_INFRASTRUCTURE` / `CHANGE_AMPLIFICATION` | **Severity:** 🟠 High | **Status:** `CURRENT`
-- **Blast Radius:** High | **Confidence:** High
-- **Location & Evidence:** Over 65 uncoordinated `localStorage.getItem` / `localStorage.setItem` calls across 11 files (`src/App.tsx:136, 156, 186, 206, 492, 515`, `src/context/AppContext.tsx:231, 254, 284, 544, 578, 679, 853, 976, 1866, 1978, 2607`, `src/views/JobDetailPage.tsx:16, 28`, `src/views/seeker/SeekerDashboard.tsx:114, 225`, `src/views/seeker/SeekerProfilePage.tsx:275-278`, `src/views/seeker/SeekerProfileSetupWizard.tsx:520-529`, `src/views/employer/EmployerProfileSetupWizard.tsx:254-263`, `src/views/AuthModal.tsx:363-364`, `src/components/Navbar.tsx:80-90`, `src/utils/notificationUtils.ts:95-96`).
-- **Responsibility Analysis:** Presentation components directly mutate browser storage using hardcoded strings, bypassing state synchronization layers.
-- **Why This Is a Smell & Consequence:**
-  - *Active data desynchronization:* In `JobDetailPage.tsx:16-28`, bookmarking reads and writes `'seeker_bookmarked_jobs'`, while `AppContext.tsx:284` uses `'ehanap_bookmarks'`. Jobs bookmarked on the detail page never show up in the Navbar drawer, Seeker Dashboard, or Bookmarks modal.
-  - *Change amplification on profile completion:* Checking whether a profile is complete requires testing four separate conditions across 8 files (`localStorage.getItem('ehanap_profile_completed_' + id)`, `'...completed_' + email`, hardcoded `'poqiq75'`, `profile.isProfileCompleted`). Changing the completion invariant forces edits in 8 files and over 25 call sites.
-  - *SSR / Headless test vulnerability:* Direct `localStorage` access without abstraction breaks when rendered in node or headless test environments.
-- **Incremental Refactoring Plan:**
-  1. *Step 1: Unify Bookmark State Keys:* Route `JobDetailPage.tsx` and `SeekerDashboard.tsx` through `AppContext.toggleBookmarkJob` and retire the rogue `'seeker_bookmarked_jobs'` key.
-  2. *Step 2: Encapsulate Profile Completion Invariant:* Create a pure domain predicate `isProfileComplete(user, profile)` in `src/utils/routeGuards.ts` and replace all 25+ raw localStorage invocations.
-  3. *Step 3: Centralize Storage Adapter:* Introduce `src/lib/storageAdapter.ts` with typed keys, namespace prefixing, and automated serialization/deserialization.
-- **Trade-off:** Minimal; fixes an active user-facing bookmarking bug and consolidates redundant code.
+4. **Decision Tree education check penalizes almost every seeker and High School job** (`src/utils/decisionTree.ts:L6-14, L113-125`, `src/views/seeker/SeekerProfileSetupWizard.tsx:L1045-1051`)
+   - **What this is:** The lookup table (`EDUCATION_LEVELS`) that ranks a seeker's schooling against a job's minimum education requirement.
+   - **Problem:** `EDUCATION_LEVELS` only lists `"High School"`, `"TVET / Vocational"`, `"Bachelor's Degree"`, etc., while the seed data, onboarding wizard, and resume extractor save `"College Graduate"`, `"College Undergraduate"`, `"High School Graduate"`, `"Senior High School"`, `"Vocational / TVET"`, and `"Doctorate Degree"`. Unmatched strings fall back to `|| 3` for seekers and `|| 4` for jobs, so a `"College Graduate"` is penalized against a `"Bachelor's Degree"` job (score 65 instead of 100), and a `"High School Graduate"` job defaults to requiring a Bachelor's degree.
+   - **Fix:** Add all wizard/extractor labels to `EDUCATION_LEVELS` in `src/utils/decisionTree.ts:L6-14` or normalize both sides through one shared mapping.
+   - **If we skip it:** Compatibility scores and "missing qualification" warnings are wrong for nearly all registered seekers and entry-level jobs.
 
----
+5. **Degree alignment treats "Hospitality", "Fisheries", and "Economics" as Tech degrees** (`src/utils/decisionTree.ts:L52-64`)
+   - **What this is:** `evaluateDegreeAlignment`, which checks if a candidate's degree is in a closely related field.
+   - **Problem:** `techDegrees` includes short codes `'is'`, `'it'`, and `'cs'` checked with `.includes()`. Because `'hospitality'` contains `'it'`, `'fisheries'` contains `'is'`, and `'economics'` contains `'cs'`, those degrees match `techDegrees` and score 80/100 against `"BS Computer Science"`.
+   - **Fix:** Match short abbreviations (`is`, `it`, `cs`) with word-boundary regexes (`/\b(is|it|cs)\b/`) instead of `.includes()`.
+   - **If we skip it:** Unrelated graduates receive inflated 80% degree scores on IT jobs and rank higher than they should.
 
-### 4. Mega-Component God Views (UI Layer Low Cohesion)
-- **ID:** ARCH-04 | **Class:** `GOD_COMPONENT` / `LOW_COHESION` | **Severity:** 🟠 High | **Status:** `REMEDIATED`
-- **Blast Radius:** Medium | **Confidence:** High
-- **Remediation Delivered:**
-  - `src/components/Navbar.tsx`: Reduced from 1,440 lines down to 336 lines (76.7% reduction). Split into persona navigation components under `src/components/navbar/` (`GuestNav`, `SeekerNav`, `EmployerNav`, `AdminNav`, `DemoPersonaPill`, `UserProfileDropdown`, `MobileRoleQuickNav`, `MobileNavDrawer`).
-  - `src/hooks/useSeekerProfileForm.ts`: Created reusable form management hook encapsulating all personal details, job preferences, 5MB avatar validation, and profile save mutations.
-  - `src/views/seeker/SeekerProfilePage.tsx`: Reduced from 2,894 lines down to 435 lines (85.0% reduction). Decomposed into modular presentation components and specialized modals under `src/views/seeker/components/` (`SeekerProfileHeader`, `SeekerCareerToolsGrid`, `SeekerBottomNav`, `SeekerPersonalInfoModal`, `sections/*`, `SeekerRecordModals`, `SeekerMatchReadinessModal`, `SeekerJobPreferencesModal`, `SeekerFullProfileOverviewModal`, `SeekerUtilityModals`).
-  - Automated verification: 79/79 ARCH-04 tests passing (`scripts/verify-arch04-component-decomposition.ts`), 482/482 total architectural assertions passing, and 424/424 regression tests passing. Zero lint errors.
-- **Location & Evidence:**
-  - `src/views/seeker/SeekerProfilePage.tsx`: Previously 2,905 lines, now 435 modular lines.
-  - `src/components/Navbar.tsx`: Previously 1,456 lines, now 336 modular lines.
-- **Responsibility Analysis:** These UI views mix responsive markup, modal state management, complex form validation, image base64 conversions, PDF preview generation, and direct domain computations in single massive files.
-- **Why This Is a Smell & Consequence:**
-  - *Merge conflict bottleneck:* In a multi-developer team (e.g., thesis partners Lomboy, Escalona, Sacapaño), simultaneous work on profile fields, navigation items, or authentication triggers constant merge conflicts.
-  - *Cognitive overhead & code duplication:* `SeekerProfilePage.tsx` and `SeekerProfileSetupWizard.tsx` maintain duplicated implementations of education schemas, work experience lists, and skill arrays.
-- **Incremental Refactoring Plan:**
-  1. *Step 1: Decompose Navbar by Role:* Split `Navbar.tsx` into `GuestNav.tsx`, `SeekerNav.tsx`, `EmployerNav.tsx`, `AdminNav.tsx`, and `DemoPersonaPill.tsx`.
-  2. *Step 2: Extract Seeker Profile Section Components:* Decompose `SeekerProfilePage.tsx` into modular child components (`ProfileHeader`, `EducationSection`, `ExperienceSection`, `SkillsSection`, `CertificationsSection`).
-  3. *Step 3: Share Profile Form Hooks:* Extract common field management and validation into a `useSeekerProfileForm` hook shared between the profile page and the setup wizard.
-- **Trade-off:** Increases total file count and requires explicit prop contracts between parent and child components.
+6. **Admin matching page reads missing fields, and Referral Slips hardcode scores** (`src/views/admin/AdminJobMatchingPage.tsx:L56-197`, `src/components/admin/PesoReferralSlipModal.tsx:L75-78`)
+   - **What this is:** The PESO Admin candidate matching console and printable Referral Slip generator.
+   - **Problem:** `AdminJobMatchingPage` does not call `calculateDecisionTreeMatch`; it runs its own formula that reads `selectedJob.educationalRequirement`, `selectedJob.skills`, and `selectedJob.openingsCount`, all of which are `undefined` on `JobPost` (`minEducationalAttainment`, `requiredSkills`, `vacanciesCount`), giving every candidate 25/25 for education and 0 matched skills. Meanwhile `PesoReferralSlipModal` ignores the real match score and hardcodes `94` for college graduates or `88` otherwise.
+   - **Fix:** Replace both custom calculations with `getOrCalculateMatch(seeker, job, { cachedMatches })` from `src/utils/matchResolver.ts` and read `selectedJob.vacanciesCount`.
+   - **If we skip it:** PESO staff print official referral slips with fake scores that disagree with employer and seeker views.
+
+7. **New or Google OAuth employers lose their profile and land on a blank page (`/#`)** (`src/context/AuthContext.tsx:L131-143, L273-281, L373-377, L740-763`, `src/context/AppContext.tsx:L396-398`, `src/views/employer/EmployerProfileSetupWizard.tsx:L117`)
+   - **What this is:** Linking a signed-in or Google OAuth user to their `EmployerProfile` record and showing the setup wizard.
+   - **Problem:** Three gaps combine to break both local sign-up and live Google OAuth for employers: (1) On Supabase Google OAuth, `continueWithGoogle('employer')` writes `'ehanap_oauth_intended_role'` and redirects to Google (`res.data.url`) before lines `379–525` run, and after redirecting back to `/#`, `'ehanap_oauth_intended_role'` is never read and `onSupabaseAuthStateChange` never creates the missing `User` or `EmployerProfile`. (2) `loginAs` only searches `INITIAL_EMPLOYERS` and `registerUser` never saves new employers to `storageAdapter` or `AppContext`. (3) `currentEmployerProfile` returns `null` when missing (unlike `currentSeekerProfile`, which builds a fallback), so `App.tsx` sends the user to `employer-profile-setup` where `EmployerProfileSetupWizard` (`L117`) and `EmployerProfilePage` (`L37`) do `if (!currentEmployerProfile) return null;` — rendering a blank screen with only the navbar and footer.
+   - **Fix:** Read `'ehanap_oauth_intended_role'` inside `onSupabaseAuthStateChange` to create missing OAuth `User` + `EmployerProfile` rows (and persist them in `storageAdapter` and `AppContext`), match `currentEmployerProfile` by `userId`/`id`/`email` with a synthesized fallback object, and render a safe loading/fallback state instead of `return null` in `EmployerProfileSetupWizard` and `EmployerProfilePage`.
+   - **If we skip it:** Employers who sign in with Google OAuth on Vercel land on a blank `/#` page with only the footer, and newly registered offline employers cannot complete onboarding.
+
+8. **Job review notifications go to the employer profile ID instead of the user ID** (`src/context/AppContext.tsx:L599-620`, `src/utils/notificationUtils.ts:L25-34`)
+   - **What this is:** Notifications sent when PESO approves, rejects, or returns a job vacancy for compliance.
+   - **Problem:** `reviewJobVacancy` sets `recipientId: job.employerId` (like `emp-puregold-01`), whereas `isNotificationValidForUser` checks against `currentUser.id` (`user-emp-puregold-01`) and hides any notification with a different `recipientId`.
+   - **Fix:** Look up `const emp = employers.find(e => e.id === job.employerId)` and set `recipientId: emp?.userId || job.employerId`.
+   - **If we skip it:** Employers never see notifications when PESO approves or rejects their job posts.
+
+9. **Resume AI endpoint is open to the public, and image OCR wipes out extracted birthday and sex** (`server/app.ts:L19-21`, `server/services/aiResumeService.ts:L259-274`)
+   - **What this is:** The `POST /api/parse-resume` server endpoint and its Gemini output sanitizer.
+   - **Problem:** Anyone on the internet can POST up to 15 MB to `/api/parse-resume` with no login check or rate limit, draining the server's `GEMINI_API_KEY` quota. Also, for uploaded resume images or scanned PDFs, `extractedDocText` is empty, so `sanitizeExtractedResumeData` tests `hasDobMention` and `hasSexMention` against `""` and erases the birthday, age, and sex that Gemini OCR just read.
+   - **Fix:** Verify the caller's Supabase session token and add a simple per-IP rate limit on `/api/parse-resume`; skip the `rawDocText` regex check when `rawDocText` is empty (image/OCR mode).
+   - **If we skip it:** Automated callers can burn through Gemini API credits, and photo bio-data uploads always discard date of birth, age, and sex.
+
+10. **Admin analytics misclassify local employers and undercount job openings** (`src/views/admin/AdminDashboard.tsx:L90-93, L448`, `src/views/admin/AdminUsersPage.tsx:L88-91, L437`)
+    - **What this is:** PESO Admin dashboard counters for established Roxas employers and total open slots.
+    - **Problem:** Both files check `e.isEstablishedLocal` and outdated industry strings (`'Retail / Supermarket'`, `'Agriculture & Trading'`), whereas `EmployerProfile` uses `establishmentType === 'local_established'` and industries like `'Customer Service & Retail'`. `AdminDashboard.tsx:L448` also sums `b.openingsCount || 1` instead of `b.vacanciesCount || 1`.
+    - **Fix:** Check `e.establishmentType === 'local_established'` and sum `b.vacanciesCount || 1`.
+    - **If we skip it:** Municipal PESO reports count established local businesses as new/external and undercount multi-slot vacancies.
+
+11. **Job approval sends N+1 database requests and creates colliding `Date.now()` IDs** (`src/context/AppContext.tsx:L510-680`, `src/services/supabaseService.ts:L368-423`)
+    - **What this is:** Saving candidate match records and notifications when a job is approved, and seeding demo data.
+    - **Problem:** `notifyAndCacheCandidateMatches` fires individual `saveSupabaseRecord` calls per seeker inside a `forEach` loop (`2 * N` HTTP requests), while `verifyEmployer` and `checkJobSubscriptionsAndNotify` build `notif-${Date.now()}` IDs inside loops where multiple items share the same millisecond and overwrite each other. `seedDemoDataToSupabase` similarly runs ~30 sequential `await saveRecord` calls.
+    - **Fix:** Generate IDs with `crypto.randomUUID()` and batch-upsert arrays (`supabase.from(table).upsert(rows, { onConflict: 'id' })`).
+    - **If we skip it:** Approving a job with hundreds of registered seekers floods the browser with requests and drops notifications.
 
 ---
 
-### 5. Monolithic Bundle & Total Lack of Route Code-Splitting
-- **ID:** ARCH-05 | **Class:** `POOR_MODULARIZATION` / `DEPLOYMENT_COUPLING` | **Severity:** 🟡 Medium | **Status:** `SCALING RISK`
-- **Blast Radius:** Medium | **Confidence:** High
-- **Location & Evidence:** `src/App.tsx:9-40`. Statically imports 25 distinct view components, including heavy admin dashboards (`AdminReportsPage.tsx`, 1,303 lines), employer rosters (`EmployerApplicantsPage.tsx`, 1,174 lines), and libraries like Recharts, jsPDF, and html2canvas.
-- **Responsibility Analysis:** The application routing layer bundles all user roles into a single initial JavaScript artifact.
-- **Why This Is a Smell & Consequence:**
-  - *Poor mobile performance:* A job seeker browsing vacancies on a mobile network in Roxas must download the complete administrative portal, charting engines, and PDF compilers before rendering the home page.
-  - Degrades Core Web Vitals (Largest Contentful Paint and Interaction to Next Paint).
-- **Incremental Refactoring Plan:**
-  1. *Step 1: Lazy-Load Admin and Employer Routes:* Wrap `AdminDashboard`, `AdminReportsPage`, `EmployerApplicantsPage`, and `ResumeBuilderModal` in `React.lazy()` with a `<Suspense fallback={<RouteLoadingSpinner />}>` boundary.
-  2. *Step 2: Dynamic Import of Export Utilities:* Load `jspdf` and `html2canvas` on demand via dynamic `await import()` only when a user triggers PDF generation.
-- **Trade-off:** Introduces brief loading states when transitioning between major role portals.
+### Should fix
+
+12. **Test suite simulates fake functions instead of testing real auth, context, and API routes** (`scripts/verify-milestone02-auth.ts:L121-145`, `scripts/verify-milestone03-data-flow.ts`, `scripts/verify-arch08-modular-server.ts`)
+    - **What this is:** The 424-assertion `npm test` suite (`scripts/verify-milestone07.ts`).
+    - **Problem:** `verify-milestone02-auth.ts` defines local `simulateLogin()` and `simulateDemoSwitch()` instead of running `AuthContext`, `verify-milestone03-data-flow.ts` skips `AppContext`, and `verify-arch08-modular-server.ts` never sends an HTTP request to `createApp()`. That is why bugs #2, #3, #6, and #8 all passed 424/424 checks.
+    - **Fix:** Add integration tests that invoke the real `AuthProvider`/`AppProvider` logic and hit `createApp()` HTTP routes directly.
+    - **If we skip it:** Future regressions in login, persistence, and server routes will keep passing `npm test`.
+
+13. **Apple and Facebook quick sign-in buttons log in with emails that do not exist** (`src/views/AuthModal.tsx:L386-396`)
+    - **What this is:** Quick social login buttons in the sign-in modal.
+    - **Problem:** `handleSocialQuickSignIn` calls `loginAs('hr@mindoroharvest.ph')` and `loginAs('maria.santos@gmail.com')`, neither of which exists in `INITIAL_USERS` or `DEMO_ACCOUNTS` (which use `puregold.roxas@employer.ph` and `maria.santos@jobseeker.ph`).
+    - **Fix:** Point them to `PRIMARY_DEMO_ACCOUNTS.employer.email` and `PRIMARY_DEMO_ACCOUNTS.seeker.email` from `src/data/demoAccounts.ts`, or remove the stubbed Apple/Facebook buttons.
+    - **If we skip it:** Clicking Apple or Facebook sign-in fails silently without logging the user in.
+
+14. **`EmployerJobsPage` uses a `'paused'` status rejected by the database** (`src/views/employer/EmployerJobsPage.tsx:L47-82, L353`, `supabase_schema.sql:L222`)
+    - **What this is:** Job status filter and status dropdown on the Employer Jobs page.
+    - **Problem:** The UI lets employers filter by or set `status: 'paused'` and searches `job.department`, but neither `JobStatus` nor the PostgreSQL `CHECK` constraint on `job_posts.status` allows `'paused'`.
+    - **Fix:** Change `'paused'` to `'closed'` or `'archived'` (or add `'paused'` to `JobStatus` and `supabase_schema.sql`), and remove `job.department`.
+    - **If we skip it:** Pausing a job fails to save in Supabase and reverts on page reload.
+
+15. **Oversized `AppContext` (2,172 lines) and `SeekerProfileSetupWizard` (1,780 lines) mix unrelated jobs** (`src/context/AppContext.tsx:L1-2172`, `src/views/seeker/SeekerProfileSetupWizard.tsx:L1-1780`)
+    - **What this is:** The global state provider and the 4-step seeker onboarding wizard.
+    - **Problem:** `AppContext` mixes 15 state collections, Supabase realtime listeners, matching, LRA management, referral slips, chat auto-replies, and audit logging in one provider, re-rendering consumers on unrelated changes. `SeekerProfileSetupWizard` mixes file upload/OCR calls, validation, and all 4 UI steps in one file.
+    - **Fix:** Split `AppContext` by domain (Jobs/Applications, PESO LRA/Referrals, Chat/Social) and extract each wizard step into its own view component.
+    - **If we skip it:** Small edits in one role's workflow remain risky and hard to test in isolation.
+
+16. **Landing page FAQ states wrong Decision Tree weights** (`src/views/LandingPage.tsx:L57`, `src/utils/decisionTree.ts:L251-255`)
+    - **What this is:** The public FAQ explaining how the matching percentage is calculated.
+    - **Problem:** `LandingPage.tsx` claims weights of 25% education, 20% degree, 30% skills, 15% experience, and 10% certifications, whereas `decisionTree.ts` actually uses 12% education, 25% degree, 35% skills, 20% experience, and 8% certifications.
+    - **Fix:** Update the FAQ string in `LandingPage.tsx` to match the real weights in `decisionTree.ts`.
+    - **If we skip it:** Users and reviewers see conflicting formulas for the core matching engine.
+
+17. **SQL migration lags behind `supabase_schema.sql`, plus unused `autoprefixer` and duplicate lockfile** (`supabase/migrations/20261109000001_initial_ehanap_schema.sql`, `supabase_schema.sql`, `package.json:L35`)
+    - **What this is:** Database DDL files and build configuration.
+    - **Problem:** The migration file is missing columns present in `supabase_schema.sql` (`nominated_candidates`, `slip_number`, `summary`, `description`, `industry`). Also `autoprefixer` in `package.json` is unused alongside `@tailwindcss/vite`, and both `bun.lock` and `package-lock.json` are committed.
+    - **Fix:** Sync the migration file with `supabase_schema.sql` (or keep one canonical file), remove `autoprefixer` from `package.json`, and delete the unused `bun.lock`.
+    - **If we skip it:** Running Supabase CLI migrations creates a schema missing columns that the app expects.
 
 ---
 
-### 6. Leaked Geographic & Domain Constants into Test Mock Fixtures
-- **ID:** ARCH-06 | **Class:** `BOUNDARY_VIOLATION` / `DUPLICATED_LOGIC` | **Severity:** 🟡 Medium | **Status:** `CURRENT`
-- **Blast Radius:** Medium | **Confidence:** High
-- **Location & Evidence:**
-  - `src/data/mockData.ts:18-45` exports production constants `ROXAS_MUNICIPALITY`, `ROXAS_BARANGAYS`, `ORIENTAL_MINDORO_MUNICIPALITIES`, `JOB_CATEGORIES`.
-  - `src/utils/resumeExtractorCore.ts:74` duplicates `ROXAS_BARANGAYS`.
-  - 16 production UI components import geographic constants directly from `src/data/mockData.ts`.
-- **Responsibility Analysis:** Domain constants describing municipal jurisdiction and job categories belong to the domain layer, not test fixture datasets.
-- **Why This Is a Smell & Consequence:**
-  - Couples production application code to test mock datasets, hindering tree-shaking and creating confusion about source of truth.
-  - Adding or modifying a Roxas barangay requires updating both `mockData.ts` and `resumeExtractorCore.ts`.
-- **Incremental Refactoring Plan:**
-  1. *Step 1: Isolate Domain Constants:* Create `src/constants/municipal.ts` and `src/constants/jobCategories.ts`.
-  2. *Step 2: Point Dependencies to Domain Constants:* Re-export from the new constant modules in `mockData.ts` and `resumeExtractorCore.ts`.
-  3. *Step 3: Update View Imports:* Replace all 16 imports from `../data/mockData` with the centralized constants module.
-- **Trade-off:** None; clean organization of geographic invariants.
+### Nice to have
+
+18. **`resetToDemoData` wipes LRA events, referral slips, and alerts to empty arrays** (`src/context/AppContext.tsx:L1885-1908`)
+    - **What this is:** The demo-reset helper function.
+    - **Problem:** It resets `jobSubscriptions`, `referralSlips`, and `localRecruitmentActivities` to `[]` instead of `INITIAL_JOB_SUBSCRIPTIONS`, `INITIAL_REFERRAL_SLIPS`, and `INITIAL_LRA_EVENTS`, and upserts seed data without deleting user-added rows first.
+    - **Fix:** Reset those three states to their `INITIAL_*` constants.
+    - **If we skip it:** Resetting demo data leaves PESO LRA and Referral Slip pages empty until a hard refresh.
+
+19. **`EmployerApplicantsPage` recalculates ATS scores for every seeker on each render** (`src/views/employer/EmployerApplicantsPage.tsx:L90-115`, `src/context/AppContext.tsx:L2089-2144`)
+    - **What this is:** The `allCandidateEvaluations` memoized list for the Candidate Ranking Roster.
+    - **Problem:** Its `useMemo` depends on `hasInvitedCandidate`, which `AppContext` recreates as a new function on every render, causing `evaluateResumeForAts(seeker, activeJob)` to rerun for all seekers whenever search text or filters change.
+    - **Fix:** Memoize `hasInvitedCandidate` with `useCallback` in `AppContext` (or pass `invitations` directly).
+    - **If we skip it:** Typing in the applicant search bar becomes sluggish as the seeker list grows.
 
 ---
 
-### 7. Ad-Hoc Pairwise Decision Tree Matching in Presentation Render Loops
-- **ID:** ARCH-07 | **Class:** `RESPONSIBILITY_MIXING` / `UNCLEAR_OWNERSHIP` | **Severity:** 🟡 Medium | **Status:** `REMEDIATED` (Work Package 6)
-- **Blast Radius:** Medium | **Confidence:** High
-- **Location & Evidence:** `src/views/JobSearchPage.tsx:197`, `src/views/seeker/SeekerDashboard.tsx:126`, `src/views/employer/EmployerApplicantsPage.tsx:93, 159`, `src/views/employer/ApplicantMatchReportModal.tsx:59`, `src/components/JobOfferView.tsx:95`.
-- **Responsibility Analysis:** The automated candidate ranking engine calculates compatibility scores. However, individual UI components bypass stored database matches and re-run pairwise `calculateDecisionTreeMatch(seeker, job)` loops on every render pass.
-- **Why This Is a Smell & Consequence:**
-  - *Algorithmic scaling bottleneck:* In `EmployerApplicantsPage.tsx:159`, selecting a vacancy forces an $O(N \text{ seekers} \times M \text{ jobs})$ pairwise calculation across all candidates during the component render cycle.
-  - *Score divergence:* Pre-calculated scores stored in `candidate_matches` or referral slips may disagree with ad-hoc scores computed on the fly if profile snapshots differ.
-- **Incremental Refactoring Plan:**
-  1. *Step 1: Centralize Candidate Match Resolver:* Implement `getOrCalculateMatch(seeker, job, cachedMatches)` that prioritizes pre-computed database matches.
-  2. *Step 2: Memoize Candidate Ranking Rosters:* Isolate roster ranking into a memoized selector or worker instead of running loops in the render tree.
-- **Trade-off:** Requires passing cached matches or querying the pre-computed match table.
+## Audit Summary
+- **Verdict:** Fix items 1–11 before any live deployment or evaluation — open Supabase RLS policies, unverified passwords, silent user-write failures, and broken Decision Tree education/Admin matching undermine both security and core matching accuracy.
+- **Lean:** `-150 lines, -1 dependencies possible.`
+- **Not checked:** Live Supabase database queries (`VITE_SUPABASE_URL` / `.env` values were not inspected or hit), running the Express server (`npm run dev` / `npm run build`), full line-by-line UI markup of `SeekerProfilePage.tsx`, `SeekerApplicationsPage.tsx`, `SeekerInterviewsPage.tsx`, `EmployerInterviewsPage.tsx`, `EmployerProfilePage.tsx`, `JobOfferView.tsx`, and `ResumeBuilderModal.tsx`; `npx tsc --noEmit` exited `0` and `npx tsx scripts/verify-milestone07.ts` reported `424/424` passing tests.
 
 ---
 
-### 8. Mixed Server Lifecycle, AI Orchestration, and Document Heuristics in `server.ts`
-- **ID:** ARCH-08 | **Class:** `GOD_SERVICE` / `LOW_COHESION` | **Severity:** 🟡 Medium | **Status:** `REMEDIATED` (Work Package 8)
-- **Blast Radius:** Low | **Confidence:** High
-- **Remediation Delivered:**
-  - `server.ts`: Reduced from 459 lines down to 34 lines (92.6% reduction). Retains clean bootstrap, port binding, and Vite dev / static asset middleware.
-  - `server/services/documentParser.ts`: Extracted pure binary document parsing (`pdf-parse`, `mammoth`, plain text fallbacks) with zero HTTP/Express coupling.
-  - `server/services/aiResumeService.ts`: Extracted Google GenAI client lifecycle, 4-model failover cascade, 1-hour circuit breaker cooldown state, prompt building with Philippine bio-data & OSY mandates, response schema, and anti-hallucination domain sanitization.
-  - `server/controllers/resumeController.ts`: Extracted Express route handlers for `/api/health`, `/api/parse-resume`, and `/api/extract-resume` with resilient fallbacks.
-  - `server/app.ts`: Extracted Express application factory decoupled from socket listeners for standalone testing.
-  - Automated verification: 76/76 ARCH-08 tests passing (`scripts/verify-arch08-modular-server.ts`), 549/549 total architectural assertions passing, and 424/424 regression tests passing. Zero lint errors. Production bundle verified with esbuild.
-- **Location & Evidence:**
-  - `server.ts`: Previously 459 lines, now 34 clean bootstrap lines.
-  - `server/services/documentParser.ts`: 105 lines of focused document parsing.
-  - `server/services/aiResumeService.ts`: 320 lines of isolated AI orchestration & heuristic guards.
-  - `server/controllers/resumeController.ts`: 40 lines of clean HTTP controllers.
-  - `server/app.ts`: 25 lines of Express app configuration.
-- **Responsibility Analysis:** `server.ts` mixes Express HTTP server startup, Vite development middleware, binary document parsing (`pdf-parse`, `mammoth`), Google GenAI prompt construction and model failover, and domain heuristic sanitization (birthday and sex detection).
-- **Why This Is a Smell & Consequence:**
-  - The Gemini prompt, schema, and binary parsers cannot be unit tested without booting the entire Express/Vite server.
-  - Changes to LLM prompt engineering require modifying the server bootstrap file.
-- **Incremental Refactoring Plan:**
-  1. *Step 1: Extract Document Parsers:* Move buffer text extraction to `server/services/documentParser.ts`.
-  2. *Step 2: Extract Gemini Resume Service:* Move LLM client lifecycle, circuit breakers, and prompts into `server/services/aiResumeService.ts`.
-  3. *Step 3: Decouple Express Handler:* Retain a clean route declaration in `server.ts` delegating to `server/controllers/resumeController.ts`.
-- **Trade-off:** Adds a lightweight controller/service folder structure to the backend.
+## Remediation Work Packages
 
----
-
-## Structural Diagnostic Tables
-
-### 🧠 God Components & Low-Cohesion Modules
-| ID | Component / File | Distinct Responsibilities | Unrelated Concerns Mixed | Reasons to Change | Severity |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **ARCH-01** | `src/context/AppContext.tsx` (3,156 lines) | 7 (State, Auth, Supabase/Firestore sync, ATS, Decision Tree, Notifications, Toasts) | Entity stores, OAuth popup, OTP ref, dual-persistence, UI timers | New state slice, auth change, sync change, match rule change | 🔴 Critical |
-| **ARCH-04a** | `src/views/seeker/SeekerProfilePage.tsx` (2,905 lines) | 6 (Profile display, tab navigation, 8 sub-modals, inlined CRUD, photo upload, ATS score) | Accordion layout, modal lifecycle, localStorage checks, validation, PDF preview | Tab layout, form validation, bio-data field addition | 🟠 High |
-| **ARCH-04b** | `src/components/Navbar.tsx` (1,456 lines) | 5 (Guest nav, seeker nav, employer nav, admin nav, demo switcher, DB indicators) | 4 persona viewports, mobile drawers, unread badges, role switcher pill | Route addition, badge rule change, nav link update | 🟠 High |
-| **ARCH-04c** | `src/views/AuthModal.tsx` (1,354 lines) | 4 (Login, multi-role registration, OTP verification, password reset) | Password recovery timers, role selection tabs, Google login, form inputs | Auth requirement, OTP expiration rule, role onboarding | 🟠 High |
-| **ARCH-04d** | `src/views/seeker/SeekerProfileSetupWizard.tsx` (1,792 lines) | 5 (Multi-step wizard, resume upload, photo capture, skill classification, bio-data) | File reading, OCR normalization, validation, confetti, step management | Wizard steps, validation rules, skill taxonomy | 🟠 High |
-| **ARCH-08** | `server.ts` (34 lines - Remediated) | 1 (Express bootstrap & Vite lifecycle; delegates to `server/`) | None (parsers, AI, and controllers extracted) | Server port or static serving configuration | ✅ Remediated |
-
-### 🕸️ Coupling, Dependency Graph & Cycles
-```text
-[High Fan-In Hotspots]
-  context/AppContext.tsx ◄──── [48 dependent modules]
-  types.ts               ◄──── [35 dependent modules]
-  data/mockData.ts       ◄──── [16 dependent modules]
-  utils/decisionTree.ts  ◄──── [6 dependent modules]
-  utils/atsEngine.ts     ◄──── [6 dependent modules]
-
-[High Fan-Out Hotspots]
-  App.tsx                            ────► [Imports 34 local modules]
-  views/seeker/SeekerProfilePage.tsx ────► [Imports 11 local modules]
-  views/employer/EmployerApplicants  ────► [Imports 9 local modules]
-  views/seeker/SeekerDashboard.tsx   ────► [Imports 9 local modules]
-```
-
-| Component / Cycle | Fan-Out (Deps) | Fan-In (Dependents) | Structural / Runtime Consequence | Severity |
-| :--- | :--- | :--- | :--- | :--- |
-| `src/context/AppContext.tsx` | 5 | **48** | Universal coupling; 87% of files depend on it; re-renders entire app on any state mutation | 🔴 Critical |
-| `src/App.tsx` | **34** | 0 | Root bundle contains all views; zero route-level code splitting | 🟠 High |
-| `src/data/mockData.ts` | 1 | **16** | Production UI views depend directly on mock fixture file for municipal constants | 🟡 Medium |
-| `src/views/seeker/SeekerProfilePage.tsx` | **11** | 2 | Massive view imports 8 modals, export tools, ATS engine, and setup wizards | 🟠 High |
-
-### 🔄 Change Amplification (Blast Radius)
-| Business Concept / Rule | Duplicated Across Locations | Total Change Surface | Why Boundaries Failed | Risk |
-| :--- | :--- | :--- | :--- | :--- |
-| **Profile Completion Check** (`isProfileCompleted`) | `App.tsx` (6 sites), `AppContext.tsx` (14 sites), `Navbar.tsx` (2 sites), `AuthModal.tsx` (2 sites), `SeekerProfilePage.tsx`, `SeekerProfileSetupWizard.tsx`, `notificationUtils.ts` | **8 files, 26+ call sites** | No single domain predicate; raw checks of 4 localStorage keys & hardcoded string `'poqiq75'` | 🟠 High |
-| **Municipal Barangays** (`ROXAS_BARANGAYS`) | `src/data/mockData.ts:21` and `src/utils/resumeExtractorCore.ts:74` | **2 files, 16 consumer imports** | Geographic constant defined in mock seed data and duplicated in extractor | 🟡 Medium |
-| **Job Bookmarking** | `src/context/AppContext.tsx` (`ehanap_bookmarks`) and `src/views/JobDetailPage.tsx` (`seeker_bookmarked_jobs`) | **2 storage keys, 4 files** | Presentation component bypassed state context and invented conflicting localStorage key | 🟠 High |
-| **Decision Tree Node Matching** | `AppContext.tsx` (4 functions) and UI pages (`JobSearchPage`, `EmployerApplicantsPage`, `JobOfferView`, `ApplicantMatchReportModal`) | **5 files** | Lack of centralized match selector forces UI to compute pairwise matches | 🟡 Medium |
-
-### 🏗️ Boundary Violations & Leaky Abstractions
-| ID | Source Layer | Target Layer / Leak | Concrete Evidence | Consequence | Fix |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **LEAK-01** | Presentation (`JobDetailPage.tsx:16, 28`) | Raw LocalStorage | Directly reads/writes `'seeker_bookmarked_jobs'` | Desynchronizes bookmarks from AppContext (`'ehanap_bookmarks'`) | Route through `AppContext.toggleBookmarkJob` |
-| **LEAK-02** | Presentation (16 view files) | Test Mock Data (`src/data/mockData.ts`) | Imports `ROXAS_BARANGAYS`, `JOB_CATEGORIES` from mock fixtures | Production bundle includes seed arrays; mixes test fixtures with domain constants | Extract `src/constants/municipal.ts` |
-| **LEAK-03** | Application (`AppContext.tsx:98-118`) | Dual-Persistence Infrastructure | Simultaneously writes to Supabase and Firestore in `saveDocument` | Split-brain risk; retains dead Firebase dependency | Direct writes exclusively to `supabaseService.ts` |
-| **LEAK-04** | Application (`AppContext.tsx:947-1139`) | Firebase Auth | Imports `GoogleAuthProvider` and `signInWithPopup` from `firebase/auth` | Firebase auth dependency persists despite Supabase migration | Replace with `supabase.auth.signInWithOAuth` |
-| **LEAK-05** | Server Bootstrap (`server.ts:136-285`) | Domain & Heuristics | Inlines Gemini prompt, schemas, and birthday regex in server entrypoint | Server file cannot be modified without risking prompt behavior | Extract `aiResumeService.ts` |
-
-### 🧪 Testability & Failure Isolation Gaps
-| Component | Testing or Failure-Boundary Problem | Forced Dependencies | Architectural Fix |
-| :--- | :--- | :--- | :--- |
-| `src/views/*` (All UI Views) | Zero UI component tests exist; components cannot mount in Vitest/Jest without full browser DOM | Coupling to `window.scrollTo`, `localStorage`, `html2canvas`, and 3,100-line context | Decouple side-effects behind custom hooks; isolate pure sub-components |
-| `server.ts` (Resume Parsing) | Gemini LLM parsing and DOCX/PDF extractors cannot be tested in isolation | Forced boot of Express and Vite development server | Extract pure text extractors and Gemini service into standalone testable modules |
-| `AppContext.tsx` (State Logic) | Dual-persistence catch blocks log warnings but hide failed writes | Silent persistence failures allow client state to drift from database | Add explicit transaction status reporting and error boundaries |
-
----
-
-## 📈 Architecture Under Complexity & Team Growth
-- **At 2x Feature/Codebase Complexity:**
-  - `AppContext.tsx` will exceed 5,000 lines, causing extreme re-render lag and frequent developer collisions.
-  - Adding new user roles (e.g., TESDA Assessment Officer, Barangay Employment Desk Officer) will bloat `Navbar.tsx` and `App.tsx` beyond maintainability.
-- **At 5x Feature/Codebase Complexity:**
-  - Pairwise Decision Tree execution during render loops in `EmployerApplicantsPage.tsx` will freeze the browser tab when Roxas registered candidates reach 1,000+.
-  - Merge conflicts in `SeekerProfilePage.tsx` will stall multi-member team development cycles.
-- **At 10x Feature/Codebase Complexity:**
-  - Dual-persistence split-brain issues will lead to unrecoverable data inconsistencies between Supabase and Firebase.
-  - Initial bundle size (>3MB without code-splitting) will render the application unusable on standard provincial mobile data connections in Oriental Mindoro.
-
----
-
-## 🧩 Suggested Target Architecture
-- **CURRENT:**
-  `UI Component ──► AppContext (3,156 lines) ──► (Supabase + Firestore Dual Write) + (Ad-hoc LocalStorage)`
-- **TARGET:**
-  ```text
-  UI Views (Code-split with React.lazy)
-     │
-     ├──► Sub-Contexts (AuthContext, ToastContext, SeekerContext, EmployerContext, JobContext)
-     │       │
-     │       ├──► Domain Core (Pure Decision Tree & ATS Engine)
-     │       │
-     │       ├──► Centralized Storage Adapter (Typed LocalStorage)
-     │       │
-     │       └──► Supabase Client Layer (Exclusive PostgreSQL Persistence)
-  ```
-- **What Moves vs Stays:**
-  - *Stays:* `src/utils/decisionTree.ts`, `src/utils/atsEngine.ts`, `supabase/migrations/` (clean and isolated).
-  - *Moves:* `AppContext.tsx` splits into 4 focused contexts; `mockData.ts` constants move to `src/constants/`; `Navbar.tsx` and `SeekerProfilePage.tsx` decompose into role-specific sub-components; `server.ts` delegates to dedicated controller/service modules.
-- **Problem Solved vs New Complexity:** Eliminates re-render cascades, split-brain persistence, and desynchronized local storage. Introduces a manageable multi-provider tree and clean file separation.
-
----
-
-## 🛠️ Prioritized Refactoring Roadmap
-Order by blast-radius and coupling reduction:
-
-| Priority | Finding ID | Incremental Refactoring Action | Architectural Impact | Effort (S/M/L) |
-| :---: | :--- | :--- | :--- | :---: |
-| **1** | **ARCH-03** | **Unify Storage & Profile Invariant**: Fix `'seeker_bookmarked_jobs'` bug in `JobDetailPage.tsx` and encapsulate `isProfileComplete()` in `routeGuards.ts`. | Eliminates active bookmark desync bug and prunes 26 redundant call sites across 8 files. | **S** |
-| **2** | **ARCH-06** | **Extract Municipal & Job Constants**: Move `ROXAS_BARANGAYS`, `JOB_CATEGORIES`, and Mindoro municipalities to `src/constants/municipal.ts`. | Decouples 16 production views from test mock fixture data. | **S** |
-| **3** | **ARCH-02** | **Retire Dual-Persistence & Firebase**: Route Google Auth through Supabase Auth; direct all persistence to Supabase and prune Firebase dependencies. | Eliminates split-brain persistence risk and reduces bundle size by ~250KB. | **M** |
-| **4** | **ARCH-01a**| **Extract UI Feedback & Auth Contexts**: Slice `ToastContext`, `NotificationContext`, and `AuthContext` out of `AppContext.tsx`. | Reduces `AppContext.tsx` size by ~1,000 lines; stops global re-renders on toast/notification updates. | **M** |
-| **5** | **ARCH-05** | **Implement Route Code-Splitting**: Wrap Admin, Employer, and modal components in `React.lazy()` with Suspense fallbacks. | Slashes initial bundle size and drastically improves mobile LCP in Roxas. | **S** |
-| **6** | **ARCH-07** | **Centralize Decision Tree Match Resolver**: Memoize candidate ranking and prioritize cached matches over render-loop calculations. | Prevents $O(N \times M)$ client calculation freezes in employer candidate rosters. | **M** |
-| **7** | **ARCH-04** | **Decompose Mega-Components**: Split `Navbar.tsx` by role and modularize `SeekerProfilePage.tsx` into child section tabs. | Resolves team merge-conflict bottlenecks and lowers cognitive load. | **L** |
-| **8** | **ARCH-08** | **Modularize Server Architecture**: Extract document parsers and Gemini resume service from `server.ts` into `server/services/`. | Enables isolated unit testing for document parsing and AI prompt schemas. | **M** |
-
----
-
-## 📚 Architecture Lessons (Top 3 Findings)
-
-- **Finding ARCH-01 - Context Segregation vs Monolithic State:**
-  - *What the code shows:* Storing 25 state slices and 40+ methods in a single React context forces 48 consumer components to re-render whenever any unrelated field (like an alert toast) changes.
-  - *Why it matters in production:* A single high-frequency state update creates perceptible UI jank across unrelated views.
-  - *Transferable principle:* Segregate contexts by volatility and domain boundary (e.g., static auth sessions vs high-frequency toast notifications).
-
-- **Finding ARCH-02 - Dual-Persistence Split Brain:**
-  - *What the code shows:* During a database migration, maintaining dual writes without distributed consensus leads to divergent state and lingering legacy dependencies.
-  - *Why it matters in production:* Users see data appear in one interface while failing in another, destroying audit integrity.
-  - *Transferable principle:* Cut over cleanly to the target database; use one-way background replication or explicit fallback gates instead of synchronous dual writes.
-
-- **Finding ARCH-03 - Leaked Infrastructure Primitives:**
-  - *What the code shows:* Directly invoking `localStorage.getItem` with ad-hoc string keys in presentation views caused two different keys (`ehanap_bookmarks` vs `seeker_bookmarked_jobs`) to desynchronize features.
-  - *Why it matters in production:* Localized workarounds create subtle bugs that elude unit tests and fracture application state.
-  - *Transferable principle:* Encapsulate browser storage behind a single typed repository adapter with clear domain ownership.
-
----
-
-## ⚠️ Needs Verification & Final Verdict
-
-- **Unverified Assumptions:**
-  - *Assumption:* Supabase Cloud project has Google OAuth provider enabled. -> *Why it matters:* Required before deprecating Firebase Google Auth. -> *How to verify:* Inspect Supabase project auth settings dashboard or `.env` provider credentials.
-- **Final Verdict:**
-  1. **Biggest Smell:** Monolithic `AppContext.tsx` (3,156 lines, 25 state slices, 48 consumer files).
-  2. **Biggest Modularity Flaw:** Direct coupling of 87% of all frontend files to a single state hub and 16 views to test mock fixtures.
-  3. **Biggest Change-Blast-Radius Hotspot:** Profile completion checking logic spread across 8 files and 26+ call sites with raw `localStorage` calls.
-  4. **Biggest Deployment/Runtime Coupling Risk:** Split-brain dual persistence (Supabase + Firebase) and monolithic bundle with zero route-level code splitting.
-  5. **Highest-Value First Refactoring:** Unifying browser storage & profile invariants (ARCH-03) and extracting domain constants from mock data (ARCH-06).
-  6. **Health Rating Justification:** Rated 🟠 *Significant Architectural Problems* because while domain algorithms (`decisionTree.ts`, `atsEngine.ts`) are healthy and 424 tests pass, the application state and persistence layers suffer from high coupling, leaky abstractions, and active state desynchronization.
+| Work Package | Audit Findings | Scope Summary | Priority |
+| :--- | :---: | :--- | :---: |
+| **WP-01: Database Security & Schema Alignment** | #1, #3, #17 | Replace permissive RLS (`USING (true)`) with role/owner-scoped policies; register via Supabase Auth and strip `password` from `users` upserts; sync `supabase/migrations/` with `supabase_schema.sql`; remove unused `autoprefixer` and `bun.lock`. | 🔴 Must Fix |
+| **WP-02: Auth Hardening, Google OAuth Redirect & Employer Profile Recovery** | #2, #7, #13 | Enforce real password checks (`signInWithSupabase`), remove `'123456'` OTP bypass, fix `recoverPassword` arg order & password update, handle `'ehanap_oauth_intended_role'` after OAuth redirect, synthesize/persist `EmployerProfile` and fix blank `return null` in `EmployerProfileSetupWizard`/`EmployerProfilePage`, fix/remove dead Apple/Facebook emails. | 🔴 Must Fix |
+| **WP-03: Decision Tree Accuracy & Admin Matching Consistency** | #4, #5, #6, #16 | Map all education labels in `EDUCATION_LEVELS`; use word-boundary matching for `'is'|'it'|'cs'`; replace custom/hardcoded scoring in `AdminJobMatchingPage` and `PesoReferralSlipModal` with `getOrCalculateMatch`; sync `LandingPage` FAQ weights. | 🔴 Must Fix |
+| **WP-04: Notifications, Status Constraints, Admin Metrics & Demo Reset** | #8, #10, #14, #18 | Send `reviewJobVacancy` notifications to `emp.userId`; fix `establishmentType` and `vacanciesCount` checks in Admin views; remove invalid `'paused'`/`department` in `EmployerJobsPage`; fix `resetToDemoData` arrays. | 🔴 Must Fix |
+| **WP-05: Server Hardening, OCR Fix & Batch Persistence** | #9, #11, #19 | Authenticate and rate-limit `/api/parse-resume`; preserve Gemini OCR `dateOfBirth`/`age`/`sex` when `rawDocText` is empty; use `crypto.randomUUID()` and batch `.upsert()`; memoize `hasInvitedCandidate`. | 🔴 Must Fix |
+| **WP-06: Real Auth, Context & API Integration Tests** | #12 | Replace local mock simulations in `verify-milestone02-auth.ts` / `verify-milestone03-data-flow.ts` / `verify-arch08-modular-server.ts` with tests against real `AuthContext`, `AppContext`, and `createApp()` HTTP endpoints. | 🟠 Should Fix |
+| **WP-07: Remaining God-Module Decomposition** | #15 | Slice remaining domain stores out of `AppContext.tsx` (Jobs/Applications, PESO LRA/Referrals, Chat/Social) and split `SeekerProfileSetupWizard.tsx` into step components. | 🟠 Should Fix |

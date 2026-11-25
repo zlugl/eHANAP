@@ -87,8 +87,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
 
   // 2. Registered Employers (Established Local vs New/External)
   const totalEmployers = employers.length;
-  const establishedLocalEmployers = employers.filter(e => 
-    e.isEstablishedLocal || ['Retail / Supermarket', 'Food & Beverage', 'Utilities / Electric Cooperative', 'Agriculture & Trading'].includes(e.industry)
+  const establishedLocalEmployers = employers.filter(
+    e => e.establishmentType === 'local_established'
   ).length;
   const newOrExternalEmployers = totalEmployers - establishedLocalEmployers;
 
@@ -445,7 +445,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             <p className="text-2xl font-black text-indigo-700 mt-1 tabular-nums">{activeJobVacancies.length}</p>
           </div>
           <div className="pt-2 text-[10px] text-slate-500 space-y-0.5 border-t border-slate-100 mt-2">
-            <p>Total openings: <strong className="tabular-nums">{activeJobVacancies.reduce((a, b) => a + (b.openingsCount || 1), 0)}</strong></p>
+            <p>Total openings: <strong className="tabular-nums">{activeJobVacancies.reduce((a, b) => a + (b.vacanciesCount || 1), 0)}</strong></p>
             <p className="text-indigo-600 font-semibold">Ready for matching</p>
           </div>
         </div>

@@ -192,6 +192,35 @@ export async function fetchById<T = any>(table: SupabaseTableName, id: string): 
   }
 }
 
+export async function fetchUserByEmail(email: string): Promise<User | null> {
+  if (!isSupabaseConfigured() || !email) return null;
+
+  try {
+    const { data, error } = await supabase
+      .from(SUPABASE_TABLES.USERS)
+      .select('*')
+      .ilike('email', email.trim())
+      .maybeSingle();
+    if (error) {
+      console.warn(`[Supabase] Error fetching user by email:`, error.message);
+      return null;
+    }
+    return data ? toCamelCase<User>(data) : null;
+  } catch (err) {
+    console.warn(`[Supabase] Exception in fetchUserByEmail:`, err);
+    return null;
+  }
+}
+
+function sanitizeForTable<T>(table: SupabaseTableName, record: T): T {
+  // The PostgreSQL `users` table does not store passwords (Supabase Auth owns credentials).
+  if (table === SUPABASE_TABLES.USERS && record && typeof record === 'object') {
+    const { password: _password, ...rest } = record as Record<string, any>;
+    return rest as T;
+  }
+  return record;
+}
+
 /**
  * Upserts (inserts or updates on conflict of id) a record in Supabase.
  */
@@ -199,7 +228,7 @@ export async function saveRecord<T extends { id: string }>(table: SupabaseTableN
   if (!isSupabaseConfigured()) return record;
 
   try {
-    const snakeRecord = toSnakeCase(record);
+    const snakeRecord = toSnakeCase(sanitizeForTable(table, record));
     const { data, error } = await supabase
       .from(table)
       .upsert(snakeRecord, { onConflict: 'id' })
@@ -218,6 +247,35 @@ export async function saveRecord<T extends { id: string }>(table: SupabaseTableN
 }
 
 /**
+ * Batch upserts (inserts or updates on conflict of id) multiple records in Supabase.
+ */
+export async function saveRecords<T extends { id: string }>(table: SupabaseTableName, records: T[]): Promise<T[]> {
+  if (!records || records.length === 0) return [];
+  if (!isSupabaseConfigured()) return records;
+
+  try {
+    const dedupedById = Array.from(
+      new Map<string, Record<string, any>>(
+        records.map((record) => [record.id, toSnakeCase<Record<string, any>>(sanitizeForTable(table, record))])
+      ).values()
+    );
+    const { data, error } = await supabase
+      .from(table)
+      .upsert(dedupedById, { onConflict: 'id' })
+      .select();
+
+    if (error) {
+      console.warn(`[Supabase] Error batch saving records to ${table}:`, error.message, error.details);
+      return [];
+    }
+    return (data || []).map((row) => toCamelCase<T>(row));
+  } catch (err) {
+    console.warn(`[Supabase] Exception in saveRecords for ${table}:`, err);
+    return [];
+  }
+}
+
+/**
  * Updates specific fields on an existing record.
  */
 export async function updateRecord(
@@ -228,7 +286,7 @@ export async function updateRecord(
   if (!isSupabaseConfigured()) return false;
 
   try {
-    const snakeUpdates = toSnakeCase(updates);
+    const snakeUpdates = toSnakeCase(sanitizeForTable(table, updates));
     const { error } = await supabase.from(table).update(snakeUpdates).eq('id', id);
 
     if (error) {
@@ -369,50 +427,22 @@ export async function seedDemoDataToSupabase(): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
 
   try {
-    // 1. Users
-    for (const u of INITIAL_USERS) {
-      await saveRecord(SUPABASE_TABLES.USERS, u);
-    }
+    // Batch-upsert in foreign-key dependency tiers
+    await Promise.all([
+      saveRecords(SUPABASE_TABLES.USERS, INITIAL_USERS),
+      saveRecords(SUPABASE_TABLES.NOTIFICATIONS, INITIAL_NOTIFICATIONS),
+      saveRecords(SUPABASE_TABLES.AUDIT_LOGS, INITIAL_AUDIT_LOGS),
+      saveRecords(SUPABASE_TABLES.ANNOUNCEMENTS, INITIAL_ANNOUNCEMENTS),
+    ]);
 
-    // 2. Employers
-    for (const e of INITIAL_EMPLOYERS) {
-      await saveRecord(SUPABASE_TABLES.EMPLOYERS, e);
-    }
+    await Promise.all([
+      saveRecords(SUPABASE_TABLES.EMPLOYERS, INITIAL_EMPLOYERS),
+      saveRecords(SUPABASE_TABLES.JOB_SEEKERS, INITIAL_JOB_SEEKERS),
+    ]);
 
-    // 3. Job Seekers
-    for (const s of INITIAL_JOB_SEEKERS) {
-      await saveRecord(SUPABASE_TABLES.JOB_SEEKERS, s);
-    }
-
-    // 4. Job Posts
-    for (const j of INITIAL_JOB_POSTS) {
-      await saveRecord(SUPABASE_TABLES.JOB_POSTS, j);
-    }
-
-    // 5. Applications
-    for (const a of INITIAL_APPLICATIONS) {
-      await saveRecord(SUPABASE_TABLES.APPLICATIONS, a);
-    }
-
-    // 6. Interviews
-    for (const i of INITIAL_INTERVIEWS) {
-      await saveRecord(SUPABASE_TABLES.INTERVIEWS, i);
-    }
-
-    // 7. Notifications
-    for (const n of INITIAL_NOTIFICATIONS) {
-      await saveRecord(SUPABASE_TABLES.NOTIFICATIONS, n);
-    }
-
-    // 8. Audit Logs
-    for (const l of INITIAL_AUDIT_LOGS) {
-      await saveRecord(SUPABASE_TABLES.AUDIT_LOGS, l);
-    }
-
-    // 9. Announcements
-    for (const an of INITIAL_ANNOUNCEMENTS) {
-      await saveRecord(SUPABASE_TABLES.ANNOUNCEMENTS, an);
-    }
+    await saveRecords(SUPABASE_TABLES.JOB_POSTS, INITIAL_JOB_POSTS);
+    await saveRecords(SUPABASE_TABLES.APPLICATIONS, INITIAL_APPLICATIONS);
+    await saveRecords(SUPABASE_TABLES.INTERVIEWS, INITIAL_INTERVIEWS);
 
     console.log('[Supabase] Successfully seeded initial Roxas demo accounts and records.');
     return true;
@@ -521,10 +551,14 @@ export async function signInWithSupabase(
     };
   }
 
+  if (!password) {
+    return { success: false, error: 'Password is required.' };
+  }
+
   try {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
-      password: password || 'eHANAP@2026',
+      password,
     });
 
     if (error) {

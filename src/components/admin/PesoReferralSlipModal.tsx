@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { JobSeekerProfile, JobPost, PesoReferralSlip } from '../../types';
+import { getOrCalculateMatch, outcomeToReferralTier } from '../../utils/matchResolver';
 import { 
   FileCheck, 
   Printer, 
@@ -37,6 +38,7 @@ export const PesoReferralSlipModal: React.FC<PesoReferralSlipModalProps> = ({
     jobSeekers, 
     jobPosts, 
     employers, 
+    candidateMatches,
     issueReferralSlip, 
     currentUser,
     showToast 
@@ -72,10 +74,9 @@ export const PesoReferralSlipModal: React.FC<PesoReferralSlipModalProps> = ({
   if (!isOpen) return null;
 
   // Decision Tree match evaluation
-  const isDegreeMatched = selectedSeeker?.educationalAttainment?.toLowerCase().includes('college') ||
-    selectedSeeker?.educationalAttainment?.toLowerCase().includes('bachelor');
-  const matchingScore = existingSlip?.matchingScore || (isDegreeMatched ? 94 : 88);
-  const matchingTier = existingSlip?.matchingTier || (matchingScore >= 90 ? 'Highly Qualified' : 'Qualified');
+  const matchResult = getOrCalculateMatch(selectedSeeker, selectedJob, { cachedMatches: candidateMatches });
+  const matchingScore = existingSlip?.matchingScore ?? matchResult.overallMatch;
+  const matchingTier = existingSlip?.matchingTier || outcomeToReferralTier(matchResult.outcome);
 
   const handlePrint = () => {
     window.print();
@@ -112,7 +113,7 @@ export const PesoReferralSlipModal: React.FC<PesoReferralSlipModalProps> = ({
       authorizedContactNumber: targetEmployer.contactNumber,
       matchingScore,
       matchingTier,
-      decisionTreeRationale: `Candidate verified by PESO Roxas Decision Tree. Match tier: ${matchingTier} (${matchingScore}%). Educational qualification alignment: satisfied. Residence: ${selectedSeeker.barangay || 'Roxas'}.`,
+      decisionTreeRationale: matchResult.decisionReason || `Candidate verified by PESO Roxas Decision Tree. Match tier: ${matchingTier} (${matchingScore}%). Residence: ${selectedSeeker.barangay || 'Roxas'}.`,
       interviewDate: new Date(interviewDate).toISOString(),
       interviewVenue,
       issuedByOfficerName: officerName,

@@ -114,7 +114,26 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
   const [declarationAgreed, setDeclarationAgreed] = useState<boolean>(true);
   const [stepError, setStepError] = useState<string>('');
 
-  if (!currentEmployerProfile) return null;
+  if (!currentEmployerProfile) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center p-6">
+        <div className="max-w-md w-full bg-[var(--color-paper)] border border-[var(--color-rule)] rounded-2xl p-6 text-center space-y-3">
+          <Building2 className="w-8 h-8 text-[var(--color-accent)] mx-auto" aria-hidden="true" />
+          <h2 className="text-lg font-bold text-[var(--color-ink)]">Loading Employer Profile</h2>
+          <p className="text-xs text-[var(--color-ink-muted)]">
+            Preparing your establishment onboarding workspace. If this persists, sign in again as an employer.
+          </p>
+          <button
+            type="button"
+            onClick={() => onNavigate('landing')}
+            className="btn btn--quiet text-xs px-4 py-2 rounded-xl border border-[var(--color-rule)] cursor-pointer"
+          >
+            Return to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleSimulateFileUpload = (reqId: string, reqTitle: string) => {
     const fileName = `${companyName.replace(/\s+/g, '_') || 'Business'}_${reqId.toUpperCase()}_Doc.pdf`;
@@ -255,7 +274,7 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
     // Notify Employer in real-time
     if (typeof addNotification === 'function') {
       addNotification({
-        recipientId: currentUser?.id || currentEmployerProfile.userId || currentEmployerProfile.id,
+        recipientId: currentUser?.id || currentEmployerProfile?.userId || currentEmployerProfile?.id || '',
         recipientRole: 'employer',
         title: 'Profile Setup Completed & Documents Submitted! 📋',
         message: 'Your company profile and establishment documents are now under review by PESO-LGU Oriental Mindoro. You will be notified once accredited so you can publish job postings.',

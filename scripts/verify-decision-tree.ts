@@ -161,6 +161,44 @@ assert(
   'Deficit in educational level recorded in missing qualifications'
 );
 
+// Wizard / Extractor education labels map accurately
+const collegeGradResult = calculateDecisionTreeMatch(
+  { ...baseSeeker, educationalAttainment: 'College Graduate' },
+  baseJob
+);
+assert(collegeGradResult.educationMatchScore === 100, "College Graduate meets Bachelor's Degree requirement (100%)");
+
+const hsJobResult = calculateDecisionTreeMatch(
+  { ...baseSeeker, educationalAttainment: 'High School Graduate' },
+  { ...baseJob, minEducationalAttainment: 'High School Graduate' }
+);
+assert(hsJobResult.educationMatchScore === 100, 'High School Graduate meets High School Graduate job (100%)');
+
+// Full EDUCATION_LEVELS parity across onboarding wizard & resume extractor labels
+const shsJobResult = calculateDecisionTreeMatch(
+  { ...baseSeeker, educationalAttainment: 'Senior High School' },
+  { ...baseJob, minEducationalAttainment: 'High School Graduate' }
+);
+assert(shsJobResult.educationMatchScore === 100, 'Senior High School matches High School Graduate tier (100%)');
+
+const vocResult = calculateDecisionTreeMatch(
+  { ...baseSeeker, educationalAttainment: 'Vocational / TVET' },
+  { ...baseJob, minEducationalAttainment: 'TVET / Vocational' }
+);
+assert(vocResult.educationMatchScore === 100, 'Vocational / TVET matches TVET / Vocational tier (100%)');
+
+const undergradVsBachelor = calculateDecisionTreeMatch(
+  { ...baseSeeker, educationalAttainment: 'College Undergraduate' },
+  { ...baseJob, minEducationalAttainment: "Bachelor's Degree" }
+);
+assert(undergradVsBachelor.educationMatchScore === 65, 'College Undergraduate (rank 3) vs Bachelor (rank 4) scores 65%');
+
+const docVsMasters = calculateDecisionTreeMatch(
+  { ...baseSeeker, educationalAttainment: 'Doctorate Degree' },
+  { ...baseJob, minEducationalAttainment: "Master's Degree" }
+);
+assert(docVsMasters.educationMatchScore === 100, "Doctorate Degree exceeds Master's Degree requirement (100%)");
+
 // ---------------------------------------------------------------------------
 // Test Suite 3: Node 2 — Primary Degree Alignment (W_deg)
 // ---------------------------------------------------------------------------
@@ -192,6 +230,18 @@ assert(
   unrelatedDegreeResult.missingQualifications.some(m => m.includes('differs from preferred degree')),
   'Unrelated degree records discrepancy in missingQualifications'
 );
+
+// Word-boundary check: Hospitality, Fisheries, Economics do NOT match Tech abbreviations ('it', 'is', 'cs')
+for (const nonTechDegree of ['BS Hospitality Management', 'BS Fisheries', 'BS Economics']) {
+  const res = calculateDecisionTreeMatch({ ...baseSeeker, primaryDegree: nonTechDegree }, baseJob);
+  assert(res.degreeAlignmentScore === 40, `${nonTechDegree} is not misclassified as Tech (40%, got ${res.degreeAlignmentScore}%)`);
+}
+
+// Standalone short degree codes (BS IT, BS CS, BS IS) still resolve as related Tech degrees (80%)
+for (const shortTechDegree of ['BS IT', 'BS CS', 'BS IS']) {
+  const res = calculateDecisionTreeMatch({ ...baseSeeker, primaryDegree: shortTechDegree }, baseJob);
+  assert(res.degreeAlignmentScore === 80, `${shortTechDegree} matches related Tech degrees via word boundary (80%, got ${res.degreeAlignmentScore}%)`);
+}
 
 // Job accepting "Any Bachelor Degree"
 const openDegreeJob: JobPost = {

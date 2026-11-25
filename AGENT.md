@@ -13,9 +13,9 @@ The system serves three primary user roles:
 2. **Employers**: Roxas-based businesses posting vacancies, undergoing PESO compliance verification, and accessing the **Automated Candidate Ranking Engine** to discover and recruit top-matching candidates.
 3. **PESO / LGU Admin**: Municipal employment monitors approving job posts, managing Local Recruitment Activities (LRA for regional partners like Puregold Calapan), verifying business compliance, and monitoring municipal employment growth metrics.
 
-## Active Phase: Modularity & Architecture Debt Remediation
+## Active Phase: Production Audit Remediation (Correctness, Security & Scale)
 
-The initial 7 implementation milestones are complete, verified by 424 automated test assertions. The active phase focuses on technical debt reduction, modular context slicing, and architectural boundary enforcement as prioritized in the Modularity Audit in [SPEC.md](SPEC.md).
+The initial 7 implementation milestones and the `ARCH-01`–`ARCH-08` modularity refactoring phase are concluded. The active phase focuses on resolving the 19 production audit findings (security, auth, Decision Tree scoring accuracy, data sync, server hardening, and remaining decomposition) organized into Work Packages `WP-01` through `WP-07` in [SPEC.md](SPEC.md) and tracked in [PROGRESS.md](PROGRESS.md).
 
 ## Hard Rules
 
@@ -37,15 +37,16 @@ The initial 7 implementation milestones are complete, verified by 424 automated 
   - Job postings must pass PESO approval before appearing publicly on seeker boards.
 - **Verification Standards**:
   - Pass `npm run lint` (`tsc --noEmit`) with 0 errors before concluding any work package.
-  - Pass `npm test` (all 424 test assertions) before and after any structural modification.
-  - Never claim a refactoring is complete without verifiable runtime evidence.
+  - Pass `npm test` (and any new work-package verification tests) before and after any structural modification.
+  - Test real handlers, contexts, and HTTP routes directly rather than local mock simulations.
+  - Never claim a work package is complete without verifiable runtime evidence.
 
-## Definition of Done for a Refactoring Work Package
+## Definition of Done for a Remediation Work Package
 
 1. `npm run lint` (`tsc --noEmit`) passes with 0 errors.
-2. `npm test` passes all verification suites with 0 regressions.
+2. `npm test` passes all verification suites with 0 regressions, plus targeted tests proving the work package fixes.
 3. `npm run build` bundles successfully without missing modules or circular dependencies.
-4. Deliverables specified in [SPEC.md](SPEC.md) are fully implemented and verified.
+4. Deliverables specified for the work package in [SPEC.md](SPEC.md) are fully implemented and verified.
 5. [PROGRESS.md](PROGRESS.md) is updated with deliverable summaries and checked-off checklists (`[x]`).
 6. Git changes are reviewed and staged cleanly with a descriptive conventional commit message.
 
@@ -53,6 +54,7 @@ The initial 7 implementation milestones are complete, verified by 424 automated 
 
 - Refactor or alter components outside the designated work package scope.
 - Introduce arbitrary heavy dependencies when existing utilities or native web standards suffice.
-- Hardcode Supabase service role keys or sensitive credentials in client-facing bundles.
-- Modify the mathematical weightings of the decision-tree matching algorithm without explicit instruction.
+- Hardcode Supabase service role keys, passwords, or sensitive credentials in client-facing bundles.
+- Leave permissive RLS policies (`USING (true)` / `WITH CHECK (true)`) or auth/OTP bypasses in production schemas or auth contexts.
+- Duplicate Decision Tree scoring logic outside `src/utils/decisionTree.ts` and `src/utils/matchResolver.ts`, or change mathematical weightings without explicit instruction.
 - Mark work complete that has not been executed and verified.

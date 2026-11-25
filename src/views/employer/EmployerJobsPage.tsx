@@ -44,7 +44,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed' | 'paused' | 'pending_approval'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'closed' | 'archived' | 'pending_approval'>('all');
   const [showSalaryChart, setShowSalaryChart] = useState(false);
   const [copiedJobId, setCopiedJobId] = useState<string | null>(null);
 
@@ -66,20 +66,18 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
 
   const activeJobs = myJobs.filter(j => j.status === 'active');
   const closedJobs = myJobs.filter(j => j.status === 'closed');
+  const archivedJobs = myJobs.filter(j => j.status === 'archived');
   const pendingJobs = myJobs.filter(j => j.status === 'pending_approval');
 
   // Filter jobs
   const filteredJobs = myJobs.filter(job => {
     const matchesSearch = 
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       job.municipality.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesStatus = 
-      statusFilter === 'all' ? true : 
-      statusFilter === 'paused' ? job.status === 'paused' :
-      job.status === statusFilter;
+      statusFilter === 'all' ? true : job.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
@@ -222,7 +220,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
           <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search by title, department, category..."
+            placeholder="Search by title, category, municipality..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
@@ -261,6 +259,18 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
           >
             Closed ({closedJobs.length})
           </button>
+          {archivedJobs.length > 0 && (
+            <button
+              onClick={() => setStatusFilter('archived')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-colors shrink-0 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
+                statusFilter === 'archived'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Archived ({archivedJobs.length})
+            </button>
+          )}
           {pendingJobs.length > 0 && (
             <button
               onClick={() => setStatusFilter('pending_approval')}
@@ -318,7 +328,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
                         job.status === 'active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' :
                         job.status === 'closed' ? 'bg-slate-100 text-slate-700 border border-slate-200' :
-                        job.status === 'paused' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                        job.status === 'archived' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
                         'bg-blue-100 text-blue-800 border border-blue-200'
                       }`}>
                         {job.status.replace(/_/g, ' ')}
@@ -333,7 +343,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                     </div>
 
                     <p className="text-xs text-slate-500 font-medium">
-                      {job.department || job.category} • {job.employmentType} • {job.experienceLevel || 'Entry to Mid'}
+                      {job.category} • {job.employmentType} • {job.experienceLevel || 'Entry to Mid'}
                     </p>
                   </div>
 
@@ -350,7 +360,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                       }`}
                     >
                       <option value="active">Active (Open)</option>
-                      <option value="paused">Paused</option>
+                      <option value="archived">Archived</option>
                       <option value="closed">Closed (Filled)</option>
                       <option value="pending_approval">Pending Review</option>
                     </select>

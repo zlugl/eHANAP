@@ -4,13 +4,21 @@ import { JobPost, JobSeekerProfile, MatchResult, DecisionTreeOutcome, DegreeAlig
  * Educational Attainment Rank Mapping
  */
 const EDUCATION_LEVELS: Record<string, number> = {
+  "Out-of-School Youth": 1,
   "High School": 1,
+  "High School Graduate": 1,
+  "Senior High School": 1,
   "TVET / Vocational": 2,
+  "Vocational / TVET": 2,
+  "TVET / Technical Vocational": 2,
   "Associate Degree": 3,
+  "College Undergraduate": 3,
   "Bachelor's Degree": 4,
+  "College Graduate": 4,
   "Postgraduate Diploma": 5,
   "Master's Degree": 6,
   "Doctorate / PhD": 7,
+  "Doctorate Degree": 7,
 };
 
 /**
@@ -18,6 +26,30 @@ const EDUCATION_LEVELS: Record<string, number> = {
  */
 function normalize(str: string): string {
   return str.toLowerCase().trim();
+}
+
+function getEducationRank(label: string | undefined, fallback: number): number {
+  if (!label) return fallback;
+  if (EDUCATION_LEVELS[label] !== undefined) return EDUCATION_LEVELS[label];
+  const norm = normalize(label);
+  const exactKey = Object.keys(EDUCATION_LEVELS).find(k => normalize(k) === norm);
+  if (exactKey) return EDUCATION_LEVELS[exactKey];
+  if (norm.includes('doctor') || norm.includes('phd')) return 7;
+  if (norm.includes('master') || norm.includes('mba')) return 6;
+  if (norm.includes('postgraduate')) return 5;
+  if (norm.includes('bachelor') || norm.includes('college graduate')) return 4;
+  if (norm.includes('associate') || norm.includes('undergrad') || norm.includes('college level')) return 3;
+  if (norm.includes('tvet') || norm.includes('vocational') || norm.includes('tesda')) return 2;
+  if (norm.includes('high school') || norm.includes('senior high') || norm.includes('out-of-school') || norm.includes('osy')) return 1;
+  return fallback;
+}
+
+function containsDegreeToken(text: string, token: string): boolean {
+  if (!token) return false;
+  if (token.length <= 3) {
+    return new RegExp(`\\b${token.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(text);
+  }
+  return text.includes(token);
 }
 
 /**
@@ -40,7 +72,7 @@ function evaluateDegreeAlignment(seekerDegree: string, jobDegree: string): {
   const normJob = normalize(jobDegree);
 
   // Exact match
-  if (normSeeker === normJob || normSeeker.includes(normJob) || normJob.includes(normSeeker)) {
+  if (normSeeker === normJob || containsDegreeToken(normSeeker, normJob) || containsDegreeToken(normJob, normSeeker)) {
     return {
       score: 100,
       type: 'exact',
@@ -49,17 +81,17 @@ function evaluateDegreeAlignment(seekerDegree: string, jobDegree: string): {
   }
 
   // Related Field Keywords grouping
-  const techDegrees = ['computer science', 'information technology', 'software engineering', 'computer engineering', 'is', 'it', 'cs'];
+  const techDegrees = ['computer science', 'information technology', 'software engineering', 'computer engineering', 'bsit', 'bscs', 'bsis', 'is', 'it', 'cs'];
   const bizDegrees = ['accountancy', 'business administration', 'finance', 'management', 'marketing', 'entrepreneurship', 'economics'];
   const agroDegrees = ['agriculture', 'agribusiness', 'agronomy', 'crop science', 'agricultural engineering', 'forestry'];
   const tourismDegrees = ['tourism', 'hospitality management', 'hotel and restaurant management', 'hrm'];
   const engDegrees = ['civil engineering', 'electrical engineering', 'mechanical engineering', 'industrial engineering'];
 
-  const isBothTech = techDegrees.some(d => normSeeker.includes(d)) && techDegrees.some(d => normJob.includes(d));
-  const isBothBiz = bizDegrees.some(d => normSeeker.includes(d)) && bizDegrees.some(d => normJob.includes(d));
-  const isBothAgro = agroDegrees.some(d => normSeeker.includes(d)) && agroDegrees.some(d => normJob.includes(d));
-  const isBothTourism = tourismDegrees.some(d => normSeeker.includes(d)) && tourismDegrees.some(d => normJob.includes(d));
-  const isBothEng = engDegrees.some(d => normSeeker.includes(d)) && engDegrees.some(d => normJob.includes(d));
+  const isBothTech = techDegrees.some(d => containsDegreeToken(normSeeker, d)) && techDegrees.some(d => containsDegreeToken(normJob, d));
+  const isBothBiz = bizDegrees.some(d => containsDegreeToken(normSeeker, d)) && bizDegrees.some(d => containsDegreeToken(normJob, d));
+  const isBothAgro = agroDegrees.some(d => containsDegreeToken(normSeeker, d)) && agroDegrees.some(d => containsDegreeToken(normJob, d));
+  const isBothTourism = tourismDegrees.some(d => containsDegreeToken(normSeeker, d)) && tourismDegrees.some(d => containsDegreeToken(normJob, d));
+  const isBothEng = engDegrees.some(d => containsDegreeToken(normSeeker, d)) && engDegrees.some(d => containsDegreeToken(normJob, d));
 
   if (isBothTech || isBothBiz || isBothAgro || isBothTourism || isBothEng) {
     return {
@@ -110,8 +142,8 @@ export function calculateDecisionTreeMatch(seeker: JobSeekerProfile | null | und
   }
 
   // 2. Evaluate Educational Attainment Level
-  const seekerEduRank = EDUCATION_LEVELS[seeker.educationalAttainment] || 3;
-  const jobEduRank = EDUCATION_LEVELS[job.minEducationalAttainment] || 4;
+  const seekerEduRank = getEducationRank(seeker.educationalAttainment, 3);
+  const jobEduRank = getEducationRank(job.minEducationalAttainment, 4);
 
   let educationMatchScore = 100;
   if (seekerEduRank >= jobEduRank) {

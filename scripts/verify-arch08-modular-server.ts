@@ -172,6 +172,12 @@ async function runVerification() {
     assert(sanitizedWithMentions.age === 24, 'Age is preserved when mentioned');
     assert(sanitizedWithMentions.sex === 'Female', 'Sex is normalized to Female when mentioned');
 
+    // 3b. OCR image/scanned PDF mode: empty rawDocText preserves Gemini OCR DOB, age, and sex
+    const ocrSanitized = aiService.sanitizeExtractedResumeData(validData, {}, '');
+    assert(ocrSanitized.dateOfBirth === 'October 24, 2000', 'OCR mode (empty rawDocText) preserves dateOfBirth');
+    assert(ocrSanitized.age === 24, 'OCR mode (empty rawDocText) preserves age');
+    assert(ocrSanitized.sex === 'Female', 'OCR mode (empty rawDocText) preserves sex');
+
     // 4. Fallback execution: parseResumeWithAi returns extracted data using heuristic fallback
     const fallbackParse = await aiService.parseResumeWithAi(
       { fileName: 'Sample.pdf' },
@@ -203,7 +209,8 @@ async function runVerification() {
     assert(appContent.includes('createApp'), 'createApp is exported from server/app.ts');
 
     const { createApp } = await import('../server/app.ts');
-    const app = createApp();
+    const testToken = 'arch08-test-token';
+    const app = createApp({ verifyToken: async (token) => token === testToken });
     assert(typeof app === 'function', 'createApp returns Express application instance');
 
     // Start ephemeral server on random port to test HTTP request/response handling
@@ -212,6 +219,10 @@ async function runVerification() {
     });
     const port = serverInstance.address().port;
     const baseUrl = `http://127.0.0.1:${port}`;
+    const authHeaders = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${testToken}`,
+    };
 
     try {
       // 1. Test GET /api/health
@@ -221,10 +232,32 @@ async function runVerification() {
       assert(healthData.status === 'ok', 'health status is ok');
       assert(healthData.system.includes('eHANAP'), 'health response identifies eHANAP system');
 
+      // 1b. Test unauthenticated and invalid-token POST requests are rejected
+      const unauthRes = await fetch(`${baseUrl}/api/parse-resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: 'unauth.txt', fileContent: 'test' }),
+      });
+      assert(unauthRes.status === 401, 'unauthenticated POST /api/parse-resume returns status 401');
+
+      const unauthExtractRes = await fetch(`${baseUrl}/api/extract-resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fileName: 'unauth.txt', fileContent: 'test' }),
+      });
+      assert(unauthExtractRes.status === 401, 'unauthenticated POST /api/extract-resume returns status 401');
+
+      const badTokenRes = await fetch(`${baseUrl}/api/parse-resume`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer wrong-token' },
+        body: JSON.stringify({ fileName: 'unauth.txt', fileContent: 'test' }),
+      });
+      assert(badTokenRes.status === 401, 'invalid Bearer token on POST /api/parse-resume returns status 401');
+
       // 2. Test POST /api/parse-resume
       const parseRes = await fetch(`${baseUrl}/api/parse-resume`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           fileName: 'Juan_Resume.txt',
           fileContent: 'Juan Dela Cruz\nEmail: juan.delacruz@gmail.com\nPhone: 09181234567\nRoxas, Oriental Mindoro\nBS Information Technology\nSkills: React, Node.js',
@@ -239,7 +272,7 @@ async function runVerification() {
       // 3. Test POST /api/extract-resume (endpoint alias)
       const extractRes = await fetch(`${baseUrl}/api/extract-resume`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           fileName: 'Maria_Resume.txt',
           fileContent: 'Maria Santos\nBarangay Dangay, Roxas Oriental Mindoro\nSkills: Cashiering, Customer Service',
@@ -252,13 +285,14 @@ async function runVerification() {
       // 4. Test error resilience with corrupt/empty body
       const errorRes = await fetch(`${baseUrl}/api/parse-resume`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({ fileBase64: 'corrupted!!!base64' }),
       });
       assert(errorRes.status === 200, 'corrupt input returns status 200 with safe fallback');
       const errorData = await errorRes.json();
       assert(errorData.success === true, 'corrupt input safely handled without server crash');
     } finally {
+      serverInstance.closeAllConnections?.();
       await new Promise<void>((resolve) => serverInstance.close(() => resolve()));
     }
   }

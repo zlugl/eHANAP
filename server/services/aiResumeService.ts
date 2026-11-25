@@ -256,13 +256,15 @@ export function sanitizeExtractedResumeData(
         }]
       : [];
 
-  // Verify if document actually mentions birthday or sex to prevent LLM guessing
-  const rawText = (rawDocText || '').toLowerCase();
-  const hasDobMention = /\b(birth|dob|birthday|born)\b/i.test(rawText);
+  // Verify if document actually mentions birthday or sex to prevent LLM guessing;
+  // skip rawDocText verification when empty (image or scanned PDF OCR mode)
+  const rawText = (rawDocText || '').trim().toLowerCase();
+  const hasRawText = rawText.length > 0;
+  const hasDobMention = !hasRawText || /\b(birth|dob|birthday|born)\b/i.test(rawText);
   const resolvedDob = hasDobMention ? (geminiData.dateOfBirth || fallbackInfo?.dateOfBirth || '') : '';
   const resolvedAge = hasDobMention ? (typeof geminiData.age === 'number' ? geminiData.age : fallbackInfo?.age) : undefined;
 
-  const hasSexMention = /\b(sex|gender|female|male)\b/i.test(rawText);
+  const hasSexMention = !hasRawText || /\b(sex|gender|female|male)\b/i.test(rawText);
   let resolvedSex = '';
   if (hasSexMention) {
     const candidateSex = String(geminiData.sex || fallbackInfo?.sex || '').toLowerCase();
