@@ -29,6 +29,22 @@ import {
 import { useAuth } from './AuthContext';
 import { saveDocument } from './persistence';
 
+const toUpperSafe = (val?: string): string | undefined => (typeof val === 'string' ? val.toUpperCase() : val);
+
+export const normalizeEmployerProfileToUpperCase = (data: Partial<EmployerProfile>): Partial<EmployerProfile> => {
+  const next: Partial<EmployerProfile> = { ...data };
+  if (next.companyName !== undefined) next.companyName = toUpperSafe(next.companyName)!;
+  if (next.representativeName !== undefined) next.representativeName = toUpperSafe(next.representativeName)!;
+  if (next.address !== undefined) next.address = toUpperSafe(next.address)!;
+  if (next.barangay !== undefined) next.barangay = toUpperSafe(next.barangay);
+  if (next.companyDescription !== undefined) next.companyDescription = toUpperSafe(next.companyDescription)!;
+  if (next.description !== undefined) next.description = toUpperSafe(next.description);
+  if (next.businessPermitNo !== undefined) next.businessPermitNo = toUpperSafe(next.businessPermitNo)!;
+  if (next.dtiSecRegistration !== undefined) next.dtiSecRegistration = toUpperSafe(next.dtiSecRegistration)!;
+  if (next.bir2303No !== undefined) next.bir2303No = toUpperSafe(next.bir2303No);
+  return next;
+};
+
 export interface DirectoryContextType {
   employers: EmployerProfile[];
   setEmployers: React.Dispatch<React.SetStateAction<EmployerProfile[]>>;
@@ -297,7 +313,8 @@ export const DirectoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateEmployerProfile = (employerIdOrData: string | Partial<EmployerProfile>, maybeData?: Partial<EmployerProfile>) => {
     const targetId = typeof employerIdOrData === 'string' ? employerIdOrData : (currentEmployerProfile?.id || '');
-    const profileData = typeof employerIdOrData === 'string' ? (maybeData || {}) : employerIdOrData;
+    const rawProfileData = typeof employerIdOrData === 'string' ? (maybeData || {}) : employerIdOrData;
+    const profileData = normalizeEmployerProfileToUpperCase(rawProfileData);
     const emailToMatch = (profileData.email || currentUser?.email || '').toLowerCase().trim();
 
     setEmployers(prev => {

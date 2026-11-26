@@ -402,36 +402,7 @@ export async function ensureDemoAccountsExistInSupabase(): Promise<boolean> {
  * Clean-slate mode: no demo data is seeded.
  */
 export async function seedDemoDataToSupabase(): Promise<boolean> {
-<<<<<<< HEAD
   return true;
-=======
-  if (!isSupabaseConfigured()) return false;
-
-  try {
-    // Batch-upsert in foreign-key dependency tiers
-    await Promise.all([
-      saveRecords(SUPABASE_TABLES.USERS, INITIAL_USERS),
-      saveRecords(SUPABASE_TABLES.NOTIFICATIONS, INITIAL_NOTIFICATIONS),
-      saveRecords(SUPABASE_TABLES.AUDIT_LOGS, INITIAL_AUDIT_LOGS),
-      saveRecords(SUPABASE_TABLES.ANNOUNCEMENTS, INITIAL_ANNOUNCEMENTS),
-    ]);
-
-    await Promise.all([
-      saveRecords(SUPABASE_TABLES.EMPLOYERS, INITIAL_EMPLOYERS),
-      saveRecords(SUPABASE_TABLES.JOB_SEEKERS, INITIAL_JOB_SEEKERS),
-    ]);
-
-    await saveRecords(SUPABASE_TABLES.JOB_POSTS, INITIAL_JOB_POSTS);
-    await saveRecords(SUPABASE_TABLES.APPLICATIONS, INITIAL_APPLICATIONS);
-    await saveRecords(SUPABASE_TABLES.INTERVIEWS, INITIAL_INTERVIEWS);
-
-    console.log('[Supabase] Successfully seeded initial Roxas demo accounts and records.');
-    return true;
-  } catch (error) {
-    console.warn('[Supabase] Error seeding demo data to Supabase:', error);
-    return false;
-  }
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
 }
 
 /**

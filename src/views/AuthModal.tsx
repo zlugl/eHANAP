@@ -29,10 +29,6 @@ interface AuthModalProps {
   onSuccessRole?: (role: string, user?: any, isProfileCompleted?: boolean) => void;
 }
 
-<<<<<<< HEAD
-=======
-// Google Icon
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
 const GoogleIcon = () => (
   <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
     <path
@@ -113,43 +109,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-<<<<<<< HEAD
-=======
-  const handleFillDemoAccount = (account: DemoAccountMeta) => {
-    setSelectedDemoId(account.id);
-    setRole(account.role);
-    setLoginEmail(account.email);
-    setLoginPassword(account.password);
-    setErrorMessage('');
-    showToast({
-      title: `${account.roleLabel} Selected`,
-      message: `Credentials loaded for ${account.name} (${account.email}).`,
-      type: 'info'
-    });
-  };
-
-  const handleDirectDemoSignIn = async (account: DemoAccountMeta) => {
-    setSelectedDemoId(account.id);
-    setRole(account.role);
-    setLoginEmail(account.email);
-    setLoginPassword(account.password);
-    setErrorMessage('');
-    setIsLoading(true);
-
-    const res = await loginAs(account.email, account.password);
-    setIsLoading(false);
-
-    if (!res.success || !res.user) {
-      setErrorMessage(res.error || 'Failed to sign in with demo credentials.');
-      return;
-    }
-
-    if (onSuccessRole) onSuccessRole(res.user.role, res.user, res.isProfileCompleted);
-    if (onSuccess) onSuccess();
-    onClose();
-  };
-
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   useEffect(() => {
     if (isOpen) {
       setMode(initialRole === 'admin' && !hasAdminAccount ? 'register' : initialMode);
@@ -205,16 +164,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-<<<<<<< HEAD
-      onClose();
-      if (onSuccessRole) onSuccessRole(res.user.role, res.user, res.isProfileCompleted);
-      else if (onSuccess) onSuccess();
-    }, 200);
-=======
     onClose();
     if (onSuccessRole) onSuccessRole(res.user.role, res.user, res.isProfileCompleted);
     else if (onSuccess) onSuccess();
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   };
 
   // 2. Submit Create Account (Sign Up)
@@ -334,13 +286,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     else if (onSuccess) onSuccess();
   };
 
-<<<<<<< HEAD
   // 3. Verify OTP (if OTP flow used)
-  const handleVerifyOtp = (e: React.FormEvent) => {
-=======
-  // 3. Verify OTP
   const handleVerifyOtp = async (e: React.FormEvent) => {
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
     e.preventDefault();
     setErrorMessage('');
 
@@ -358,22 +305,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       return;
     }
 
-<<<<<<< HEAD
-    const loginRes = loginAs(regEmail.trim().toLowerCase(), regPassword);
-=======
     const loginRes = await loginAs(regEmail.trim().toLowerCase(), regPassword);
 
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
     onClose();
     if (onSuccessRole) onSuccessRole(role, loginRes?.user, role === 'admin');
     else if (onSuccess) onSuccess();
   };
 
-<<<<<<< HEAD
   // 4. Google Auth
-=======
-  // 4. Social Auth (Google)
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   const handleGoogleAuth = async () => {
     setIsLoading(true);
     setErrorMessage('');
@@ -770,7 +709,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
               </form>
             </div>
-<<<<<<< HEAD
           ) : mode === 'login' ? (
             /* ======================================================== */
             /* SIGN IN SCREEN WITH ROLE TOGGLE                          */
@@ -782,409 +720,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </h1>
                 <p className="text-xs text-[var(--color-ink-muted)] font-normal">
                   Municipal PESO Roxas • Select your user role to proceed
-=======
-
-            {demoOtpCode && (
-              <div className="p-3 bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-xl text-center text-xs text-[var(--color-ink)]">
-                <span>Verification Code: </span>
-                <strong className="font-mono tabular-nums font-bold">{demoOtpCode}</strong>
-              </div>
-            )}
-
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-[var(--color-ink)] block mb-1.5 text-center">
-                  Enter 6-Digit Code
-                </label>
-                <input
-                  type="text"
-                  required
-                  maxLength={6}
-                  placeholder="------"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="w-full bg-[var(--color-paper)] border border-[var(--color-rule)] rounded-xl py-3 text-center text-xl font-bold font-mono tabular-nums text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="btn btn--primary w-full py-3.5 text-sm rounded-xl font-bold transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-              >
-                {isLoading ? 'Verifying...' : 'Verify & Continue'}
-              </button>
-            </form>
-
-            <p className="text-center text-xs text-[var(--color-ink-muted)]">
-              Didn’t receive code?{' '}
-              <button
-                type="button"
-                onClick={() => {
-                  const res = sendOtp(regEmail, 'email');
-                  if (res.code) setDemoOtpCode(res.code);
-                  showToast({ title: 'New Code Sent', message: 'Check your email inbox.', type: 'info' });
-                }}
-                className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-              >
-                Resend Code
-              </button>
-            </p>
-          </div>
-        ) : mode === 'login' ? (
-
-        /* ======================================================== */
-        /* CASE 3: SIGN IN SCREEN WITH ROLE TOGGLE                  */
-        /* ======================================================== */
-          <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in">
-            
-            {/* Header: Title + Subtitle */}
-            <div className="text-center space-y-1 pt-1">
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-ink)] font-display tracking-tight">
-                Sign In
-              </h1>
-              <p className="text-xs text-[var(--color-ink-muted)] font-normal">
-                Municipal PESO Roxas • Select your user role to proceed
-              </p>
-            </div>
-
-            {/* Clear toggle / selection for user role */}
-            <div className="space-y-2 pt-1">
-              <div className="flex items-center justify-between text-xs px-1">
-                <span className="font-semibold text-[var(--color-ink)]">Choose User Role:</span>
-                <span className="text-[11px] font-medium text-[var(--color-accent)]">
-                  {role === 'job_seeker' ? 'Candidate Access' : role === 'employer' ? 'Recruiter Access' : 'LGU Office Access'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 bg-[var(--color-paper-warm)] p-1.5 rounded-xl border border-[var(--color-rule)]">
-                {/* 1. Job Seeker */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectRole('job_seeker')}
-                  className={`py-2.5 px-2 rounded-lg text-xs font-semibold transition-colors flex flex-col items-center justify-center gap-1 cursor-pointer text-center focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
-                    role === 'job_seeker'
-                      ? 'bg-[var(--color-ink)] text-[var(--color-paper)] font-bold shadow-xs'
-                      : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-paper)]'
-                  }`}
-                >
-                  <Users className="w-4 h-4 shrink-0" aria-hidden="true" />
-                  <span className="text-xs font-bold leading-tight">Job Seeker</span>
-                  <span className={`text-[9px] font-normal leading-none ${role === 'job_seeker' ? 'text-[var(--color-accent)]' : 'text-[var(--color-ink-muted)]'}`}>
-                    College/HS/OSY
-                  </span>
-                </button>
-
-                {/* 2. Employer */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectRole('employer')}
-                  className={`py-2.5 px-2 rounded-lg text-xs font-semibold transition-colors flex flex-col items-center justify-center gap-1 cursor-pointer text-center focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
-                    role === 'employer'
-                      ? 'bg-[var(--color-ink)] text-[var(--color-paper)] font-bold shadow-xs'
-                      : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-paper)]'
-                  }`}
-                >
-                  <Building2 className="w-4 h-4 shrink-0" aria-hidden="true" />
-                  <span className="text-xs font-bold leading-tight">Employer</span>
-                  <span className={`text-[9px] font-normal leading-none ${role === 'employer' ? 'text-[var(--color-accent)]' : 'text-[var(--color-ink-muted)]'}`}>
-                    Local Hiring
-                  </span>
-                </button>
-
-                {/* 3. PESO Admin */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectRole('admin')}
-                  className={`py-2.5 px-2 rounded-lg text-xs font-semibold transition-colors flex flex-col items-center justify-center gap-1 cursor-pointer text-center focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
-                    role === 'admin'
-                      ? 'bg-[var(--color-ink)] text-[var(--color-paper)] font-bold shadow-xs'
-                      : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] hover:bg-[var(--color-paper)]'
-                  }`}
-                >
-                  <ShieldCheck className="w-4 h-4 shrink-0" aria-hidden="true" />
-                  <span className="text-xs font-bold leading-tight">PESO Admin</span>
-                  <span className={`text-[9px] font-normal leading-none ${role === 'admin' ? 'text-[var(--color-accent)]' : 'text-[var(--color-ink-muted)]'}`}>
-                    Single Account
-                  </span>
-                </button>
-              </div>
-
-              {/* Dynamic Role Mission Helper */}
-              <div className="p-3 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper-warm)] text-xs flex items-start gap-2.5 text-[var(--color-ink)]">
-                {role === 'job_seeker' && <GraduationCap className="w-4 h-4 text-[var(--color-accent)] shrink-0 mt-0.5" aria-hidden="true" />}
-                {role === 'employer' && <Building2 className="w-4 h-4 text-[var(--color-accent)] shrink-0 mt-0.5" aria-hidden="true" />}
-                {role === 'admin' && <Shield className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" aria-hidden="true" />}
-                <div className="leading-snug">
-                  <p className="font-semibold text-[11px]">
-                    {role === 'job_seeker'
-                      ? 'Accessible for College Grads, High School Grads & OSY'
-                      : role === 'employer'
-                      ? 'Roxas Accredited Establishment Portal'
-                      : 'Single Designated LGU/PESO Administrator Account'}
-                  </p>
-                  <p className="text-[10px] text-[var(--color-ink-muted)] mt-0.5">
-                    {role === 'job_seeker'
-                      ? 'Access Decision Tree match badges, PESO verified vacancies, and ATS resume audits.'
-                      : role === 'employer'
-                      ? 'Post open vacancies, review ranked candidate profiles, and submit compliance files.'
-                      : 'Dedicated municipal oversight portal for Roxas: Monitor vacancies, audit employer accreditations, and issue official Referral Slips.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* PRE-CONFIGURED DEMO ACCOUNTS PICKER */}
-            <div className="bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-xl p-3.5 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[var(--color-ink)]">
-                  <Key className="w-3.5 h-3.5 text-[var(--color-accent)]" aria-hidden="true" />
-                  <span>Demo Accounts for Testing</span>
-                </div>
-                <span className="text-[10px] text-[var(--color-ink-muted)] font-medium bg-[var(--color-paper)] border border-[var(--color-rule)] px-2 py-0.5 rounded-md">
-                  Password: <code className="text-[var(--color-accent)] font-semibold font-mono">password123</code>
-                </span>
-              </div>
-              <p className="text-[11px] text-[var(--color-ink-muted)] leading-normal">
-                Select a job seeker, local Roxas employer, or the PESO municipal admin to auto-fill credentials and test role features:
-              </p>
-
-              {/* 1-Column List of Demo Accounts */}
-              <div className="grid grid-cols-1 gap-2.5 max-h-[380px] overflow-y-auto pr-1">
-                {DEMO_ACCOUNTS.map((acc) => {
-                  const isSelected = selectedDemoId === acc.id || loginEmail === acc.email;
-                  const isMatchRole = acc.role === role;
-
-                  return (
-                    <div
-                      key={acc.id}
-                      className={`p-3 rounded-xl border text-left transition-colors relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
-                        isSelected
-                          ? 'bg-[var(--color-paper)] border-[var(--color-accent)] ring-1 ring-[var(--color-accent)]'
-                          : isMatchRole
-                          ? 'bg-[var(--color-paper)] border-[var(--color-rule)] hover:border-[var(--color-ink-muted)]'
-                          : 'bg-[var(--color-paper)]/70 border-[var(--color-rule)]/80 opacity-90 hover:opacity-100 hover:bg-[var(--color-paper)]'
-                      }`}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between sm:justify-start gap-2">
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded border ${
-                            acc.badgeColor === 'amber'
-                              ? 'bg-amber-50 text-amber-800 border-amber-200'
-                              : acc.badgeColor === 'emerald'
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : acc.badgeColor === 'purple'
-                              ? 'bg-purple-50 text-purple-800 border-purple-200'
-                              : 'bg-[var(--color-paper-warm)] text-[var(--color-ink)] border-[var(--color-rule)]'
-                          }`}>
-                            {acc.badge}
-                          </span>
-                          <span className="text-[10px] font-medium text-[var(--color-ink-muted)] capitalize">
-                            {acc.role === 'admin' ? 'PESO Admin' : 'Employer'}
-                          </span>
-                        </div>
-
-                        <h4 className="text-xs font-bold text-[var(--color-ink)] mt-1 truncate">
-                          {acc.name}
-                        </h4>
-                        <p className="text-[10px] text-[var(--color-ink-muted)] truncate font-mono">
-                          {acc.email}
-                        </p>
-
-                        {/* Sample Vacancies / Focus */}
-                        {acc.sampleVacancies && acc.sampleVacancies.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {acc.sampleVacancies.map((v, i) => (
-                              <span
-                                key={i}
-                                className="text-[9px] font-medium bg-[var(--color-paper-warm)] text-[var(--color-ink)] px-1.5 py-0.5 rounded border border-[var(--color-rule)] truncate max-w-full"
-                              >
-                                {v}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action buttons */}
-                      <div className="flex sm:flex-col items-center gap-1.5 pt-2 sm:pt-0 border-t sm:border-t-0 sm:border-l border-[var(--color-rule)] sm:pl-3 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => handleFillDemoAccount(acc)}
-                          className="flex-1 sm:w-28 py-1.5 px-2 text-[10px] font-medium text-[var(--color-ink)] hover:bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-lg transition-colors cursor-pointer text-center focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                        >
-                          Fill Form
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDirectDemoSignIn(acc)}
-                          className="btn btn--primary flex-1 sm:w-28 py-1.5 px-2 text-[10px] font-bold rounded-lg transition-colors flex items-center justify-center gap-1 cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                        >
-                          <Zap className="w-2.5 h-2.5 fill-current" aria-hidden="true" />
-                          <span>1-Click Sign In</span>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Sign In Form */}
-            <form onSubmit={handleLoginSubmit} className="space-y-4 pt-1">
-              
-              {/* Field 1: Email */}
-              <div className="space-y-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[var(--color-ink)] block">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  placeholder="name@example.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  required
-                  className="w-full bg-[var(--color-paper)] border border-[var(--color-rule)] rounded-xl px-4 py-3 text-xs sm:text-sm font-medium text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)]/60 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
-                />
-              </div>
-
-              {/* Field 2: Password */}
-              <div className="space-y-1.5">
-                <label className="text-xs sm:text-sm font-semibold text-[var(--color-ink)] block">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                    className="w-full bg-[var(--color-paper)] border border-[var(--color-rule)] rounded-xl px-4 py-3 pr-11 text-xs sm:text-sm font-medium text-[var(--color-ink)] placeholder:text-[var(--color-ink-muted)]/60 focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] p-1 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] rounded"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? (
-                      <Eye className="w-5 h-5" aria-hidden="true" />
-                    ) : (
-                      <EyeOff className="w-5 h-5" aria-hidden="true" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Forgot Password Link */}
-              <div className="flex justify-end pt-0.5">
-                <button
-                  type="button"
-                  onClick={() => { setShowForgotPassword(true); setForgotStep('request'); setForgotEmail(loginEmail); }}
-                  className="text-xs font-semibold text-[var(--color-accent)] hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-
-              {/* Primary Action Button: Sign In as Role */}
-              <div className="pt-2">
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="btn btn--primary w-full py-3.5 text-sm sm:text-base rounded-xl font-bold transition-colors text-center cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-                >
-                  {isLoading
-                    ? 'Authenticating...'
-                    : `Sign In as ${role === 'job_seeker' ? 'Job Seeker' : role === 'employer' ? 'Employer' : 'PESO Admin'}`}
-                </button>
-              </div>
-
-            </form>
-
-            {/* Divider: Or sign in with */}
-            <div className="relative flex items-center justify-center my-6">
-              <div className="border-t border-[var(--color-rule)] w-full" />
-              <span className="bg-[var(--color-paper)] px-3 text-xs text-[var(--color-ink-muted)] font-normal absolute">
-                Or sign in with
-              </span>
-            </div>
-
-            {/* Social Login: Google */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={handleGoogleAuth}
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center gap-2.5 text-xs sm:text-sm font-semibold text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
-                title="Sign in with Google"
-              >
-                <GoogleIcon />
-                <span>Continue with Google</span>
-              </button>
-            </div>
-
-            {/* Footer Switch Link: Don't have an account? Sign Up */}
-            <p className="text-center text-xs sm:text-sm text-[var(--color-ink-muted)] font-normal pt-2">
-              Don’t have an account?{' '}
-              <button
-                type="button"
-                onClick={() => { setMode('register'); setErrorMessage(''); }}
-                className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer ml-0.5 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-              >
-                Sign Up
-              </button>
-            </p>
-
-          </div>
-        ) : (
-
-        /* ======================================================== */
-        /* CASE 4: CREATE ACCOUNT SCREEN                            */
-        /* ======================================================== */
-          <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in">
-            
-            {/* Header: Title + Subtitle */}
-            <div className="text-center space-y-1.5 pt-2">
-              <h1 className="text-2xl sm:text-3xl font-bold text-[var(--color-ink)] font-display tracking-tight">
-                Create Account
-              </h1>
-              <p className="text-xs sm:text-sm text-[var(--color-ink-muted)] font-normal max-w-xs mx-auto leading-normal">
-                Fill your information below or register with your social account.
-              </p>
-            </div>
-
-            {/* Role selector (Job Seeker vs Employer) */}
-            <div className="bg-[var(--color-paper-warm)] p-1 rounded-xl flex gap-1 border border-[var(--color-rule)]">
-              <button
-                type="button"
-                onClick={() => setRole('job_seeker')}
-                className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
-                  role === 'job_seeker' ? 'bg-[var(--color-ink)] text-[var(--color-paper)] font-bold shadow-xs' : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]'
-                }`}
-              >
-                Job Seeker
-              </button>
-              <button
-                type="button"
-                onClick={() => setRole('employer')}
-                className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
-                  role === 'employer' ? 'bg-[var(--color-ink)] text-[var(--color-paper)] font-bold shadow-xs' : 'text-[var(--color-ink-muted)] hover:text-[var(--color-ink)]'
-                }`}
-              >
-                Employer
-              </button>
-            </div>
-
-            {/* Official LGU Single Admin Notice */}
-            <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/80 text-[11px] text-amber-950 flex items-start gap-2.5">
-              <ShieldCheck className="w-4 h-4 text-amber-700 shrink-0 mt-0.5" aria-hidden="true" />
-              <div className="leading-tight">
-                <span className="font-bold">LGU/PESO Official Notice:</span>
-                <p className="text-[10px] text-[var(--color-ink-muted)] mt-0.5">
-                  Municipal employment monitoring is restricted to a single designated administrator account (<code className="text-amber-800 font-bold font-mono">peso.admin@roxas.gov.ph</code>). Additional administrative registrations are disabled.
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
                 </p>
               </div>
 
@@ -1570,6 +1105,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </div>
               </form>
 
+              {role !== 'admin' && (
+                <>
+                  <div className="relative flex items-center justify-center my-4">
+                    <div className="border-t border-[var(--color-rule)] w-full" />
+                    <span className="bg-[var(--color-paper)] px-3 text-xs text-[var(--color-ink-muted)] font-normal absolute">
+                      Or register with
+                    </span>
+                  </div>
+
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={handleGoogleAuth}
+                      disabled={isLoading}
+                      className="w-full py-2.5 px-4 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center gap-2.5 text-xs font-semibold text-[var(--color-ink)] transition-colors cursor-pointer disabled:opacity-50"
+                      title="Sign up with Google"
+                    >
+                      <GoogleIcon />
+                      <span>Continue with Google</span>
+                    </button>
+                  </div>
+                </>
+              )}
+
               <p className="text-center text-xs sm:text-sm text-[var(--color-ink-muted)] font-normal pt-2">
                 Already have an account?{' '}
                 <button
@@ -1584,41 +1143,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </button>
               </p>
             </div>
-<<<<<<< HEAD
           )}
         </div>
-=======
-
-            {/* Social Login: Google */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={handleGoogleAuth}
-                disabled={isLoading}
-                className="w-full py-3 px-4 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)] flex items-center justify-center gap-2.5 text-xs sm:text-sm font-semibold text-[var(--color-ink)] transition-colors active:opacity-85 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
-                title="Sign up with Google"
-              >
-                <GoogleIcon />
-                <span>Continue with Google</span>
-              </button>
-            </div>
-
-            {/* Footer Switch Link: Already have an account? Sign In */}
-            <p className="text-center text-xs sm:text-sm text-[var(--color-ink-muted)] font-normal pt-2">
-              Already have an account?{' '}
-              <button
-                type="button"
-                onClick={() => { setMode('login'); setErrorMessage(''); }}
-                className="text-[var(--color-accent)] font-semibold hover:underline cursor-pointer ml-0.5 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-              >
-                Sign In
-              </button>
-            </p>
-
-          </div>
-        )}
-
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       </div>
     </div>
   );

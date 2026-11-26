@@ -34,16 +34,23 @@ export interface AuthContextType {
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   switchUserRole: (userId: string | null) => void;
-  switchDemoRole: (target: 'job_seeker' | 'employer' | 'admin' | string) => Promise<{
+  switchDemoRole: (target: 'job_seeker' | 'employer' | 'admin' | string) => {
     success: boolean;
     user?: User;
     role?: UserRole;
     error?: string;
-  }>;
+  };
   loginAs: (
     email: string,
     password?: string
-  ) => Promise<{
+  ) => {
+    success: boolean;
+    user?: User;
+    isProfileCompleted?: boolean;
+    seekerProfile?: JobSeekerProfile | null;
+    employerProfile?: EmployerProfile | null;
+    error?: string;
+  } | Promise<{
     success: boolean;
     user?: User;
     isProfileCompleted?: boolean;
@@ -116,19 +123,18 @@ function buildOAuthUserAndProfile(
     const employerProfile: EmployerProfile = {
       id: `emp-${Date.now()}`,
       userId: newUserId,
-      companyName: name || 'Business Establishment',
-      representativeName: name || 'Authorized Representative',
+      companyName: name || '',
+      representativeName: '',
       contactNumber: '',
       email,
-      address: 'Roxas, Oriental Mindoro',
-      municipality: 'Roxas',
-      industry: 'Information Technology',
+      address: '',
+      municipality: '',
+      industry: '',
       companyDescription: '',
-      status: 'pending',
+      status: 'incomplete',
+      documents: [],
       isProfileCompleted: false,
-      logoUrl:
-        avatarUrl ||
-        'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
+      logoUrl: avatarUrl || '',
       createdAt: new Date().toISOString(),
     };
 
@@ -141,25 +147,25 @@ function buildOAuthUserAndProfile(
   }
 
   const nameParts = name.trim().split(/\s+/);
-  const firstName = nameParts[0] || 'Job';
-  const lastName = nameParts.slice(1).join(' ') || 'Seeker';
+  const firstName = nameParts[0] || '';
+  const lastName = nameParts.slice(1).join(' ') || '';
 
   const seekerProfile: JobSeekerProfile = {
     id: `seeker-${Date.now()}`,
     userId: newUserId,
     firstName,
     lastName,
-    dateOfBirth: '2000-01-01',
+    dateOfBirth: '',
     email,
     contactNumber: '',
-    address: 'Bagumbayan, Roxas',
-    municipality: 'Roxas',
-    profilePicture: avatarUrl,
-    professionalSummary: 'Job seeker registered via Google on eHANAP Roxas.',
-    educationalAttainment: "Bachelor's Degree",
+    address: '',
+    municipality: '',
+    profilePicture: avatarUrl || '',
+    professionalSummary: '',
+    educationalAttainment: '',
     primaryDegree: '',
     technicalSkills: [],
-    softSkills: ['Communication', 'Teamwork'],
+    softSkills: [],
     education: [],
     workExperience: [],
     certifications: [],
@@ -365,21 +371,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-<<<<<<< HEAD
-      if (!found) {
-        return {
-          success: false,
-          error: 'No account found with this email address. Please create an account first.',
-        };
-      }
-=======
-      if (supabaseConfigured) {
+      if (!found && supabaseConfigured) {
         const authRes = await signInWithSupabase(cleanEmail, password);
-        if (!authRes.success) {
-          return { success: false, error: authRes.error || 'Incorrect email or password. Please try again.' };
-        }
-
-        if (!found) {
+        if (authRes.success) {
           const dbUser = await fetchUserByEmail(cleanEmail);
           if (dbUser) {
             found = dbUser;
@@ -395,6 +389,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               avatar: meta.avatar_url,
               isAccountVerified: true,
               createdAt: authRes.user.created_at || new Date().toISOString(),
+              password,
             };
           }
           if (found) {
@@ -407,43 +402,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
         }
+      }
 
-        if (!found) {
-          return {
-            success: false,
-            error: 'No account found with this email address. Please register for an account.',
-          };
-        }
-      } else {
-        // Offline-only demo fallback
-        if (!found) {
-          const demo = getDemoAccountByEmail(cleanEmail);
-          if (demo) {
-            found = {
-              id: demo.userId,
-              email: demo.email,
-              name: demo.name,
-              role: demo.role,
-              avatar: demo.avatar,
-              isAccountVerified: true,
-              createdAt: new Date().toISOString(),
-              password: demo.password,
-            };
-            setUsers((prev) => [found!, ...prev]);
-          }
-        }
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
+      if (!found) {
+        return {
+          success: false,
+          error: 'No account found with this email address. Please create an account first.',
+        };
+      }
 
-        if (!found) {
-          return {
-            success: false,
-            error: 'No account found with this email address. Please register for an account.',
-          };
-        }
-
-        if (!found.password || found.password !== password) {
-          return { success: false, error: 'Incorrect password. Please try again.' };
-        }
+      if (found.password && found.password !== password) {
+        return { success: false, error: 'Incorrect password. Please try again.' };
       }
 
       const storedSeekers = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
@@ -466,40 +435,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const isEmployerProfileCompleted = isEmployerProfileComplete(found, matchingEmployer);
 
-<<<<<<< HEAD
-      if (found.role === 'job_seeker') {
-        (found as any).isProfileCompleted = isSeekerProfileCompleted;
-        if (isSeekerProfileCompleted) {
-          markProfileCompletedInStorage([found!.id, cleanEmail], 'job_seeker');
-        }
-      } else if (found.role === 'employer') {
-        (found as any).isProfileCompleted = isEmployerProfileCompleted;
-        if (isEmployerProfileCompleted) {
-          markProfileCompletedInStorage([found!.id, cleanEmail], 'employer');
-        }
-      } else if (found.role === 'admin') {
-        (found as any).isProfileCompleted = true;
-      }
-
-      setCurrentUser(found);
-
-      if (isSupabaseConfigured()) {
-        signInWithSupabase(cleanEmail, password).catch(() => {});
-      }
-
-      return {
-        success: true,
-        user: found,
-=======
       const authenticatedUser: User = {
         ...found,
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
         isProfileCompleted:
           found.role === 'job_seeker'
             ? isSeekerProfileCompleted
             : found.role === 'employer'
             ? isEmployerProfileCompleted
-            : found.isProfileCompleted,
+            : true,
       };
 
       if (authenticatedUser.role === 'job_seeker' && isSeekerProfileCompleted) {
@@ -509,6 +452,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       setCurrentUser(authenticatedUser);
+
+      if (supabaseConfigured) {
+        signInWithSupabase(cleanEmail, password).catch(() => {});
+      }
 
       return {
         success: true,
@@ -527,12 +474,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const switchDemoRole = useCallback(
-<<<<<<< HEAD
     (target: 'job_seeker' | 'employer' | 'admin' | string) => {
-=======
-    async (target: 'job_seeker' | 'employer' | 'admin' | string) => {
-      let email = '';
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       const cleanTarget = (target || '').trim().toLowerCase();
       const roleMatch = users.find((u) => {
         if (cleanTarget === 'job_seeker' || cleanTarget === 'seeker') return u.role === 'job_seeker';
@@ -548,30 +490,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
-<<<<<<< HEAD
       setCurrentUser(roleMatch);
       return { success: true, user: roleMatch, role: roleMatch.role };
-=======
-      const res = await loginAs(email, 'password123');
-      if (res.success && res.user) {
-        if (toastContext) {
-          toastContext.showToast({
-            title: `Persona: ${
-              res.user.role === 'admin'
-                ? 'PESO Admin'
-                : res.user.role === 'employer'
-                ? 'Employer'
-                : 'Job Seeker'
-            }`,
-            message: `Switched to ${res.user.name} (${res.user.email}).`,
-            type: 'status',
-          });
-        }
-        return { success: true, user: res.user, role: res.user.role };
-      }
-
-      return { success: false, error: res.error || 'Failed to switch demo account.' };
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
     },
     [users]
   );
@@ -633,121 +553,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUsers((prev) => [...prev, newUser]);
           setCurrentUser(newUser);
 
-<<<<<<< HEAD
-            const newUser: User = {
-              id: newUserId,
-              email,
-              name,
-              role: 'employer',
-              isProfileCompleted: false,
-              createdAt: new Date().toISOString(),
-              avatar: avatarUrl,
-            };
-
-            const newEmpId = `emp-${Date.now()}`;
-            const newEmp: EmployerProfile = {
-              id: newEmpId,
-              userId: newUserId,
-              companyName: name || '',
-              representativeName: '',
-              contactNumber: '',
-              email,
-              address: '',
-              municipality: '',
-              industry: '',
-              companyDescription: '',
-              status: 'incomplete',
-              documents: [],
-              isProfileCompleted: false,
-              logoUrl: avatarUrl || '',
-              createdAt: new Date().toISOString(),
-            };
-
-            setUsers((prev) => [...prev, newUser]);
-            setCurrentUser(newUser);
-            const existingEmployers = storageAdapter.getStoredEmployers([]);
-            storageAdapter.setStoredEmployers([...existingEmployers, newEmp]);
-
-            if (isSupabaseConfigured()) {
-              saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
-              saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp).catch(() => {});
-            }
-
-            return {
-              success: true,
-              isNewUser: true,
-              isProfileCompleted: false,
-              user: newUser,
-              employerProfile: newEmp,
-            };
-          } else {
-            clearProfileCompletedInStorage([newUserId, email], 'job_seeker');
-
-            const nameParts = name.trim().split(/\s+/);
-            const firstName = nameParts[0] || '';
-            const lastName = nameParts.slice(1).join(' ') || '';
-
-            const newUser: User = {
-              id: newUserId,
-              email,
-              name,
-              role: 'job_seeker',
-              isProfileCompleted: false,
-              createdAt: new Date().toISOString(),
-              avatar: avatarUrl,
-            };
-
-            const newSeekerId = `seeker-${Date.now()}`;
-            const newSeeker: JobSeekerProfile = {
-              id: newSeekerId,
-              userId: newUserId,
-              firstName,
-              lastName,
-              dateOfBirth: '',
-              email,
-              contactNumber: '',
-              address: '',
-              municipality: '',
-              profilePicture: avatarUrl || '',
-              professionalSummary: '',
-              educationalAttainment: '',
-              primaryDegree: '',
-              technicalSkills: [],
-              softSkills: [],
-              education: [],
-              workExperience: [],
-              certifications: [],
-              resumes: [],
-              isProfileCompleted: false,
-              employmentStatus: 'unemployed',
-              updatedAt: new Date().toISOString(),
-            };
-
-            setUsers((prev) => [...prev, newUser]);
-            setCurrentUser(newUser);
-            const existingSeekers = storageAdapter.getStoredJobSeekers([]);
-            storageAdapter.setStoredJobSeekers([...existingSeekers, newSeeker]);
-
-            if (isSupabaseConfigured()) {
-              saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
-              saveRecord(SUPABASE_TABLES.JOB_SEEKERS, newSeeker).catch(() => {});
-            }
-
-            return {
-              success: true,
-              isNewUser: true,
-              isProfileCompleted: false,
-              user: newUser,
-              seekerProfile: newSeeker,
-            };
-=======
           if (isSupabaseConfigured()) {
             await saveRecord(SUPABASE_TABLES.USERS, newUser);
             const profileRecord = employerProfile || seekerProfile;
             if (profileRecord) {
               await saveRecord(profileTable, profileRecord);
             }
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
           }
 
           return {
@@ -865,14 +676,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'No account found with this email or mobile number.' };
       }
 
-<<<<<<< HEAD
-      const updatedUser = { ...user, password: newPassword } as any;
-      setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
-      if (isSupabaseConfigured()) {
-        saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
-      }
-
-=======
       const verification = verifyOtp(identifier, code);
       if (!verification.success) {
         return verification;
@@ -885,8 +688,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } as User & { password?: string };
 
       setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
+      if (isSupabaseConfigured()) {
+        const { password: _pw, ...userForDb } = updatedUser;
+        saveRecord(SUPABASE_TABLES.USERS, userForDb).catch(() => {});
+      }
 
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       return { success: true };
     },
     [users, verifyOtp]
@@ -989,15 +795,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: new Date().toISOString(),
         };
 
-<<<<<<< HEAD
         createdEmployer = newEmp;
-        const existingEmployers = storageAdapter.getStoredEmployers([]);
-        storageAdapter.setStoredEmployers([...existingEmployers, newEmp]);
-
-        if (isSupabaseConfigured()) {
-          saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp).catch(() => {});
-        }
-=======
         const existingEmployers = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
         storageAdapter.setStoredEmployers([...existingEmployers, newEmp]);
         profileToSave = newEmp;
@@ -1022,7 +820,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           .catch((err) => {
             console.warn('[AuthContext] Supabase registration sync warning:', err);
           });
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       }
 
       setCurrentUser(newUser);

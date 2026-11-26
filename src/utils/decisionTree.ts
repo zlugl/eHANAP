@@ -4,29 +4,19 @@ import { JobPost, JobSeekerProfile, MatchResult, DecisionTreeOutcome, DegreeAlig
  * Educational Attainment Rank Mapping (supports both legacy and multi-select modal options)
  */
 const EDUCATION_LEVELS: Record<string, number> = {
-<<<<<<< HEAD
   "No Formal Requirement": 0,
   "No Formal Requirement / Open to All": 0,
+  "Out-of-School Youth": 1,
   "High School": 1,
   "High School / Junior High": 1,
   "High School Graduate": 1,
   "Senior High School": 2,
   "TVET / Vocational": 3,
   "Vocational / TVET": 3,
+  "TVET / Technical Vocational": 3,
   "Vocational / TESDA Certificate": 3,
   "College Undergraduate": 3.5,
   "Associate Degree": 3.5,
-=======
-  "Out-of-School Youth": 1,
-  "High School": 1,
-  "High School Graduate": 1,
-  "Senior High School": 1,
-  "TVET / Vocational": 2,
-  "Vocational / TVET": 2,
-  "TVET / Technical Vocational": 2,
-  "Associate Degree": 3,
-  "College Undergraduate": 3,
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   "Bachelor's Degree": 4,
   "College Graduate": 4,
   "Postgraduate Diploma": 5,
@@ -193,7 +183,6 @@ function evaluateMultiCourseAlignment(
 
   const candidateTexts = [seekerDegree, ...seekerCerts].filter(Boolean);
 
-<<<<<<< HEAD
   // 1. Check direct or abbreviation-aware match against ANY course in preferredCourses
   for (const targetCourse of normalizedCourses) {
     for (const candText of candidateTexts) {
@@ -223,36 +212,6 @@ function evaluateMultiCourseAlignment(
         reason: `Background "${seekerDegree || candidateTexts[0] || 'Qualification'}" is in a closely related field to "${targetCourse}".`,
       };
     }
-=======
-  // Exact match
-  if (normSeeker === normJob || containsDegreeToken(normSeeker, normJob) || containsDegreeToken(normJob, normSeeker)) {
-    return {
-      score: 100,
-      type: 'exact',
-      reason: `Degree "${seekerDegree}" matches required/preferred degree "${jobDegree}".`,
-    };
-  }
-
-  // Related Field Keywords grouping
-  const techDegrees = ['computer science', 'information technology', 'software engineering', 'computer engineering', 'bsit', 'bscs', 'bsis', 'is', 'it', 'cs'];
-  const bizDegrees = ['accountancy', 'business administration', 'finance', 'management', 'marketing', 'entrepreneurship', 'economics'];
-  const agroDegrees = ['agriculture', 'agribusiness', 'agronomy', 'crop science', 'agricultural engineering', 'forestry'];
-  const tourismDegrees = ['tourism', 'hospitality management', 'hotel and restaurant management', 'hrm'];
-  const engDegrees = ['civil engineering', 'electrical engineering', 'mechanical engineering', 'industrial engineering'];
-
-  const isBothTech = techDegrees.some(d => containsDegreeToken(normSeeker, d)) && techDegrees.some(d => containsDegreeToken(normJob, d));
-  const isBothBiz = bizDegrees.some(d => containsDegreeToken(normSeeker, d)) && bizDegrees.some(d => containsDegreeToken(normJob, d));
-  const isBothAgro = agroDegrees.some(d => containsDegreeToken(normSeeker, d)) && agroDegrees.some(d => containsDegreeToken(normJob, d));
-  const isBothTourism = tourismDegrees.some(d => containsDegreeToken(normSeeker, d)) && tourismDegrees.some(d => containsDegreeToken(normJob, d));
-  const isBothEng = engDegrees.some(d => containsDegreeToken(normSeeker, d)) && engDegrees.some(d => containsDegreeToken(normJob, d));
-
-  if (isBothTech || isBothBiz || isBothAgro || isBothTourism || isBothEng) {
-    return {
-      score: 80,
-      type: 'related',
-      reason: `Degree "${seekerDegree}" is in a closely related field to "${jobDegree}".`,
-    };
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   }
 
   return {
@@ -295,7 +254,6 @@ export function calculateDecisionTreeMatch(
     missingQualifications.push('Profile is incomplete (missing educational attainment details).');
   }
 
-<<<<<<< HEAD
   // 2. Evaluate Educational Attainment Level (Supports multi-select acceptedEducationLevels + backward fallback)
   const acceptedEduLevels: string[] =
     job.acceptedEducationLevels && job.acceptedEducationLevels.length > 0
@@ -309,14 +267,14 @@ export function calculateDecisionTreeMatch(
           .filter(Boolean)
       : [];
 
-  const seekerEduRank = EDUCATION_LEVELS[seeker.educationalAttainment] ?? 3;
+  const seekerEduRank = getEducationRank(seeker.educationalAttainment, 3);
   const acceptsAllEdu =
     acceptedEduLevels.length === 0 ||
     acceptedEduLevels.some(
       lvl =>
         lvl === 'No Formal Requirement' ||
         lvl === 'No Formal Requirement / Open to All' ||
-        (EDUCATION_LEVELS[lvl] ?? 4) === 0
+        getEducationRank(lvl, 4) === 0
     );
 
   // Direct match against any selected education tier OR meeting the minimum accepted tier rank
@@ -328,13 +286,8 @@ export function calculateDecisionTreeMatch(
 
   const minAcceptedEduRank =
     acceptedEduLevels.length > 0
-      ? Math.min(...acceptedEduLevels.map(lvl => EDUCATION_LEVELS[lvl] ?? 4))
+      ? Math.min(...acceptedEduLevels.map(lvl => getEducationRank(lvl, 4)))
       : 0;
-=======
-  // 2. Evaluate Educational Attainment Level
-  const seekerEduRank = getEducationRank(seeker.educationalAttainment, 3);
-  const jobEduRank = getEducationRank(job.minEducationalAttainment, 4);
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
 
   let educationMatchScore = 100;
   if (acceptsAllEdu || directEduLevelMatch || seekerEduRank >= minAcceptedEduRank) {

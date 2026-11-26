@@ -23,10 +23,10 @@ export interface PesoLraContextType {
   referralSlips: PesoReferralSlip[];
   localRecruitmentActivities: LocalRecruitmentActivity[];
   issueReferralSlip: (slipData: Omit<PesoReferralSlip, 'id' | 'createdAt' | 'referralNumber'> & { referralNumber?: string }) => PesoReferralSlip;
-  updateReferralSlipStatus: (slipId: string, status: PesoReferralSlip['status'], isHots?: boolean) => void;
+  updateReferralSlipStatus: (slipId: string, status: PesoReferralSlip['status'], isHotsOrRemarks?: boolean | string) => void;
   encodeWalkInJobSeeker: (seekerData: Partial<JobSeekerProfile> & { firstName: string; lastName: string; contactNumber: string }) => JobSeekerProfile;
   assessJobSeekerWalkIn: (seekerId: string, assessmentData: { practicalSkills?: string[]; tradeCertifications?: string[]; geographicMobility?: 'local_only' | 'provincial' | 'willing_to_relocate'; willingToRelocateForVisitingCompanies?: boolean; walkInAssessmentNotes?: string; assessedByOfficer?: string }) => void;
-  createLraEvent: (eventData: Omit<LocalRecruitmentActivity, 'id' | 'createdAt' | 'registeredApplicantsCount' | 'hotsCount' | 'interviewsConductedCount'> & Partial<LocalRecruitmentActivity>) => LocalRecruitmentActivity;
+  createLraEvent: (eventData: Partial<LocalRecruitmentActivity> & { companyName: string }) => LocalRecruitmentActivity;
   updateLraEvent: (eventId: string, updates: Partial<LocalRecruitmentActivity>) => void;
   logHotsApplicant: (lraId: string, applicantName: string, position: string, employerId?: string, notes?: string) => void;
   nominateCandidateToLra: (lraId: string, seekerId: string, targetPosition?: string, notes?: string) => void;
@@ -112,7 +112,8 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return newSlip;
   };
 
-  const updateReferralSlipStatus = (slipId: string, status: PesoReferralSlip['status'], isHots?: boolean) => {
+  const updateReferralSlipStatus = (slipId: string, status: PesoReferralSlip['status'], isHotsOrRemarks?: boolean | string) => {
+    const isHots = typeof isHotsOrRemarks === 'boolean' ? isHotsOrRemarks : status === 'hired_on_the_spot';
     const slip = referralSlips.find(s => s.id === slipId);
     if (!slip) {
       logAudit('UPDATE_REFERRAL_STATUS', 'PesoReferralSlip', slipId, `Updated referral slip status to ${status}${isHots ? ' (HOTS)' : ''}.`);
@@ -122,7 +123,11 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const updated: PesoReferralSlip = {
       ...slip,
       status,
-      remarks: isHots ? (slip.remarks ? `${slip.remarks} [Hired On The Spot]` : 'Hired On The Spot (HOTS)') : slip.remarks
+      remarks: typeof isHotsOrRemarks === 'string'
+        ? isHotsOrRemarks
+        : isHots
+        ? (slip.remarks ? `${slip.remarks} [Hired On The Spot]` : 'Hired On The Spot (HOTS)')
+        : slip.remarks
     };
     setReferralSlips(prev => prev.map(s => s.id === slipId ? updated : s));
     saveDocument(COLLECTIONS.REFERRAL_SLIPS, updated);
@@ -280,7 +285,7 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   // Local Recruitment Activity (LRA) Coordination
-  const createLraEvent = (eventData: Omit<LocalRecruitmentActivity, 'id' | 'createdAt' | 'registeredApplicantsCount' | 'hotsCount' | 'interviewsConductedCount'> & Partial<LocalRecruitmentActivity>): LocalRecruitmentActivity => {
+  const createLraEvent = (eventData: Partial<LocalRecruitmentActivity> & { companyName: string }): LocalRecruitmentActivity => {
     const defaultPositions = eventData.targetPositions || eventData.vacancies || ['General Staff'];
     const defaultVenue = eventData.eventVenue || eventData.venue || 'Roxas Municipal Gymnasium, Bagumbayan, Roxas';
     const defaultDate = eventData.eventDate || eventData.startDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
@@ -290,6 +295,11 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const newLra: LocalRecruitmentActivity = {
       ...eventData,
       id: `lra-${crypto.randomUUID()}`,
+      companyName: eventData.companyName,
+      companyOrigin: eventData.companyOrigin || 'Calapan City',
+      industry: eventData.industry || 'General Commerce',
+      letterOfIntentStatus: eventData.letterOfIntentStatus || (eventData.hasLetterOfIntent ? 'approved' : 'received'),
+      mayorsApprovalVerified: eventData.mayorsApprovalVerified ?? Boolean(eventData.hasMayorsPermit ?? true),
       eventTitle: eventData.eventTitle || eventData.eventName || `LRA: ${eventData.companyName}`,
       eventName: eventData.eventName || eventData.eventTitle || `LRA: ${eventData.companyName}`,
       eventVenue: defaultVenue,
