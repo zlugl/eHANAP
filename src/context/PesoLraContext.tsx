@@ -13,11 +13,12 @@ import {
   COLLECTIONS,
   subscribeToSupabaseTable,
 } from '../services/supabaseService';
+import { storageAdapter } from '../lib/storageAdapter';
 import { useAuth } from './AuthContext';
 import { useNotification } from './NotificationContext';
 import { useToast } from './ToastContext';
 import { useDirectory } from './DirectoryContext';
-import { saveDocument } from './persistence';
+import { saveDocument, normalizeSeekerProfileToUpperCase } from './persistence';
 
 export interface PesoLraContextType {
   referralSlips: PesoReferralSlip[];
@@ -43,8 +44,20 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const { showToast } = useToast();
   const { employers, jobSeekers, setJobSeekers, setAnnouncements, logAudit, isSupabaseConnected } = useDirectory();
 
-  const [referralSlips, setReferralSlips] = useState<PesoReferralSlip[]>(INITIAL_REFERRAL_SLIPS);
-  const [localRecruitmentActivities, setLocalRecruitmentActivities] = useState<LocalRecruitmentActivity[]>(INITIAL_LRA_EVENTS);
+  const [referralSlips, setReferralSlips] = useState<PesoReferralSlip[]>(() =>
+    storageAdapter.getStoredReferralSlips(INITIAL_REFERRAL_SLIPS)
+  );
+  const [localRecruitmentActivities, setLocalRecruitmentActivities] = useState<LocalRecruitmentActivity[]>(() =>
+    storageAdapter.getStoredLraEvents(INITIAL_LRA_EVENTS)
+  );
+
+  useEffect(() => {
+    storageAdapter.setStoredReferralSlips(referralSlips);
+  }, [referralSlips]);
+
+  useEffect(() => {
+    storageAdapter.setStoredLraEvents(localRecruitmentActivities);
+  }, [localRecruitmentActivities]);
 
   // Subscribe to PESO referral slips and LRA events once Supabase connection is established
   useEffect(() => {
@@ -147,11 +160,12 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
     logAudit('UPDATE_REFERRAL_STATUS', 'PesoReferralSlip', slipId, `Updated referral slip status to ${status}${isHots ? ' (HOTS)' : ''}.`);
   };
 
-  // Encode Walk-In Job Seeker (Physical Bio-Data encoding by PESO staff)
-  const encodeWalkInJobSeeker = (seekerData: Partial<JobSeekerProfile> & { firstName: string; lastName: string; contactNumber: string }): JobSeekerProfile => {
+  // Encode Walk-In Job Seeker (Physical Bio-Data encoding by PESO staff - Normalized to ALL CAPS)
+  const encodeWalkInJobSeeker = (rawSeekerData: Partial<JobSeekerProfile> & { firstName: string; lastName: string; contactNumber: string }): JobSeekerProfile => {
+    const seekerData = { ...rawSeekerData, ...normalizeSeekerProfileToUpperCase(rawSeekerData) };
     const walkInUserId = `user-walkin-${crypto.randomUUID()}`;
     const walkInSeekerId = `seeker-walkin-${crypto.randomUUID()}`;
-    const fullName = `${seekerData.firstName} ${seekerData.lastName}`.trim();
+    const fullName = `${seekerData.firstName} ${seekerData.lastName}`.trim().toUpperCase();
     const generatedEmail = seekerData.email || `${seekerData.firstName.toLowerCase().replace(/\s+/g, '')}.${seekerData.lastName.toLowerCase().replace(/\s+/g, '')}.walkin@pesoroxas.gov.ph`;
 
     let completeness = 50;
@@ -159,6 +173,16 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
     if (seekerData.practicalSkills && seekerData.practicalSkills.length > 0) completeness += 15;
     if (seekerData.tradeCertifications && seekerData.tradeCertifications.length > 0) completeness += 10;
     if (seekerData.geographicMobility) completeness += 10;
+
+    const allTechSkills = Array.from(new Set([
+      ...(seekerData.technicalSkills || []),
+      ...(seekerData.practicalSkills || []),
+      ...(seekerData.tradeSkills || []),
+      ...(seekerData.administrativeSkills || []),
+      ...(seekerData.serviceHospitalitySkills || []),
+      ...(seekerData.salesCustomerSkills || []),
+      ...(seekerData.itCreativeSkills || []),
+    ]));
 
     const newSeeker: JobSeekerProfile = {
       id: walkInSeekerId,
@@ -171,17 +195,21 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
       contactNumber: seekerData.contactNumber,
       address: seekerData.address || 'Roxas, Oriental Mindoro',
       barangay: seekerData.barangay || 'Bagumbayan',
-      municipality: 'Roxas',
+      municipality: seekerData.municipality || 'Roxas',
       civilStatus: seekerData.civilStatus || 'Single',
       sex: seekerData.sex || 'Male',
       age: seekerData.age || 24,
       professionalSummary: seekerData.professionalSummary || `Walk-in job seeker registered at PESO-LGU Roxas. Registered education: ${seekerData.educationalAttainment || 'High School'}.`,
       educationalAttainment: seekerData.educationalAttainment || (seekerData.educationCategory || 'High School Graduate'),
       primaryDegree: seekerData.primaryDegree || '',
-      technicalSkills: seekerData.technicalSkills || [],
+      technicalSkills: allTechSkills,
       softSkills: seekerData.softSkills || ['Punctual', 'Hardworking', 'Team Player'],
-      tradeSkills: seekerData.practicalSkills || [],
-      education: seekerData.education || [{
+      tradeSkills: seekerData.tradeSkills || seekerData.practicalSkills || [],
+      administrativeSkills: seekerData.administrativeSkills || [],
+      serviceHospitalitySkills: seekerData.serviceHospitalitySkills || [],
+      salesCustomerSkills: seekerData.salesCustomerSkills || [],
+      itCreativeSkills: seekerData.itCreativeSkills || [],
+      education: seekerData.education && seekerData.education.length > 0 ? seekerData.education : [{
         id: `edu-${crypto.randomUUID()}`,
         school: 'Roxas Local School / Institution',
         degreeCourse: seekerData.primaryDegree || seekerData.educationalAttainment || 'General Secondary Course',
@@ -189,20 +217,23 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
         educationalAttainment: seekerData.educationalAttainment || (seekerData.educationCategory || 'High School')
       }],
       workExperience: seekerData.workExperience || [],
-      certifications: (seekerData.tradeCertifications || []).map((cert) => ({
-        id: `cert-${crypto.randomUUID()}`,
-        name: cert,
-        issuingOrganization: 'TESDA',
-        dateObtained: '2024-01-15'
-      })),
-      resumes: [],
+      certifications: seekerData.certifications && seekerData.certifications.length > 0
+        ? seekerData.certifications
+        : (seekerData.tradeCertifications || []).map((cert) => ({
+            id: `cert-${crypto.randomUUID()}`,
+            name: cert,
+            issuingOrganization: 'TESDA',
+            dateObtained: '2024-01-15'
+          })),
+      resumes: seekerData.resumes || [],
+      activeResumeId: seekerData.activeResumeId,
       isAccountVerified: true,
       isProfileCompleted: true,
       employmentStatus: 'unemployed',
       isWalkIn: true,
       registrationType: 'walk_in',
       educationCategory: seekerData.educationCategory || 'High School Graduate',
-      practicalSkills: seekerData.practicalSkills || [],
+      practicalSkills: seekerData.practicalSkills || allTechSkills,
       tradeCertifications: seekerData.tradeCertifications || [],
       geographicMobility: seekerData.geographicMobility || 'local_only',
       willingToRelocateForVisitingCompanies: seekerData.willingToRelocateForVisitingCompanies ?? false,
@@ -221,6 +252,7 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
       role: 'job_seeker',
       phone: seekerData.contactNumber,
       isAccountVerified: true,
+      isProfileCompleted: true,
       createdAt: new Date().toISOString()
     };
 
@@ -564,8 +596,8 @@ export const PesoLraProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   const resetPesoLraState = () => {
-    setReferralSlips(INITIAL_REFERRAL_SLIPS);
-    setLocalRecruitmentActivities(INITIAL_LRA_EVENTS);
+    setReferralSlips([]);
+    setLocalRecruitmentActivities([]);
   };
 
   return (

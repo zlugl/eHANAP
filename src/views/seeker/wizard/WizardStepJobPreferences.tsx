@@ -173,6 +173,7 @@ export const WizardStepJobPreferences: React.FC<WizardStepJobPreferencesProps> =
           onChange={e => onSalaryChange(e.target.value)}
           className="w-full sm:w-80 px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
         >
+          <option value="">-- Select Expected Salary Bracket --</option>
           {PRESET_SALARIES.map(s => (
             <option key={s} value={s}>{s}</option>
           ))}

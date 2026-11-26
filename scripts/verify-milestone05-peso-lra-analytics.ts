@@ -1,14 +1,12 @@
-import { 
-  INITIAL_LRA_EVENTS, 
-  INITIAL_REFERRAL_SLIPS 
-} from '../src/data/pesoLguData';
-import { 
-  INITIAL_JOB_SEEKERS, 
-  INITIAL_JOB_POSTS, 
-  INITIAL_EMPLOYERS, 
-  INITIAL_APPLICATIONS,
-  ROXAS_BARANGAYS 
-} from '../src/data/mockData';
+import { ROXAS_BARANGAYS } from '../src/data/mockData';
+import {
+  TEST_LRA_EVENTS,
+  TEST_REFERRAL_SLIPS,
+  TEST_JOB_SEEKERS,
+  TEST_JOB_POSTS,
+  TEST_EMPLOYERS,
+  TEST_APPLICATIONS,
+} from './testFixtures';
 import { 
   LocalRecruitmentActivity, 
   PesoReferralSlip, 
@@ -43,8 +41,8 @@ async function runMilestone05Tests() {
   // ---------------------------------------------------------------------------
   console.log('[Suite 1] Local Recruitment Activity (LRA) Lifecycle & Legal Compliance');
 
-  assert(INITIAL_LRA_EVENTS.length >= 2, 'Initial LRA demonstration dataset contains events');
-  const sampleLra = INITIAL_LRA_EVENTS[0];
+  assert(TEST_LRA_EVENTS.length >= 2, 'Initial LRA demonstration dataset contains events');
+  const sampleLra = TEST_LRA_EVENTS[0];
 
   assert(Boolean(sampleLra.id), 'LRA event has unique identifier');
   assert(Boolean(sampleLra.companyName), 'LRA event specifies visiting company name');
@@ -117,8 +115,8 @@ async function runMilestone05Tests() {
     nominatedCandidates: []
   };
 
-  const testSeeker1 = INITIAL_JOB_SEEKERS[0];
-  const testSeeker2 = INITIAL_JOB_SEEKERS[1];
+  const testSeeker1 = TEST_JOB_SEEKERS[0];
+  const testSeeker2 = TEST_JOB_SEEKERS[1];
 
   // Nominate candidate 1
   const candidate1: LraCandidate = {
@@ -209,7 +207,7 @@ async function runMilestone05Tests() {
   assert(Boolean(hydratedSeekerProfile.hiredAt), 'Placement timestamp recorded');
 
   // Total HOTS tally across all LRAs
-  const initialHotsTotal = INITIAL_LRA_EVENTS.reduce((acc, curr) => acc + (curr.hotsCount || 0), 0);
+  const initialHotsTotal = TEST_LRA_EVENTS.reduce((acc, curr) => acc + (curr.hotsCount || 0), 0);
   assert(initialHotsTotal >= 1, 'Initial LRA seed data tracks existing HOTS placements');
 
   // ---------------------------------------------------------------------------
@@ -217,10 +215,10 @@ async function runMilestone05Tests() {
   // ---------------------------------------------------------------------------
   console.log('\n[Suite 4] Municipal Labor Analytics: Database Calculations & Metrics');
 
-  const totalSeekers = INITIAL_JOB_SEEKERS.length;
+  const totalSeekers = TEST_JOB_SEEKERS.length;
   assert(totalSeekers >= 4, `Total registered job seekers calculated (Found: ${totalSeekers})`);
 
-  const collegeGraduates = INITIAL_JOB_SEEKERS.filter(s => 
+  const collegeGraduates = TEST_JOB_SEEKERS.filter(s => 
     s.educationCategory === 'College Graduate' || s.educationalAttainment.toLowerCase().includes('bachelor') || s.educationalAttainment.toLowerCase().includes('college')
   ).length;
   assert(collegeGraduates >= 4, `College graduate seekers tallied (Found: ${collegeGraduates})`);
@@ -239,28 +237,28 @@ async function runMilestone05Tests() {
     educationCategory: 'Out-of-School Youth'
   };
 
-  const simulatedSeekerPool = [...INITIAL_JOB_SEEKERS, encodedHsSeeker, encodedOsySeeker];
+  const simulatedSeekerPool = [...TEST_JOB_SEEKERS, encodedHsSeeker, encodedOsySeeker];
   const hsCount = simulatedSeekerPool.filter(s => s.educationCategory === 'High School Graduate').length;
   const osyCount = simulatedSeekerPool.filter(s => s.educationCategory === 'Out-of-School Youth').length;
 
   assert(hsCount >= 1, `High school graduate seekers tallied in municipal pool (Found: ${hsCount})`);
   assert(osyCount >= 1, `Out-of-school youth tallied in municipal pool (Found: ${osyCount})`);
 
-  const totalEmployers = INITIAL_EMPLOYERS.length;
+  const totalEmployers = TEST_EMPLOYERS.length;
   assert(totalEmployers >= 4, `Total registered employers counted (Found: ${totalEmployers})`);
 
-  const verifiedEmployers = INITIAL_EMPLOYERS.filter(e => e.status === 'verified').length;
+  const verifiedEmployers = TEST_EMPLOYERS.filter(e => e.status === 'verified').length;
   assert(verifiedEmployers >= 3, `Accredited Roxas employers counted (Found: ${verifiedEmployers})`);
 
-  const activeJobVacancies = INITIAL_JOB_POSTS.filter(j => j.status === 'active');
+  const activeJobVacancies = TEST_JOB_POSTS.filter(j => j.status === 'active');
   assert(activeJobVacancies.length >= 4, `Active job vacancies counted (Found: ${activeJobVacancies.length})`);
 
   const totalSlotsAvailable = activeJobVacancies.reduce((acc, j) => acc + (j.vacanciesCount || 1), 0);
   assert(totalSlotsAvailable >= 10, `Total available labor slots counted (Found: ${totalSlotsAvailable})`);
 
-  const hiredSeekers = INITIAL_APPLICATIONS.filter(a => a.currentStatus === 'hired').length;
-  const placementRate = INITIAL_APPLICATIONS.length > 0 
-    ? Math.round((hiredSeekers / INITIAL_APPLICATIONS.length) * 100) 
+  const hiredSeekers = TEST_APPLICATIONS.filter(a => a.currentStatus === 'hired').length;
+  const placementRate = TEST_APPLICATIONS.length > 0 
+    ? Math.round((hiredSeekers / TEST_APPLICATIONS.length) * 100) 
     : 0;
   assert(placementRate >= 0 && placementRate <= 100, `Placement rate is valid percentage (Actual: ${placementRate}%)`);
 
@@ -278,7 +276,7 @@ async function runMilestone05Tests() {
 
   // Compute Barangay Distribution Matrix
   const barangayDistribution = ROXAS_BARANGAYS.map(brgy => {
-    const seekersInBrgy = INITIAL_JOB_SEEKERS.filter(s => 
+    const seekersInBrgy = TEST_JOB_SEEKERS.filter(s => 
       (s.barangay && s.barangay.toLowerCase() === brgy.toLowerCase()) ||
       (s.address && s.address.toLowerCase().includes(brgy.toLowerCase()))
     );
@@ -318,10 +316,10 @@ async function runMilestone05Tests() {
   // ---------------------------------------------------------------------------
   console.log('\n[Suite 6] Municipal Industry Demand & Skill Absorption Analytics');
 
-  const employerMap = new Map(INITIAL_EMPLOYERS.map(e => [e.id, e]));
+  const employerMap = new Map(TEST_EMPLOYERS.map(e => [e.id, e]));
 
   const industryDemandMap: Record<string, number> = {};
-  INITIAL_JOB_POSTS.forEach(j => {
+  TEST_JOB_POSTS.forEach(j => {
     const employer = employerMap.get(j.employerId);
     const ind = j.industry || employer?.industry || j.category || 'General Commerce';
     industryDemandMap[ind] = (industryDemandMap[ind] || 0) + (j.vacanciesCount || 1);
@@ -340,8 +338,8 @@ async function runMilestone05Tests() {
   // ---------------------------------------------------------------------------
   console.log('\n[Suite 7] Printable PESO Official Referral Slip Generator & Endorsement Contract');
 
-  assert(INITIAL_REFERRAL_SLIPS.length >= 2, 'Initial referral slips seed dataset contains official records');
-  const sampleSlip = INITIAL_REFERRAL_SLIPS[0];
+  assert(TEST_REFERRAL_SLIPS.length >= 2, 'Initial referral slips seed dataset contains official records');
+  const sampleSlip = TEST_REFERRAL_SLIPS[0];
 
   assert(Boolean(sampleSlip.id), 'Referral slip has unique ID');
   assert(sampleSlip.referralNumber.startsWith('PESO-RXS-REF-'), 'Referral number conforms to official PESO Roxas serial format (PESO-RXS-REF-YYYY-XXXX)');

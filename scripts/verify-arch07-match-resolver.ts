@@ -192,10 +192,13 @@ async function runVerification() {
   console.log('\n>>> [Suite 2] AppContext Candidate Matches & State Integration');
 
   const appContextPath = path.join(rootDir, 'src/context/AppContext.tsx');
+  const jobsContextPath = path.join(rootDir, 'src/context/JobsContext.tsx');
   assert(fs.existsSync(appContextPath), 'src/context/AppContext.tsx exists on disk');
+  assert(fs.existsSync(jobsContextPath), 'src/context/JobsContext.tsx exists on disk');
 
-  if (fs.existsSync(appContextPath)) {
+  if (fs.existsSync(appContextPath) && fs.existsSync(jobsContextPath)) {
     const appContextContent = fs.readFileSync(appContextPath, 'utf-8');
+    const jobsContextContent = fs.readFileSync(jobsContextPath, 'utf-8');
     assert(
       appContextContent.includes('import { getOrCalculateMatch') ||
       appContextContent.includes('getOrCalculateMatch,'),
@@ -214,13 +217,13 @@ async function runVerification() {
       'AppContextType defines getMatch resolver function'
     );
     assert(
-      appContextContent.includes('SUPABASE_TABLES.CANDIDATE_MATCHES') &&
-      appContextContent.includes('subscribeToSupabaseTable<CandidateMatch>'),
-      'AppContext subscribes to SUPABASE_TABLES.CANDIDATE_MATCHES via Realtime listener'
+      jobsContextContent.includes('SUPABASE_TABLES.CANDIDATE_MATCHES') &&
+      jobsContextContent.includes('subscribeToSupabaseTable<CandidateMatch>'),
+      'JobsContext subscribes to SUPABASE_TABLES.CANDIDATE_MATCHES via Realtime listener'
     );
     assert(
-      appContextContent.includes('setCandidateMatches'),
-      'AppContext manages candidateMatches state via setCandidateMatches'
+      jobsContextContent.includes('setCandidateMatches'),
+      'JobsContext manages candidateMatches state via setCandidateMatches'
     );
     assert(
       appContextContent.includes('candidateMatches,') || appContextContent.includes('candidateMatches:'),
@@ -235,8 +238,8 @@ async function runVerification() {
       'updateJobSeekerProfile invalidates match cache using specific profile id (s.id)'
     );
     assert(
-      appContextContent.includes('invalidateMatchCache(undefined, jobId)'),
-      'updateJobPost invalidates match cache on job vacancy update'
+      jobsContextContent.includes('invalidateMatchCache(undefined, jobId)'),
+      'JobsContext.updateJobPost invalidates match cache on job vacancy update'
     );
 
     const typesContent = fs.readFileSync(path.join(rootDir, 'src/types.ts'), 'utf-8');
@@ -349,13 +352,13 @@ async function runVerification() {
   const { getOrCalculateMatch } = await import('../src/utils/matchResolver.js').catch(() =>
     import('../src/utils/matchResolver.ts')
   );
-  const { INITIAL_JOB_SEEKERS, INITIAL_JOB_POSTS } = await import('../src/data/mockData.js').catch(() =>
-    import('../src/data/mockData.ts')
+  const { TEST_JOB_SEEKERS, TEST_JOB_POSTS } = await import('./testFixtures.js').catch(() =>
+    import('./testFixtures.ts')
   );
 
   let parityChecks = 0;
-  for (const seeker of INITIAL_JOB_SEEKERS.slice(0, 3)) {
-    for (const job of INITIAL_JOB_POSTS.slice(0, 5)) {
+  for (const seeker of TEST_JOB_SEEKERS.slice(0, 3)) {
+    for (const job of TEST_JOB_POSTS.slice(0, 5)) {
       const pureScore = calculateDecisionTreeMatch(seeker, job);
       const resolvedScore = getOrCalculateMatch(seeker, job, { forceRecalculate: true });
 

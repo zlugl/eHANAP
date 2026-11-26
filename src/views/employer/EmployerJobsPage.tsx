@@ -360,11 +360,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                     </div>
 
                     <p className="text-xs text-slate-500 font-medium">
-<<<<<<< HEAD
                       {job.department || job.category}{job.subCategory ? ` (${job.subCategory})` : ''} • {job.employmentType}{job.workSetup ? ` • ${job.workSetup}` : ''}{job.workSchedule ? ` • ${job.workSchedule}` : ''} • {job.experienceLevel || 'Entry to Mid'}
-=======
-                      {job.category} • {job.employmentType} • {job.experienceLevel || 'Entry to Mid'}
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
                     </p>
                   </div>
 

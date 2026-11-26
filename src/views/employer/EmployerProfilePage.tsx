@@ -37,31 +37,16 @@ const formatBytes = (bytes: number): string => {
 export const EmployerProfilePage: React.FC<EmployerProfilePageProps> = ({ onNavigate }) => {
   const { currentEmployerProfile, updateEmployerProfile, addNotification, showToast, currentUser } = useApp();
 
-<<<<<<< HEAD
-  if (!currentEmployerProfile) return null;
-
-  const [companyName, setCompanyName] = useState(currentEmployerProfile.companyName || '');
-  const [representativeName, setRepresentativeName] = useState(currentEmployerProfile.representativeName || '');
-  const [industry, setIndustry] = useState(currentEmployerProfile.industry || '');
-  const [municipality, setMunicipality] = useState(currentEmployerProfile.municipality || '');
-  const [address, setAddress] = useState(currentEmployerProfile.address || '');
-  const [contactNumber, setContactNumber] = useState(currentEmployerProfile.contactNumber || '');
-  const [email, setEmail] = useState(currentEmployerProfile.email || '');
-  const [website, setWebsite] = useState(currentEmployerProfile.website || '');
-  const [companyDescription, setCompanyDescription] = useState(currentEmployerProfile.companyDescription || currentEmployerProfile.description || '');
-  const [logoUrl, setLogoUrl] = useState(currentEmployerProfile.logoUrl || '');
-=======
   const [companyName, setCompanyName] = useState(currentEmployerProfile?.companyName || '');
   const [representativeName, setRepresentativeName] = useState(currentEmployerProfile?.representativeName || '');
-  const [industry, setIndustry] = useState(currentEmployerProfile?.industry || JOB_CATEGORIES[0]);
-  const [municipality, setMunicipality] = useState(currentEmployerProfile?.municipality || 'Roxas');
+  const [industry, setIndustry] = useState(currentEmployerProfile?.industry || '');
+  const [municipality, setMunicipality] = useState(currentEmployerProfile?.municipality || '');
   const [address, setAddress] = useState(currentEmployerProfile?.address || '');
   const [contactNumber, setContactNumber] = useState(currentEmployerProfile?.contactNumber || '');
   const [email, setEmail] = useState(currentEmployerProfile?.email || '');
   const [website, setWebsite] = useState(currentEmployerProfile?.website || '');
   const [companyDescription, setCompanyDescription] = useState(currentEmployerProfile?.companyDescription || currentEmployerProfile?.description || '');
   const [logoUrl, setLogoUrl] = useState(currentEmployerProfile?.logoUrl || '');
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   const [isSaved, setIsSaved] = useState(false);
 
   const employerLogoInputRef = useRef<HTMLInputElement | null>(null);
@@ -69,128 +54,11 @@ export const EmployerProfilePage: React.FC<EmployerProfilePageProps> = ({ onNavi
   const additionalDocInputRef = useRef<HTMLInputElement | null>(null);
 
   const [uploadedDocs, setUploadedDocs] = useState<EmployerVerificationDocument[]>(
-    currentEmployerProfile.documents || []
+    currentEmployerProfile?.documents || []
   );
+  const uploadedDocsRef = useRef<EmployerVerificationDocument[]>(uploadedDocs);
+  uploadedDocsRef.current = uploadedDocs;
   const [previewDoc, setPreviewDoc] = useState<EmployerVerificationDocument | null>(null);
-
-  const [businessPermitNo, setBusinessPermitNo] = useState(currentEmployerProfile.businessPermitNo || '');
-  const [dtiSecRegistration, setDtiSecRegistration] = useState(currentEmployerProfile.dtiSecRegistration || '');
-  const [bir2303No, setBir2303No] = useState(currentEmployerProfile.bir2303No || '');
-
-  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 5 * 1024 * 1024) {
-      showToast({
-        type: 'alert',
-        title: 'Image File Too Large',
-        message: 'Please choose an image file under 5MB.'
-      });
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      setLogoUrl(dataUrl);
-      updateEmployerProfile({ logoUrl: dataUrl });
-      showToast({
-        type: 'success',
-        title: 'Company Logo Updated! 🏢',
-        message: 'Your company profile photo has been saved successfully.'
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-<<<<<<< HEAD
-
-  const handleRealDocumentUpload = (reqId: string, reqTitle: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      showToast({
-        type: 'alert',
-        title: 'File Too Large',
-        message: 'Please select a document smaller than 10MB.'
-      });
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      const newDoc: EmployerVerificationDocument = {
-        id: `doc-${reqId}-${Date.now()}`,
-        requirementId: reqId,
-        requirementTitle: reqTitle,
-        fileName: file.name,
-        fileSize: formatBytes(file.size),
-        mimeType: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'),
-        fileUrl: dataUrl,
-        uploadedAt: new Date().toISOString(),
-      };
-
-      setUploadedDocs(prev => {
-        const next = reqId === 'additional' ? [...prev, newDoc] : [...prev.filter(d => d.requirementId !== reqId), newDoc];
-        updateEmployerProfile({ documents: next });
-        return next;
-      });
-
-      showToast({
-        type: 'success',
-        title: 'Verification Document Uploaded',
-        message: `"${file.name}" has been attached to your verification record.`
-      });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const handleRemoveDocument = (docId: string) => {
-    setUploadedDocs(prev => {
-      const next = prev.filter(d => d.id !== docId);
-      const nextStatus =
-        next.length === 0 && currentEmployerProfile.status !== 'verified'
-          ? 'incomplete'
-          : currentEmployerProfile.status;
-      updateEmployerProfile({ documents: next, status: nextStatus });
-      return next;
-    });
-    showToast({
-      type: 'info',
-      title: 'Document Removed',
-      message: 'Verification document removed from your profile.'
-    });
-  };
-
-  const isProfileDetailsComplete = Boolean(
-    companyName.trim() &&
-    representativeName.trim() &&
-    industry.trim() &&
-    municipality.trim() &&
-    address.trim() &&
-    contactNumber.trim() &&
-    email.trim() &&
-    companyDescription.trim()
-  );
-
-  const hasVerificationDocuments = uploadedDocs.length > 0;
-  const canSubmitForVerification = isProfileDetailsComplete && hasVerificationDocuments;
-=======
-  
-  // PESO Regulatory Requirements State
-  const [mayorsPermitFile, setMayorsPermitFile] = useState(currentEmployerProfile?.mayorsPermitFile || currentEmployerProfile?.businessPermitFile || '');
-  const [dtiSecFile, setDtiSecFile] = useState(currentEmployerProfile?.dtiSecFile || '');
-  const [sanitaryPermitFile, setSanitaryPermitFile] = useState(currentEmployerProfile?.sanitaryPermitFile || '');
-  const [letterOfIntentFile, setLetterOfIntentFile] = useState(currentEmployerProfile?.letterOfIntentFile || '');
-  const [aitrFile, setAitrFile] = useState(currentEmployerProfile?.aitrFile || '');
-  const [sedulaFile, setSedulaFile] = useState(currentEmployerProfile?.sedulaFile || '');
-  const [barangayClearanceFile, setBarangayClearanceFile] = useState(currentEmployerProfile?.barangayClearanceFile || '');
-  const [esoCertFile, setEsoCertFile] = useState(currentEmployerProfile?.esoCertFile || '');
-  const [zoningCertFile, setZoningCertFile] = useState(currentEmployerProfile?.zoningCertFile || '');
-  const [buildingPermitFile, setBuildingPermitFile] = useState(currentEmployerProfile?.buildingPermitFile || '');
-  const [tourismClearanceFile, setTourismClearanceFile] = useState(currentEmployerProfile?.tourismClearanceFile || '');
-  const [mtoReceiptFile, setMtoReceiptFile] = useState(currentEmployerProfile?.mtoReceiptFile || '');
-  const [fireSafetyClearanceFile, setFireSafetyClearanceFile] = useState(currentEmployerProfile?.fireSafetyClearanceFile || '');
 
   const [businessPermitNo, setBusinessPermitNo] = useState(currentEmployerProfile?.businessPermitNo || '');
   const [dtiSecRegistration, setDtiSecRegistration] = useState(currentEmployerProfile?.dtiSecRegistration || '');
@@ -218,7 +86,105 @@ export const EmployerProfilePage: React.FC<EmployerProfilePageProps> = ({ onNavi
       </div>
     );
   }
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
+
+  const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({
+        type: 'alert',
+        title: 'Image File Too Large',
+        message: 'Please choose an image file under 5MB.'
+      });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      setLogoUrl(dataUrl);
+      updateEmployerProfile({ logoUrl: dataUrl });
+      showToast({
+        type: 'success',
+        title: 'Company Logo Updated! 🏢',
+        message: 'Your company profile photo has been saved successfully.'
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRealDocumentUpload = (reqId: string, reqTitle: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) {
+      showToast({
+        type: 'alert',
+        title: 'File Too Large',
+        message: 'Please select a document smaller than 10MB.'
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const newDoc: EmployerVerificationDocument = {
+        id: `doc-${reqId}-${Date.now()}`,
+        requirementId: reqId,
+        requirementTitle: reqTitle,
+        fileName: file.name,
+        fileSize: formatBytes(file.size),
+        mimeType: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'),
+        fileUrl: dataUrl,
+        uploadedAt: new Date().toISOString(),
+      };
+
+      const next =
+        reqId === 'additional'
+          ? [...uploadedDocsRef.current, newDoc]
+          : [...uploadedDocsRef.current.filter(d => d.requirementId !== reqId), newDoc];
+      uploadedDocsRef.current = next;
+      setUploadedDocs(next);
+      updateEmployerProfile({ documents: next });
+
+      showToast({
+        type: 'success',
+        title: 'Verification Document Uploaded',
+        message: `"${file.name}" has been attached to your verification record.`
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleRemoveDocument = (docId: string) => {
+    const next = uploadedDocsRef.current.filter(d => d.id !== docId);
+    const nextStatus =
+      next.length === 0 && currentEmployerProfile.status !== 'verified'
+        ? 'incomplete'
+        : currentEmployerProfile.status;
+    uploadedDocsRef.current = next;
+    setUploadedDocs(next);
+    updateEmployerProfile({ documents: next, status: nextStatus });
+    showToast({
+      type: 'info',
+      title: 'Document Removed',
+      message: 'Verification document removed from your profile.'
+    });
+  };
+
+  const isProfileDetailsComplete = Boolean(
+    companyName.trim() &&
+    representativeName.trim() &&
+    industry.trim() &&
+    municipality.trim() &&
+    address.trim() &&
+    contactNumber.trim() &&
+    email.trim() &&
+    companyDescription.trim()
+  );
+
+  const hasVerificationDocuments = uploadedDocs.length > 0;
+  const canSubmitForVerification = isProfileDetailsComplete && hasVerificationDocuments;
 
   const isForCompliance = currentEmployerProfile.status === 'for_compliance';
   const isRejected = currentEmployerProfile.status === 'rejected';
@@ -305,7 +271,7 @@ export const EmployerProfilePage: React.FC<EmployerProfilePageProps> = ({ onNavi
     const payload = {
       ...buildProfilePayload('pending_verification'),
       accreditationSubmittedAt: new Date().toISOString(),
-      complianceRemarks: undefined,
+      complianceRemarks: '',
     };
     updateEmployerProfile(payload);
 

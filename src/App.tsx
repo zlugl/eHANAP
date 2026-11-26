@@ -56,7 +56,7 @@ import { MobileDeviceShell } from './components/MobileDeviceShell';
 import { SeekerBookmarksModal } from './components/SeekerBookmarksModal';
 
 function AppContent() {
-  const { currentUser, currentSeekerProfile, currentEmployerProfile, jobSeekers, employers, showToast } = useApp();
+  const { currentUser, currentSeekerProfile, currentEmployerProfile, jobSeekers, employers, isPasswordRecovery, showToast } = useApp();
   const [currentView, setCurrentView] = useState<string>('landing');
   const [viewParams, setViewParams] = useState<any>({});
   
@@ -70,6 +70,13 @@ function AppContent() {
   // Color UI Interactive Modals State
   const [isMobileDeviceMode, setIsMobileDeviceMode] = useState(false);
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false);
+
+  React.useEffect(() => {
+    if (isPasswordRecovery) {
+      setAuthMode('login');
+      setAuthModalOpen(true);
+    }
+  }, [isPasswordRecovery]);
 
   const handleNavigate = (view: string, params?: any) => {
     let cleanView = (view || '').trim().replace(/^\/+|\/+$/g, '').replace(/\//g, '-');

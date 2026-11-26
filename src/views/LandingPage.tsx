@@ -294,23 +294,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigate, onOpenAuth
                 <div className="divide-y divide-[var(--color-rule)] text-sm">
                   <div className="py-2.5 flex items-center justify-between">
                     <span>Node 1: Educational attainment level</span>
-                    <span className="num font-medium text-[var(--color-ink)]">25% weight</span>
+                    <span className="num font-medium text-[var(--color-ink)]">12% weight</span>
                   </div>
                   <div className="py-2.5 flex items-center justify-between">
                     <span>Node 2: Degree and course alignment</span>
-                    <span className="num font-medium text-[var(--color-ink)]">20% weight</span>
+                    <span className="num font-medium text-[var(--color-ink)]">25% weight</span>
                   </div>
                   <div className="py-2.5 flex items-center justify-between">
                     <span>Node 3: Six-domain technical skills overlap</span>
-                    <span className="num font-medium text-[var(--color-ink)]">30% weight</span>
+                    <span className="num font-medium text-[var(--color-ink)]">35% weight</span>
                   </div>
                   <div className="py-2.5 flex items-center justify-between">
                     <span>Node 4: Verifiable experience delta</span>
-                    <span className="num font-medium text-[var(--color-ink)]">15% weight</span>
+                    <span className="num font-medium text-[var(--color-ink)]">20% weight</span>
                   </div>
                   <div className="py-2.5 flex items-center justify-between">
                     <span>Node 5: Government and TESDA certifications</span>
-                    <span className="num font-medium text-[var(--color-ink)]">10% weight</span>
+                    <span className="num font-medium text-[var(--color-ink)]">8% weight</span>
                   </div>
                 </div>
               </div>

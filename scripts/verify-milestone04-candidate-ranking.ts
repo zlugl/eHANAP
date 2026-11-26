@@ -1,11 +1,10 @@
 import { calculateDecisionTreeMatch } from '../src/utils/decisionTree';
 import { evaluateResumeForAts } from '../src/utils/atsEngine';
-import { 
-  INITIAL_JOB_SEEKERS, 
-  INITIAL_JOB_POSTS, 
-  INITIAL_EMPLOYERS, 
-  INITIAL_APPLICATIONS 
-} from '../src/data/mockData';
+import {
+  TEST_JOB_SEEKERS,
+  TEST_JOB_POSTS,
+  TEST_APPLICATIONS,
+} from './testFixtures';
 import { 
   JobPost, 
   JobSeekerProfile, 
@@ -32,8 +31,8 @@ function assert(condition: boolean, testName: string, details?: string) {
 }
 
 async function runMilestone04Tests() {
-  const activeJob = INITIAL_JOB_POSTS.find(j => j.status === 'active') || INITIAL_JOB_POSTS[0];
-  const registeredSeekers = [...INITIAL_JOB_SEEKERS];
+  const activeJob = TEST_JOB_POSTS.find(j => j.status === 'active') || TEST_JOB_POSTS[0];
+  const registeredSeekers = [...TEST_JOB_SEEKERS];
 
   // ---------------------------------------------------------------------------
   // Suite 1: Automated Candidate Ranking Roster Computation & Determinism
@@ -93,7 +92,7 @@ async function runMilestone04Tests() {
   );
 
   // When evaluating a position with aligned profile (e.g. Junior Full-Stack Developer or Agri Supervisor)
-  const techJob = INITIAL_JOB_POSTS.find(j => j.id === 'job-tech-developer') || activeJob;
+  const techJob = TEST_JOB_POSTS.find(j => j.id === 'job-tech-developer') || activeJob;
   const techRanking = registeredSeekers.map(s => calculateDecisionTreeMatch(s, techJob))
     .sort((a, b) => b.overallMatch - a.overallMatch);
   assert(techRanking[0].overallMatch >= 70, `Targeted position candidate achieves qualifying compatibility >=70% (Actual: ${techRanking[0].overallMatch}%)`);
@@ -201,7 +200,7 @@ async function runMilestone04Tests() {
 
   // Pick an unapplied candidate from the roster
   const unappliedCandidate = rankingRoster.find(r => 
-    !INITIAL_APPLICATIONS.some(a => a.jobId === activeJob.id && a.jobSeekerId === r.seeker.id)
+    !TEST_APPLICATIONS.some(a => a.jobId === activeJob.id && a.jobSeekerId === r.seeker.id)
   ) || rankingRoster[0];
 
   const inviteResult = simulateInvite(activeJob, unappliedCandidate.seeker);
@@ -234,7 +233,7 @@ async function runMilestone04Tests() {
   console.log('\n[Suite 4] Two-Way Compatibility Matching & Seeker Badges/Alerts');
 
   const testSeeker = registeredSeekers[0];
-  const seekerScoredVacancies = INITIAL_JOB_POSTS
+  const seekerScoredVacancies = TEST_JOB_POSTS
     .filter(j => j.status === 'active')
     .map(job => {
       const match = calculateDecisionTreeMatch(testSeeker, job);
@@ -271,9 +270,9 @@ async function runMilestone04Tests() {
   // ---------------------------------------------------------------------------
   console.log('\n[Suite 5] Multi-Vacancy Distinct Ranking & Employer Specialization');
 
-  if (INITIAL_JOB_POSTS.length >= 2) {
-    const jobA = INITIAL_JOB_POSTS[0];
-    const jobB = INITIAL_JOB_POSTS[1];
+  if (TEST_JOB_POSTS.length >= 2) {
+    const jobA = TEST_JOB_POSTS[0];
+    const jobB = TEST_JOB_POSTS[1];
 
     const rosterA = registeredSeekers.map(s => ({ id: s.id, score: calculateDecisionTreeMatch(s, jobA).overallMatch }))
       .sort((a, b) => b.score - a.score);

@@ -126,7 +126,7 @@ async function runVerification() {
     assert(authContent.includes('export const useAuth'), 'useAuth hook is exported');
     assert(authContent.includes('currentUser'), 'AuthContext provides currentUser state');
     assert(authContent.includes('currentRole'), 'AuthContext provides currentRole state');
-    assert(authContent.includes('switchDemoRole'), 'AuthContext provides switchDemoRole action');
+    assert(!authContent.includes('switchDemoRole'), 'AuthContext removes passwordless switchDemoRole bypass');
     assert(authContent.includes('loginAs'), 'AuthContext provides loginAs action');
     assert(authContent.includes('continueWithGoogle'), 'AuthContext provides continueWithGoogle action');
     assert(authContent.includes('logout'), 'AuthContext provides logout action');

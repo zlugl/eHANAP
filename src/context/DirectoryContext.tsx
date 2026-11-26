@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import {
   EmployerProfile,
   EmployerStatus,
@@ -27,7 +27,7 @@ import {
   markProfileCompletedInStorage,
 } from '../utils/routeGuards';
 import { useAuth } from './AuthContext';
-import { saveDocument } from './persistence';
+import { saveDocument, normalizeEmployerProfileToUpperCase } from './persistence';
 
 export interface DirectoryContextType {
   employers: EmployerProfile[];
@@ -50,46 +50,42 @@ export interface DirectoryContextType {
 export const DirectoryContext = createContext<DirectoryContextType | undefined>(undefined);
 
 export const DirectoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { currentUser, setCurrentUser, setUsers } = useAuth();
+  const { currentUser, setCurrentUser, users, setUsers } = useAuth();
 
-  const [employers, setEmployers] = useState<EmployerProfile[]>(() => {
-    const saved = storageAdapter.getStoredEmployers([]);
-    if (saved && Array.isArray(saved) && saved.length > 0) {
-      const map = new Map<string, EmployerProfile>();
-      INITIAL_EMPLOYERS.forEach(e => map.set(e.id, e));
-      saved.forEach((e: EmployerProfile) => map.set(e.id, e));
-      return Array.from(map.values());
-    }
-    return INITIAL_EMPLOYERS;
-  });
-
-  const [jobSeekers, setJobSeekers] = useState<JobSeekerProfile[]>(() => {
-    const saved = storageAdapter.getStoredJobSeekers([]);
-    if (saved && Array.isArray(saved) && saved.length > 0) {
-      const map = new Map<string, JobSeekerProfile>();
-      INITIAL_JOB_SEEKERS.forEach(s => map.set(s.id, s));
-      saved.forEach((s: JobSeekerProfile) => map.set(s.id, s));
-      return Array.from(map.values());
-    }
-    return INITIAL_JOB_SEEKERS;
-  });
-
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
-  const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>(INITIAL_ANNOUNCEMENTS);
+  const [employers, setEmployers] = useState<EmployerProfile[]>(() =>
+    storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS)
+  );
+  const employersRef = useRef<EmployerProfile[]>(employers);
+  employersRef.current = employers;
+  const usersRef = useRef(users);
+  usersRef.current = users;
+  const [jobSeekers, setJobSeekers] = useState<JobSeekerProfile[]>(() =>
+    storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS)
+  );
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() =>
+    storageAdapter.getStoredAuditLogs(INITIAL_AUDIT_LOGS)
+  );
+  const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>(() =>
+    storageAdapter.getStoredAnnouncements(INITIAL_ANNOUNCEMENTS)
+  );
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
   useEffect(() => {
-    if (employers && employers.length > 0) {
-      storageAdapter.setStoredEmployers(employers);
-    }
+    storageAdapter.setStoredEmployers(employers);
   }, [employers]);
 
   useEffect(() => {
-    if (jobSeekers && jobSeekers.length > 0) {
-      storageAdapter.setStoredJobSeekers(jobSeekers);
-    }
+    storageAdapter.setStoredJobSeekers(jobSeekers);
   }, [jobSeekers]);
+
+  useEffect(() => {
+    storageAdapter.setStoredAuditLogs(auditLogs);
+  }, [auditLogs]);
+
+  useEffect(() => {
+    storageAdapter.setStoredAnnouncements(announcements);
+  }, [announcements]);
 
   // Initialize Supabase connection and directory/system table subscriptions
   useEffect(() => {
@@ -109,32 +105,38 @@ export const DirectoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             unsubs.push(
               subscribeToSupabaseTable<EmployerProfile>(SUPABASE_TABLES.EMPLOYERS, (data) => {
                 if (data && data.length > 0) {
-                  setEmployers(prev => {
-                    const map = new Map<string, EmployerProfile>();
-                    prev.forEach(e => map.set(e.id, e));
-                    data.forEach(e => map.set(e.id, e));
-                    return Array.from(map.values());
-                  });
+                  const filteredData = storageAdapter.filterOutLegacyDemoRecords(data);
+                  if (filteredData.length > 0) {
+                    setEmployers(prev => {
+                      const map = new Map<string, EmployerProfile>();
+                      prev.forEach(e => map.set(e.id, e));
+                      filteredData.forEach(e => map.set(e.id, e));
+                      return Array.from(map.values());
+                    });
+                  }
                 }
               }),
               subscribeToSupabaseTable<JobSeekerProfile>(SUPABASE_TABLES.JOB_SEEKERS, (data) => {
                 if (data && data.length > 0) {
-                  setJobSeekers(prev => {
-                    const map = new Map<string, JobSeekerProfile>();
-                    prev.forEach(s => map.set(s.id, s));
-                    data.forEach(s => {
-                      const existing = map.get(s.id);
-                      const isCompleted = Boolean(
-                        s.isProfileCompleted ||
-                        existing?.isProfileCompleted ||
-                        storageAdapter.isProfileCompletedInStorage(s.id) ||
-                        (s.userId && storageAdapter.isProfileCompletedInStorage(s.userId)) ||
-                        (s.email && storageAdapter.isProfileCompletedInStorage(s.email))
-                      );
-                      map.set(s.id, { ...s, isProfileCompleted: isCompleted });
+                  const filteredData = storageAdapter.filterOutLegacyDemoRecords(data);
+                  if (filteredData.length > 0) {
+                    setJobSeekers(prev => {
+                      const map = new Map<string, JobSeekerProfile>();
+                      prev.forEach(s => map.set(s.id, s));
+                      filteredData.forEach(s => {
+                        const existing = map.get(s.id);
+                        const isCompleted = Boolean(
+                          s.isProfileCompleted ||
+                          existing?.isProfileCompleted ||
+                          storageAdapter.isProfileCompletedInStorage(s.id) ||
+                          (s.userId && storageAdapter.isProfileCompletedInStorage(s.userId)) ||
+                          (s.email && storageAdapter.isProfileCompletedInStorage(s.email))
+                        );
+                        map.set(s.id, { ...s, isProfileCompleted: isCompleted });
+                      });
+                      return Array.from(map.values());
                     });
-                    return Array.from(map.values());
-                  });
+                  }
                 }
               }),
               subscribeToSupabaseTable<AuditLog>(SUPABASE_TABLES.AUDIT_LOGS, (data) => {
@@ -178,22 +180,24 @@ export const DirectoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         const isLocallyCompleted = isEmployerProfileComplete(currentUser, found);
 
         if (!found) {
-          return {
+          const fallback: EmployerProfile = {
             id: `emp-${currentUser.id}`,
             userId: currentUser.id,
-            companyName: currentUser.name || 'Business Establishment',
-            representativeName: currentUser.name || 'Authorized Representative',
+            companyName: (currentUser.name || '').toUpperCase(),
+            representativeName: '',
             contactNumber: currentUser.phone || '',
-            email: currentUser.email,
-            address: 'Roxas, Oriental Mindoro',
-            municipality: 'Roxas',
-            industry: 'Information Technology',
+            email: currentUser.email || '',
+            address: '',
+            municipality: '',
+            industry: '',
             companyDescription: '',
-            status: 'pending' as EmployerStatus,
+            status: 'incomplete',
+            documents: [],
             isProfileCompleted: isLocallyCompleted,
-            logoUrl: currentUser.avatar,
+            logoUrl: currentUser.avatar || '',
             createdAt: currentUser.createdAt || new Date().toISOString(),
-          } satisfies EmployerProfile;
+          };
+          return fallback;
         }
 
         if (isLocallyCompleted && !found.isProfileCompleted) {
@@ -297,55 +301,64 @@ export const DirectoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   const updateEmployerProfile = (employerIdOrData: string | Partial<EmployerProfile>, maybeData?: Partial<EmployerProfile>) => {
     const targetId = typeof employerIdOrData === 'string' ? employerIdOrData : (currentEmployerProfile?.id || '');
-    const profileData = typeof employerIdOrData === 'string' ? (maybeData || {}) : employerIdOrData;
+    const rawProfileData = typeof employerIdOrData === 'string' ? (maybeData || {}) : employerIdOrData;
+    const profileData = normalizeEmployerProfileToUpperCase(rawProfileData);
     const emailToMatch = (profileData.email || currentUser?.email || '').toLowerCase().trim();
+    const nowIso = new Date().toISOString();
 
-    setEmployers(prev => {
-      const matchesEmployer = (e: EmployerProfile) =>
-        (Boolean(targetId) && e.id === targetId) ||
-        (Boolean(currentUser?.id) && e.userId === currentUser!.id) ||
-        (Boolean(emailToMatch) && Boolean(e.email) && e.email.toLowerCase() === emailToMatch);
+    const matchesEmployer = (e: EmployerProfile) =>
+      (Boolean(targetId) && e.id === targetId) ||
+      (Boolean(currentUser?.id) && e.userId === currentUser!.id) ||
+      (Boolean(emailToMatch) && Boolean(e.email) && e.email.toLowerCase() === emailToMatch);
 
-      const exists = prev.some(matchesEmployer);
+    const buildNextEmployers = (list: EmployerProfile[]): { nextList: EmployerProfile[]; recordsToSave: EmployerProfile[] } => {
+      const exists = list.some(matchesEmployer);
       if (!exists && (currentEmployerProfile || currentUser)) {
-        const base = currentEmployerProfile || {
+        const base: EmployerProfile = currentEmployerProfile || {
           id: targetId || `emp-${currentUser?.id || crypto.randomUUID()}`,
           userId: currentUser?.id || '',
-          companyName: currentUser?.name || 'Business Establishment',
-          representativeName: currentUser?.name || 'Authorized Representative',
+          companyName: (currentUser?.name || '').toUpperCase(),
+          representativeName: '',
           contactNumber: currentUser?.phone || '',
           email: currentUser?.email || '',
-          address: 'Roxas, Oriental Mindoro',
-          municipality: 'Roxas',
-          industry: 'Information Technology',
+          address: '',
+          municipality: '',
+          industry: '',
           companyDescription: '',
-          status: 'pending' as EmployerStatus,
-          createdAt: new Date().toISOString(),
+          status: 'incomplete' as EmployerStatus,
+          documents: [],
+          createdAt: nowIso,
         };
         const newRecord: EmployerProfile = {
           ...base,
           ...profileData,
           isProfileCompleted: profileData.isProfileCompleted ?? base.isProfileCompleted ?? true,
         };
-        saveDocument(COLLECTIONS.EMPLOYERS, newRecord);
-        return [...prev, newRecord];
+        return { nextList: [...list, newRecord], recordsToSave: [newRecord] };
       }
 
-      return prev.map(e => {
+      const recordsToSave: EmployerProfile[] = [];
+      const nextList = list.map(e => {
         if (matchesEmployer(e)) {
           const isCompletedNow = profileData.isProfileCompleted ?? e.isProfileCompleted ?? true;
           const updated = {
             ...e,
             ...profileData,
             isProfileCompleted: isCompletedNow,
-            updatedAt: new Date().toISOString()
+            updatedAt: nowIso,
           };
-          saveDocument(COLLECTIONS.EMPLOYERS, updated);
+          recordsToSave.push(updated);
           return updated;
         }
         return e;
       });
-    });
+      return { nextList, recordsToSave };
+    };
+
+    const { nextList: nextEmployers, recordsToSave } = buildNextEmployers(employersRef.current);
+    employersRef.current = nextEmployers;
+    setEmployers(prev => buildNextEmployers(prev).nextList);
+    recordsToSave.forEach(record => saveDocument(COLLECTIONS.EMPLOYERS, record));
 
     if (currentUser) {
       const isCompletedFlag = profileData.isProfileCompleted ?? true;
@@ -353,25 +366,22 @@ export const DirectoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const shouldUpdateName = repName.length > 0;
 
       if (isCompletedFlag) {
-        setCurrentUser(prev => prev ? ({
-          ...prev,
+        const userPatch = {
           isProfileCompleted: true,
           ...(shouldUpdateName ? { name: repName } : {}),
-          ...(profileData.logoUrl !== undefined ? { avatar: profileData.logoUrl } : {})
-        } as any) : null);
-        setUsers(prev => prev.map(u => {
-          if (u.id === currentUser.id || (currentUser.email && u.email.toLowerCase() === currentUser.email.toLowerCase())) {
-            const updatedUser = {
-              ...u,
-              isProfileCompleted: true,
-              ...(shouldUpdateName ? { name: repName } : {}),
-              ...(profileData.logoUrl !== undefined ? { avatar: profileData.logoUrl } : {})
-            };
-            saveDocument(COLLECTIONS.USERS, updatedUser);
-            return updatedUser;
-          }
-          return u;
-        }));
+          ...(profileData.logoUrl !== undefined ? { avatar: profileData.logoUrl } : {}),
+        };
+        const matchesCurrentUser = (u: { id: string; email: string }) =>
+          u.id === currentUser.id ||
+          (Boolean(currentUser.email) && u.email.toLowerCase() === currentUser.email.toLowerCase());
+
+        const usersToSave = usersRef.current
+          .filter(matchesCurrentUser)
+          .map(u => ({ ...u, ...userPatch }));
+
+        setCurrentUser(prev => (prev ? ({ ...prev, ...userPatch } as any) : null));
+        setUsers(prev => prev.map(u => (matchesCurrentUser(u) ? { ...u, ...userPatch } : u)));
+        usersToSave.forEach(updatedUser => saveDocument(COLLECTIONS.USERS, updatedUser));
 
         markProfileCompletedInStorage([currentUser.id, currentUser.email, typeof employerIdOrData === 'string' ? employerIdOrData : undefined], 'employer');
       }
@@ -381,10 +391,10 @@ export const DirectoryProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const resetDirectoryState = () => {
-    setEmployers(INITIAL_EMPLOYERS);
-    setJobSeekers(INITIAL_JOB_SEEKERS);
-    setAuditLogs(INITIAL_AUDIT_LOGS);
-    setAnnouncements(INITIAL_ANNOUNCEMENTS);
+    setEmployers([]);
+    setJobSeekers([]);
+    setAuditLogs([]);
+    setAnnouncements([]);
   };
 
   return (

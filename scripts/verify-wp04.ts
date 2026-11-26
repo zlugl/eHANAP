@@ -3,13 +3,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getFilteredUserNotifications } from '../src/utils/notificationUtils';
 import {
-  INITIAL_USERS,
-  INITIAL_EMPLOYERS,
-  INITIAL_JOB_POSTS,
   INITIAL_JOB_SUBSCRIPTIONS,
 } from '../src/data/mockData';
 import { INITIAL_LRA_EVENTS, INITIAL_REFERRAL_SLIPS } from '../src/data/pesoLguData';
 import { EmployerProfile, NotificationItem } from '../src/types';
+import { TEST_EMPLOYERS, TEST_JOB_POSTS, TEST_USERS } from './testFixtures';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -32,9 +30,9 @@ function assert(condition: boolean, label: string, detail?: string) {
 console.log('--- eHANAP WP-04: Notifications, Status Constraints, Admin Metrics & Demo Reset ---');
 
 // 1. Finding #8: Employer notification routing
-const puregoldEmp = INITIAL_EMPLOYERS[0];
-const puregoldUser = INITIAL_USERS.find(u => u.id === puregoldEmp.userId)!;
-assert(Boolean(puregoldEmp && puregoldUser), 'Puregold employer and user records exist in seed data');
+const puregoldEmp = TEST_EMPLOYERS[0];
+const puregoldUser = TEST_USERS.find(u => u.id === puregoldEmp.userId)!;
+assert(Boolean(puregoldEmp && puregoldUser), 'Puregold employer and user records exist in test fixtures');
 assert(puregoldEmp.id !== puregoldUser.id, 'Employer profile ID differs from User ID');
 
 const baseNotif: Omit<NotificationItem, 'id' | 'recipientId'> = {
@@ -69,11 +67,11 @@ const externalLegacyEmp: EmployerProfile = {
   industry: 'Retail / Supermarket',
   establishmentType: 'new_external',
 };
-const mixedEmployers = [...INITIAL_EMPLOYERS, externalLegacyEmp];
+const mixedEmployers = [...TEST_EMPLOYERS, externalLegacyEmp];
 const establishedCount = mixedEmployers.filter(e => e.establishmentType === 'local_established').length;
-assert(establishedCount === INITIAL_EMPLOYERS.length, 'establishmentType === "local_established" excludes new_external regardless of industry');
+assert(establishedCount === TEST_EMPLOYERS.length, 'establishmentType === "local_established" excludes new_external regardless of industry');
 
-const activeVacancies = INITIAL_JOB_POSTS.filter(j => j.status === 'active');
+const activeVacancies = TEST_JOB_POSTS.filter(j => j.status === 'active');
 const totalOpenings = activeVacancies.reduce((a, b) => a + (b.vacanciesCount || 1), 0);
 assert(totalOpenings > activeVacancies.length, `vacanciesCount sums multi-slot openings (${totalOpenings} > ${activeVacancies.length})`);
 
@@ -84,31 +82,35 @@ assert(adminDashboardSrc.includes("establishmentType === 'local_established'") &
 assert(!adminUsersSrc.includes('isEstablishedLocal'), 'AdminUsersPage removed isEstablishedLocal');
 assert(adminUsersSrc.includes("establishmentType === 'local_established'"), 'AdminUsersPage uses establishmentType');
 
-// 3. Finding #14: EmployerJobsPage status constraint & removed job.department
+// 3. Finding #14: EmployerJobsPage status constraint & subCategory / department alias handling
 const schemaSrc = fs.readFileSync(path.join(rootDir, 'supabase_schema.sql'), 'utf-8');
 const statusCheck = schemaSrc.match(/status TEXT NOT NULL DEFAULT 'pending_approval' CHECK \(status IN \(([^)]+)\)\)/)?.[1] || '';
 assert(!statusCheck.includes("'paused'") && statusCheck.includes("'archived'"), 'SQL job_posts.status CHECK excludes paused and allows archived');
 
 const employerJobsSrc = fs.readFileSync(path.join(rootDir, 'src/views/employer/EmployerJobsPage.tsx'), 'utf-8');
+const supabaseServiceSrc = fs.readFileSync(path.join(rootDir, 'src/services/supabaseService.ts'), 'utf-8');
 assert(!employerJobsSrc.includes("'paused'") && !employerJobsSrc.includes('"paused"'), 'EmployerJobsPage contains no paused status references');
 assert(employerJobsSrc.includes("'archived'") || employerJobsSrc.includes('"archived"'), 'EmployerJobsPage supports archived status');
-assert(!employerJobsSrc.includes('department'), 'EmployerJobsPage contains no job.department references');
+assert(
+  employerJobsSrc.includes('subCategory') && supabaseServiceSrc.includes('normalized.department !== undefined'),
+  'EmployerJobsPage displays subCategory and supabaseService maps/strips department alias'
+);
 
-// 4. Finding #18: resetToDemoData restores INITIAL_* constants
-assert(INITIAL_LRA_EVENTS.length >= 2, 'INITIAL_LRA_EVENTS seed constant is non-empty');
-assert(INITIAL_REFERRAL_SLIPS.length >= 2, 'INITIAL_REFERRAL_SLIPS seed constant is non-empty');
-assert(Array.isArray(INITIAL_JOB_SUBSCRIPTIONS), 'INITIAL_JOB_SUBSCRIPTIONS constant is exported');
+// 4. Finding #18: resetToDemoData resets to clean-slate INITIAL_* arrays
+assert(Array.isArray(INITIAL_LRA_EVENTS) && INITIAL_LRA_EVENTS.length === 0, 'INITIAL_LRA_EVENTS clean-slate constant is exported');
+assert(Array.isArray(INITIAL_REFERRAL_SLIPS) && INITIAL_REFERRAL_SLIPS.length === 0, 'INITIAL_REFERRAL_SLIPS clean-slate constant is exported');
+assert(Array.isArray(INITIAL_JOB_SUBSCRIPTIONS) && INITIAL_JOB_SUBSCRIPTIONS.length === 0, 'INITIAL_JOB_SUBSCRIPTIONS clean-slate constant is exported');
 
 const appContextSrc = fs.readFileSync(path.join(rootDir, 'src/context/AppContext.tsx'), 'utf-8');
 const pesoLraContextSrc = fs.readFileSync(path.join(rootDir, 'src/context/PesoLraContext.tsx'), 'utf-8');
 const resetBlock = appContextSrc.match(/const resetToDemoData = async \(\) => \{[\s\S]*?showToast\(/)?.[0] || '';
 assert(
-  jobsContextSrc.includes('setJobSubscriptions(INITIAL_JOB_SUBSCRIPTIONS)') &&
-    pesoLraContextSrc.includes('setReferralSlips(INITIAL_REFERRAL_SLIPS)') &&
-    pesoLraContextSrc.includes('setLocalRecruitmentActivities(INITIAL_LRA_EVENTS)') &&
+  jobsContextSrc.includes('setJobSubscriptions([])') &&
+    pesoLraContextSrc.includes('setReferralSlips([])') &&
+    pesoLraContextSrc.includes('setLocalRecruitmentActivities([])') &&
     resetBlock.includes('jobs.resetJobsState()') &&
     resetBlock.includes('pesoLra.resetPesoLraState()'),
-  'resetToDemoData restores INITIAL_JOB_SUBSCRIPTIONS, INITIAL_REFERRAL_SLIPS, and INITIAL_LRA_EVENTS'
+  'resetToDemoData resets jobSubscriptions, referralSlips, and localRecruitmentActivities to clean slate'
 );
 
 console.log(`\n--- WP-04 Verification Summary: ${passed}/${total} tests passed ---`);

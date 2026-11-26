@@ -137,7 +137,7 @@ console.log('\n[Suite 2] Node 1 — Educational Attainment Rank Evaluation');
 const exactEduResult = calculateDecisionTreeMatch(baseSeeker, baseJob);
 assert(exactEduResult.educationMatchScore === 100, 'Exact educational level scores 100%');
 assert(
-  exactEduResult.matchedReasons.some(r => r.includes('meets or exceeds required')),
+  exactEduResult.matchedReasons.some(r => r.includes('matches accepted levels')),
   'Matched reasons record educational attainment success'
 );
 
@@ -157,7 +157,7 @@ const highSchoolSeeker: JobSeekerProfile = {
 const deficitEduResult = calculateDecisionTreeMatch(highSchoolSeeker, baseJob);
 assert(deficitEduResult.educationMatchScore <= 35, '3-rank deficit in educational attainment receives heavy penalty');
 assert(
-  deficitEduResult.missingQualifications.some(m => m.includes('Required educational level is')),
+  deficitEduResult.missingQualifications.some(m => m.includes('Accepted educational level is')),
   'Deficit in educational level recorded in missing qualifications'
 );
 
@@ -191,7 +191,7 @@ const undergradVsBachelor = calculateDecisionTreeMatch(
   { ...baseSeeker, educationalAttainment: 'College Undergraduate' },
   { ...baseJob, minEducationalAttainment: "Bachelor's Degree" }
 );
-assert(undergradVsBachelor.educationMatchScore === 65, 'College Undergraduate (rank 3) vs Bachelor (rank 4) scores 65%');
+assert(undergradVsBachelor.educationMatchScore === 85, 'College Undergraduate (rank 3.5) vs Bachelor (rank 4) scores 85%');
 
 const docVsMasters = calculateDecisionTreeMatch(
   { ...baseSeeker, educationalAttainment: 'Doctorate Degree' },
@@ -213,7 +213,7 @@ const relatedDegreeSeeker: JobSeekerProfile = {
   primaryDegree: 'BS Computer Science',
 };
 const relatedDegreeResult = calculateDecisionTreeMatch(relatedDegreeSeeker, baseJob);
-assert(relatedDegreeResult.degreeAlignmentScore === 80, 'Related degree (CS <-> IT) scores 80%');
+assert(relatedDegreeResult.degreeAlignmentScore === 84, 'Related degree (CS <-> IT) scores 84%');
 assert(
   relatedDegreeResult.matchedReasons.some(r => r.includes('closely related field')),
   'Related degree records rationale in matchedReasons'
@@ -227,7 +227,7 @@ const unrelatedDegreeSeeker: JobSeekerProfile = {
 const unrelatedDegreeResult = calculateDecisionTreeMatch(unrelatedDegreeSeeker, baseJob);
 assert(unrelatedDegreeResult.degreeAlignmentScore === 40, 'Unrelated degree receives 40%');
 assert(
-  unrelatedDegreeResult.missingQualifications.some(m => m.includes('differs from preferred degree')),
+  unrelatedDegreeResult.missingQualifications.some(m => m.includes('differs from accepted courses')),
   'Unrelated degree records discrepancy in missingQualifications'
 );
 
@@ -237,10 +237,12 @@ for (const nonTechDegree of ['BS Hospitality Management', 'BS Fisheries', 'BS Ec
   assert(res.degreeAlignmentScore === 40, `${nonTechDegree} is not misclassified as Tech (40%, got ${res.degreeAlignmentScore}%)`);
 }
 
-// Standalone short degree codes (BS IT, BS CS, BS IS) still resolve as related Tech degrees (80%)
-for (const shortTechDegree of ['BS IT', 'BS CS', 'BS IS']) {
+// Standalone short degree codes: BS IT is a direct synonym (100%); BS CS and BS IS resolve as related Tech degrees (84%)
+const bsItRes = calculateDecisionTreeMatch({ ...baseSeeker, primaryDegree: 'BS IT' }, baseJob);
+assert(bsItRes.degreeAlignmentScore === 100, `BS IT matches BS Information Technology synonym group (100%, got ${bsItRes.degreeAlignmentScore}%)`);
+for (const shortTechDegree of ['BS CS', 'BS IS']) {
   const res = calculateDecisionTreeMatch({ ...baseSeeker, primaryDegree: shortTechDegree }, baseJob);
-  assert(res.degreeAlignmentScore === 80, `${shortTechDegree} matches related Tech degrees via word boundary (80%, got ${res.degreeAlignmentScore}%)`);
+  assert(res.degreeAlignmentScore === 84, `${shortTechDegree} matches related Tech degrees via word boundary (84%, got ${res.degreeAlignmentScore}%)`);
 }
 
 // Job accepting "Any Bachelor Degree"
@@ -271,7 +273,7 @@ const partialSkillsSeeker: JobSeekerProfile = {
 const partialSkillsResult = calculateDecisionTreeMatch(partialSkillsSeeker, baseJob);
 assert(partialSkillsResult.skillsMatchScore >= 35 && partialSkillsResult.skillsMatchScore <= 70, 'Partial required skills (2/4) scores proportionally');
 assert(
-  partialSkillsResult.missingQualifications.some(m => m.includes('Missing required skill: Inventory Audit')),
+  partialSkillsResult.missingQualifications.some(m => m.includes('Missing must-have skill: Inventory Audit')),
   'Missing required skills are explicitly itemized'
 );
 
@@ -344,7 +346,7 @@ const underExpSeeker: JobSeekerProfile = {
 const deficitExpResult = calculateDecisionTreeMatch(underExpSeeker, demandingJob);
 assert(deficitExpResult.experienceMatchScore <= 40, 'Deficit in required experience receives proportional penalty');
 assert(
-  deficitExpResult.missingQualifications.some(m => m.includes('Requires 4 years experience, candidate currently has 1 years.')),
+  deficitExpResult.missingQualifications.some(m => m.includes('Requires 4 year(s) experience, candidate currently has 1 year(s).')),
   'Experience deficit recorded in missing qualifications'
 );
 
@@ -356,15 +358,15 @@ console.log('\n[Suite 6] Node 5 — Certifications Evaluation');
 // Has required TESDA NC II
 assert(exactEduResult.certificationsMatchScore === 100, 'Possessing required TESDA NC II scores 100%');
 
-// Missing required certification
+// Missing required certification (80% cert weight = 0, 20% local municipality weight = 100 => 20%)
 const noCertSeeker: JobSeekerProfile = {
   ...baseSeeker,
   certifications: [],
 };
 const noCertResult = calculateDecisionTreeMatch(noCertSeeker, baseJob);
-assert(noCertResult.certificationsMatchScore === 0, 'Missing required certifications scores 0%');
+assert(noCertResult.certificationsMatchScore === 20, 'Missing required certifications with local residency scores 20%');
 assert(
-  noCertResult.missingQualifications.some(m => m.includes('Missing required certification:')),
+  noCertResult.missingQualifications.some(m => m.includes('Missing required license/eligibility:')),
   'Missing certification explicitly flagged'
 );
 

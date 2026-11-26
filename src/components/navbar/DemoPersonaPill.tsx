@@ -2,7 +2,6 @@ import React from 'react';
 
 export interface DemoPersonaPillProps {
   currentRole?: string;
-  onSwitchRole: (role: 'job_seeker' | 'employer' | 'admin') => void;
   className?: string;
 }
 

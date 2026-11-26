@@ -1,5 +1,82 @@
-import { NotificationItem, User, JobSeekerProfile, Application, Interview, PesoReferralSlip } from '../types';
+import { NotificationItem, User, UserRole, JobSeekerProfile, Application, Interview, PesoReferralSlip } from '../types';
 import { isSeekerProfileComplete } from './routeGuards';
+
+export interface NotificationRecipientContext {
+  id?: string | null;
+  userId?: string | null;
+  email?: string | null;
+  userEmail?: string | null;
+  role?: UserRole | null;
+  currentUserRole?: UserRole | null;
+  seekerId?: string | null;
+  seekerUserId?: string | null;
+}
+
+/**
+ * Single source of truth for notification recipient matching across display filtering,
+ * mark-all-read, and clear-all operations (including PESO admin role alerts).
+ */
+export function isNotificationRecipient(
+  notif: Pick<NotificationItem, 'recipientId' | 'recipientRole'>,
+  recipient: User | NotificationRecipientContext | null | undefined,
+  seekerProfile?: Pick<JobSeekerProfile, 'id' | 'userId'> | null,
+  options?: { includeBroadcasts?: boolean }
+): boolean {
+  if (!recipient) return false;
+
+  const userId =
+    (('id' in recipient ? recipient.id : undefined) ||
+      ('userId' in recipient ? recipient.userId : undefined) ||
+      '').trim();
+  const userEmailStr = (
+    ('email' in recipient ? recipient.email : undefined) ||
+    ('userEmail' in recipient ? recipient.userEmail : undefined) ||
+    ''
+  )
+    .trim()
+    .toLowerCase();
+  const role =
+    ('role' in recipient ? recipient.role : undefined) ||
+    ('currentUserRole' in recipient ? recipient.currentUserRole : undefined) ||
+    (userId === 'admin' ? 'admin' : undefined);
+  const seekerId = seekerProfile?.id ?? ('seekerId' in recipient ? recipient.seekerId : undefined);
+  const seekerUserId = seekerProfile?.userId ?? ('seekerUserId' in recipient ? recipient.seekerUserId : undefined);
+
+  const rawRecipientId = (notif.recipientId || '').trim();
+  const lowerRecipientId = rawRecipientId.toLowerCase();
+  const includeBroadcasts = options?.includeBroadcasts ?? true;
+
+  const isDirectRecipient =
+    Boolean(userId && rawRecipientId === userId) ||
+    Boolean(userEmailStr && lowerRecipientId === userEmailStr) ||
+    Boolean(seekerId && rawRecipientId === seekerId) ||
+    Boolean(seekerUserId && rawRecipientId === seekerUserId);
+
+  if (isDirectRecipient) return true;
+
+  if (role === 'admin' && notif.recipientRole === 'admin') {
+    return true;
+  }
+
+  const isBroadcastId =
+    lowerRecipientId === 'all' ||
+    rawRecipientId === '*' ||
+    lowerRecipientId === 'broadcast';
+
+  if (rawRecipientId && (!includeBroadcasts || !isBroadcastId)) {
+    return false;
+  }
+
+  if (!rawRecipientId && !role) {
+    return false;
+  }
+
+  if (notif.recipientRole && role && notif.recipientRole !== role && notif.recipientRole !== ('all' as any)) {
+    return false;
+  }
+
+  return includeBroadcasts || !rawRecipientId;
+}
 
 /**
  * Validates whether a notification is relevant and authorized for the given user,
@@ -15,30 +92,12 @@ function isNotificationValidForUser(
   referralSlips: PesoReferralSlip[] = []
 ): boolean {
   if (!currentUser) return false;
-
-  const userEmailStr = (currentUser.email || '').toLowerCase();
-  const userNameStr = (currentUser.name || '').toLowerCase();
-  const seekerId = seekerProfile?.id;
-  const seekerUserId = seekerProfile?.userId;
-
-  // 1. Recipient ID check:
-  const isDirectRecipient = 
-    notif.recipientId === currentUser.id ||
-    (userEmailStr && notif.recipientId?.toLowerCase() === userEmailStr) ||
-    Boolean(seekerId && notif.recipientId === seekerId) ||
-    Boolean(seekerUserId && notif.recipientId === seekerUserId);
-
-  // If notification has a specific recipient ID targeting someone else, NEVER show to this user
-  if (notif.recipientId && !isDirectRecipient && notif.recipientId !== 'all' && notif.recipientId !== '*' && notif.recipientId !== 'broadcast') {
+  if (!isNotificationRecipient(notif, currentUser, seekerProfile)) {
     return false;
   }
 
-  // If it's a broadcast or general notice, check role match
-  if (!isDirectRecipient) {
-    if (notif.recipientRole && notif.recipientRole !== currentUser.role && notif.recipientRole !== ('all' as any)) {
-      return false;
-    }
-  }
+  const userNameStr = (currentUser.name || '').toLowerCase();
+  const seekerId = seekerProfile?.id;
 
   // 2. For Job Seekers: remove unnecessary notifications when the seeker hasn't done the underlying activity yet
   if (currentUser.role === 'job_seeker') {

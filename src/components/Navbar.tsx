@@ -7,7 +7,6 @@ import {
   FileText,
   MapPin,
   Bell,
-  Key,
   Sparkles,
   Menu,
   X
@@ -41,7 +40,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   const {
     currentUser,
     logout,
-    switchDemoRole,
     notifications,
     applications,
     interviews,
@@ -79,15 +77,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     logout();
     setIsMobileMenuOpen(false);
     onNavigate('landing');
-  };
-
-  const handleQuickRoleSwitch = async (role: 'job_seeker' | 'employer' | 'admin') => {
-    const res = await switchDemoRole(role);
-    if (res.success && res.role) {
-      setIsMobileMenuOpen(false);
-      const targetView = res.role === 'admin' ? 'admin-dashboard' : res.role === 'employer' ? 'employer-dashboard' : 'seeker-dashboard';
-      onNavigate(targetView);
-    }
   };
 
   // Dynamically resolve displayed user name depending on resume name or registered profile name
@@ -246,11 +235,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
 
-            {/* 1-Click Role Switcher Pill for Thesis Defense */}
-            <DemoPersonaPill
-              currentRole={currentUser?.role}
-              onSwitchRole={handleQuickRoleSwitch}
-            />
+            <DemoPersonaPill currentRole={currentUser?.role} />
 
             {/* Authenticated User Profile Dropdown or Guest Auth Action */}
             {currentUser ? (
@@ -260,7 +245,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 jobPostsCount={employerJobCount}
                 onNavigate={handleNav}
                 onLogout={handleLogout}
-                onSwitchRole={handleQuickRoleSwitch}
                 onOpenSubscriptions={onOpenSubscriptions}
               />
             ) : (
@@ -317,7 +301,6 @@ export const Navbar: React.FC<NavbarProps> = ({
         isEmployerIncomplete={isEmployerIncomplete}
         onNavigate={handleNav}
         onLogout={handleLogout}
-        onSwitchRole={handleQuickRoleSwitch}
         onOpenAuth={onOpenAuth}
         onOpenSubscriptions={onOpenSubscriptions}
         onOpenPostJobModal={onOpenPostJobModal}

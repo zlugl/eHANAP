@@ -2,12 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
 import { JobSeekerProfile, JobPost, PesoReferralSlip, ApplicationStatus } from '../../types';
 import { PesoReferralSlipModal } from '../../components/admin/PesoReferralSlipModal';
-<<<<<<< HEAD
 import { EncodeWalkInModal } from '../../components/admin/EncodeWalkInModal';
-import { getOrCalculateMatch } from '../../utils/matchResolver';
-=======
 import { getOrCalculateMatch, outcomeToReferralTier } from '../../utils/matchResolver';
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
 import { 
   GitPullRequest, 
   Sparkles, 
@@ -39,8 +35,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
     employers, 
     applications,
     candidateMatches,
-    referralSlips, 
-    candidateMatches,
+    referralSlips,
     updateReferralSlipStatus,
     upsertCandidateApplicationStatus,
     showToast 
@@ -68,13 +63,13 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
     if (!selectedJob) return [];
 
     return jobSeekers.map(seeker => {
-<<<<<<< HEAD
       const existingApp = applications.find(a => a.jobId === selectedJob.id && a.jobSeekerId === seeker.id);
       const matchResult = getOrCalculateMatch(seeker, selectedJob, {
         cachedMatches: candidateMatches,
         application: existingApp,
       });
       const score = Math.round(matchResult.overallMatch);
+      const tier = outcomeToReferralTier(matchResult.outcome);
 
       const breakdowns: { criterion: string; weight: number; points: number; note: string }[] = [
         {
@@ -109,24 +104,6 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
         },
       ];
 
-      let tier: 'Highly Qualified' | 'Qualified' | 'Partially Qualified' | 'Underqualified' = 'Underqualified';
-      if (score >= 85) tier = 'Highly Qualified';
-      else if (score >= 70) tier = 'Qualified';
-      else if (score >= 50) tier = 'Partially Qualified';
-=======
-      const matchResult = getOrCalculateMatch(seeker, selectedJob, { cachedMatches: candidateMatches });
-      const score = matchResult.overallMatch;
-      const tier = outcomeToReferralTier(matchResult.outcome);
-
-      const breakdowns = [
-        { criterion: 'Skills Match', weight: 35, points: Math.round(matchResult.skillsMatchScore * 0.35), note: `${matchResult.skillsMatchScore}% match` },
-        { criterion: 'Degree Alignment', weight: 25, points: Math.round(matchResult.degreeAlignmentScore * 0.25), note: `${matchResult.degreeAlignmentScore}% alignment` },
-        { criterion: 'Work Experience', weight: 20, points: Math.round(matchResult.experienceMatchScore * 0.20), note: `${matchResult.experienceMatchScore}% match` },
-        { criterion: 'Educational Attainment', weight: 12, points: Math.round(matchResult.educationMatchScore * 0.12), note: `${matchResult.educationMatchScore}% match` },
-        { criterion: 'Certifications', weight: 8, points: Math.round(matchResult.certificationsMatchScore * 0.08), note: `${matchResult.certificationsMatchScore}% match` },
-      ];
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
-
       return {
         seeker,
         score,
@@ -134,19 +111,11 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
         breakdowns,
         existingApp,
         hasIssuedReferral: referralSlips.some(
-<<<<<<< HEAD
-          r => r.jobSeekerId === seeker.id && r.jobPostId === selectedJob.id && (r.status as string) !== 'declined'
-        )
-      };
-    }).sort((a, b) => b.score - a.score);
-  }, [selectedJob, jobSeekers, referralSlips, applications, candidateMatches]);
-=======
           r => r.jobSeekerId === seeker.id && r.jobPostId === selectedJob.id && r.status !== 'not_hired' && (r.status as string) !== 'declined'
         )
       };
     }).sort((a, b) => b.score - a.score);
-  }, [selectedJob, jobSeekers, referralSlips, candidateMatches]);
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
+  }, [selectedJob, jobSeekers, referralSlips, applications, candidateMatches]);
 
   // Filtered by tier and search
   const filteredCandidates = useMemo(() => {
@@ -425,11 +394,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
                         {cert}
                       </span>
                     ))}
-<<<<<<< HEAD
-                    {(seeker.practicalSkills || seeker.tradeSkills || seeker.technicalSkills.slice(0, 4)).map(skill => (
-=======
-                    {(seeker.practicalSkills || seeker.tradeSkills || (seeker.technicalSkills || []).slice(0, 3)).map(skill => (
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
+                    {(seeker.practicalSkills || seeker.tradeSkills || (seeker.technicalSkills || []).slice(0, 4)).map(skill => (
                       <span key={skill} className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-medium">
                         {skill}
                       </span>

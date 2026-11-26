@@ -1,7 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { AppProvider, useApp } from '../src/context/AppContext';
+import {
+  AppProvider,
+  useApp,
+  useAuth,
+  useDirectory,
+  useJobs,
+  usePesoLra,
+} from '../src/context';
+import { storageAdapter } from '../src/lib/storageAdapter';
 import { outcomeToReferralTier } from '../src/utils/matchResolver';
 import { getFilteredUserNotifications } from '../src/utils/notificationUtils';
 import {
@@ -11,20 +19,23 @@ import {
   COLLECTIONS,
 } from '../src/services/supabaseService';
 import { Application, CandidateMatch, JobPost } from '../src/types';
-import {
-  INITIAL_USERS,
-  INITIAL_EMPLOYERS,
-  INITIAL_JOB_SEEKERS,
-  INITIAL_JOB_POSTS,
-  INITIAL_APPLICATIONS,
-  INITIAL_INTERVIEWS,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_AUDIT_LOGS,
-  INITIAL_ANNOUNCEMENTS,
-  INITIAL_JOB_SUBSCRIPTIONS,
-} from '../src/data/mockData';
+import { INITIAL_JOB_SUBSCRIPTIONS } from '../src/data/mockData';
 import { INITIAL_REFERRAL_SLIPS, INITIAL_LRA_EVENTS } from '../src/data/pesoLguData';
 import { mountWithProvider } from './testContextHarness';
+import {
+  TEST_ANNOUNCEMENTS,
+  TEST_APPLICATIONS,
+  TEST_AUDIT_LOGS,
+  TEST_EMPLOYERS,
+  TEST_INTERVIEWS,
+  TEST_JOB_POSTS,
+  TEST_JOB_SEEKERS,
+  TEST_JOB_SUBSCRIPTIONS,
+  TEST_LRA_EVENTS,
+  TEST_NOTIFICATIONS,
+  TEST_REFERRAL_SLIPS,
+  TEST_USERS,
+} from './testFixtures';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,29 +78,48 @@ function extractSqlTableColumns(sql: string): Record<string, string[]> {
   return tables;
 }
 
+function useCombinedContexts() {
+  return {
+    app: useApp(),
+    auth: useAuth(),
+    dir: useDirectory(),
+    jobs: useJobs(),
+    lra: usePesoLra(),
+  };
+}
+
 async function runMilestone03Tests() {
-  const mounted = await mountWithProvider<AppApi>(AppProvider, useApp);
+  const mounted = await mountWithProvider(AppProvider, useCombinedContexts);
+  const appApi = () => mounted.getApi().app;
 
   try {
+    await mounted.act(async () => {
+      mounted.getApi().auth.setUsers(TEST_USERS);
+      mounted.getApi().dir.setEmployers(TEST_EMPLOYERS);
+      mounted.getApi().dir.setJobSeekers(TEST_JOB_SEEKERS);
+      storageAdapter.setStoredEmployers(TEST_EMPLOYERS);
+      storageAdapter.setStoredJobSeekers(TEST_JOB_SEEKERS);
+    });
+
     // ---------------------------------------------------------------------------
     // Suite 1: Job Post Creation, PESO Moderation & Notification Routing (Real AppContext)
     // ---------------------------------------------------------------------------
     console.log('\n[Suite 1] Real AppContext Job Post Approval Pipeline & Notification Routing');
 
-    const puregoldEmployer = INITIAL_EMPLOYERS[0];
-    const puregoldUser = INITIAL_USERS.find((u) => u.id === puregoldEmployer.userId)!;
-    const adminUser = INITIAL_USERS.find((u) => u.role === 'admin')!;
+    const puregoldEmployer = TEST_EMPLOYERS[0];
+    const puregoldUser = TEST_USERS.find((u) => u.id === puregoldEmployer.userId)!;
+    const adminUser = TEST_USERS.find((u) => u.role === 'admin')!;
     assert(Boolean(puregoldEmployer && puregoldUser), 'Employer profile and user loaded for job creation');
     assert(Boolean(adminUser), 'PESO Municipal Admin account identified');
 
     await mounted.act(async () => {
-      await mounted.getApi().loginAs(puregoldUser.email, 'password123');
+      await appApi().loginAs(puregoldUser.email, 'password123');
     });
-    assert(mounted.getApi().currentEmployerProfile?.id === puregoldEmployer.id, 'AppContext resolves currentEmployerProfile on login');
+    assert(appApi().currentEmployerProfile?.id === puregoldEmployer.id, 'AppContext resolves currentEmployerProfile on login');
 
     let submittedJob!: JobPost;
     await mounted.act(async () => {
-      submittedJob = mounted.getApi().createJobPost({
+      submittedJob = appApi().createJobPost({
         employerId: puregoldEmployer.id,
         companyName: puregoldEmployer.companyName,
         companyLogo: puregoldEmployer.logoUrl,
@@ -115,38 +145,38 @@ async function runMilestone03Tests() {
         requiredCertifications: [],
         vacanciesCount: 3,
         applicationDeadline: '2026-12-31',
-      });
+      })!;
     });
 
-    assert(submittedJob.status === 'pending_approval', 'AppContext.createJobPost defaults status to "pending_approval"');
+    assert(submittedJob.status === 'active', 'AppContext.createJobPost publishes verified employer vacancy directly to "active"');
     assert(submittedJob.companyVerified === true, 'createJobPost propagates verified employer status');
     assert(submittedJob.vacanciesCount === 3, 'createJobPost preserves vacanciesCount');
     assert(
-      !mounted.getApi().jobPosts.filter((j) => j.status === 'active').some((j) => j.id === submittedJob.id),
-      'Pending vacancy is HIDDEN from active Seeker job feed'
+      appApi().jobPosts.filter((j) => j.status === 'active').some((j) => j.id === submittedJob.id),
+      'Published verified vacancy is immediately visible in active Seeker job feed'
     );
     assert(
-      mounted.getApi().notifications.some(
+      appApi().notifications.some(
         (n) => n.recipientId === adminUser.id && n.recipientRole === 'admin' && n.message.includes(submittedJob.title)
       ),
-      'AppContext.createJobPost notifies PESO Admin of pending vacancy'
+      'AppContext.createJobPost notifies PESO Admin of newly published verified vacancy'
     );
 
-    // Switch to Admin and approve vacancy
+    // Switch to Admin and verify PESO moderation review notification routing
     await mounted.act(async () => {
-      await mounted.getApi().loginAs(adminUser.email, 'password123');
+      await appApi().loginAs(adminUser.email, 'password123');
     });
 
     const complianceRemarks = 'Compliant with Region IV-B DOLE minimum wage and municipal hiring guidelines.';
     await mounted.act(async () => {
-      mounted.getApi().reviewJobVacancy(submittedJob.id, 'active', complianceRemarks);
+      appApi().reviewJobVacancy(submittedJob.id, 'active', complianceRemarks);
     });
 
-    const approvedJob = mounted.getApi().jobPosts.find((j) => j.id === submittedJob.id)!;
-    assert(approvedJob?.status === 'active', 'AppContext.reviewJobVacancy transitions job to "active"');
+    const approvedJob = appApi().jobPosts.find((j) => j.id === submittedJob.id)!;
+    assert(approvedJob?.status === 'active', 'AppContext.reviewJobVacancy keeps reviewed job "active"');
     assert(approvedJob?.complianceRemarks === undefined && approvedJob?.reviewNotes === complianceRemarks, 'reviewJobVacancy records compliance review notes');
 
-    const approvalNotif = mounted.getApi().notifications.find(
+    const approvalNotif = appApi().notifications.find(
       (n) => n.title === 'Job Vacancy Approved & Published!' && n.message.includes(submittedJob.title)
     );
     assert(Boolean(approvalNotif), 'reviewJobVacancy creates employer approval notification');
@@ -155,7 +185,7 @@ async function runMilestone03Tests() {
       'Approval notification targets employer userId (not employerProfile.id)'
     );
     assert(
-      getFilteredUserNotifications(mounted.getApi().notifications, puregoldUser).some((n) => n.id === approvalNotif?.id),
+      getFilteredUserNotifications(appApi().notifications, puregoldUser).some((n) => n.id === approvalNotif?.id),
       'Approval notification passes getFilteredUserNotifications for employer user'
     );
 
@@ -164,21 +194,21 @@ async function runMilestone03Tests() {
     // ---------------------------------------------------------------------------
     console.log('\n[Suite 2] Real AppContext Automated Candidate Matching & Match Alert Notifications');
 
-    const cachedForJob = mounted.getApi().candidateMatches.filter((m) => m.jobId === approvedJob.id);
+    const cachedForJob = appApi().candidateMatches.filter((m) => m.jobId === approvedJob.id);
     assert(
-      cachedForJob.length === mounted.getApi().jobSeekers.length,
-      `reviewJobVacancy caches Decision Tree matches for all seekers (${cachedForJob.length}/${mounted.getApi().jobSeekers.length})`
+      cachedForJob.length === appApi().jobSeekers.length,
+      `reviewJobVacancy caches Decision Tree matches for all seekers (${cachedForJob.length}/${appApi().jobSeekers.length})`
     );
 
-    const juanSeeker = INITIAL_JOB_SEEKERS[0];
-    const juanMatch = mounted.getApi().getMatch(juanSeeker, approvedJob);
+    const juanSeeker = TEST_JOB_SEEKERS[0];
+    const juanMatch = appApi().getMatch(juanSeeker, approvedJob);
     assert(juanMatch.overallMatch >= 85, `Juan Dela Cruz scores >= 85% via AppContext.getMatch (${juanMatch.overallMatch}%)`);
     assert(
       outcomeToReferralTier(juanMatch.outcome) === 'Highly Qualified',
       'outcomeToReferralTier maps HIGHLY QUALIFIED to Highly Qualified'
     );
 
-    const matchAlertNotifs = mounted.getApi().notifications.filter(
+    const matchAlertNotifs = appApi().notifications.filter(
       (n) => n.recipientRole === 'job_seeker' && n.title.includes(approvedJob.title)
     );
     assert(matchAlertNotifs.length >= 1, `Generated ${matchAlertNotifs.length} high-match notification(s) (>= 70%)`);
@@ -193,13 +223,13 @@ async function runMilestone03Tests() {
     console.log('\n[Suite 3] Real AppContext Job Seeker Application Submission & Duplicate Guard');
 
     await mounted.act(async () => {
-      await mounted.getApi().loginAs(juanSeeker.email, 'password123');
+      await appApi().loginAs(juanSeeker.email, 'password123');
     });
 
     const coverNote = 'Experienced with React.js, SQL databases, and store POS systems in Roxas.';
     let applyRes!: ReturnType<AppApi['applyForJob']>;
     await mounted.act(async () => {
-      applyRes = mounted.getApi().applyForJob(approvedJob.id, juanSeeker.id, 'resume-juan-01', coverNote);
+      applyRes = appApi().applyForJob(approvedJob.id, juanSeeker.id, 'resume-juan-01', coverNote);
     });
 
     assert(applyRes.success === true && Boolean(applyRes.application), 'AppContext.applyForJob succeeds for active vacancy');
@@ -211,7 +241,7 @@ async function runMilestone03Tests() {
     assert((createdApp.atsScore ?? 0) >= 50, `ATS evaluation computes valid score (${createdApp.atsScore}%)`);
     assert(createdApp.statusHistory.length >= 2, 'Status history records submission and ATS screening');
     assert(
-      mounted.getApi().notifications.some(
+      appApi().notifications.some(
         (n) => n.recipientId === puregoldEmployer.userId && n.title === 'New Job Application Received' && n.message.includes(approvedJob.title)
       ),
       'AppContext.applyForJob notifies employer user of new application'
@@ -219,7 +249,7 @@ async function runMilestone03Tests() {
 
     let duplicateApplyRes!: ReturnType<AppApi['applyForJob']>;
     await mounted.act(async () => {
-      duplicateApplyRes = mounted.getApi().applyForJob(approvedJob.id, juanSeeker.id, 'resume-juan-01', 'Duplicate attempt');
+      duplicateApplyRes = appApi().applyForJob(approvedJob.id, juanSeeker.id, 'resume-juan-01', 'Duplicate attempt');
     });
     assert(duplicateApplyRes.success === false, 'AppContext.applyForJob rejects duplicate applications for the same job');
 
@@ -229,19 +259,19 @@ async function runMilestone03Tests() {
     console.log('\n[Suite 4] Real AppContext Application Progression Lifecycle');
 
     await mounted.act(async () => {
-      await mounted.getApi().loginAs(puregoldUser.email, 'password123');
+      await appApi().loginAs(puregoldUser.email, 'password123');
     });
 
     const reviewNote = 'Applicant credentials verified; shortlisted for interview.';
     await mounted.act(async () => {
-      mounted.getApi().updateApplicationStatus(createdApp.id, 'under_review', reviewNote);
+      appApi().updateApplicationStatus(createdApp.id, 'under_review', reviewNote);
     });
 
-    const reviewedApp = mounted.getApi().applications.find((a) => a.id === createdApp.id)!;
+    const reviewedApp = appApi().applications.find((a) => a.id === createdApp.id)!;
     assert(reviewedApp.currentStatus === 'under_review', 'updateApplicationStatus transitions application to "under_review"');
     assert(reviewedApp.statusHistory.some((h) => h.notes === reviewNote), 'Status history records review notes');
     assert(
-      mounted.getApi().notifications.some(
+      appApi().notifications.some(
         (n) => n.recipientId === juanSeeker.userId && n.title === 'Application Status: UNDER REVIEW'
       ),
       'Seeker receives under_review status notification'
@@ -249,18 +279,18 @@ async function runMilestone03Tests() {
 
     const hiredNote = 'Selected for employment at Puregold Roxas.';
     await mounted.act(async () => {
-      mounted.getApi().updateApplicationStatus(createdApp.id, 'hired', hiredNote);
+      appApi().updateApplicationStatus(createdApp.id, 'hired', hiredNote);
     });
 
-    const hiredApp = mounted.getApi().applications.find((a) => a.id === createdApp.id)!;
-    const hiredSeeker = mounted.getApi().jobSeekers.find((s) => s.id === juanSeeker.id)!;
+    const hiredApp = appApi().applications.find((a) => a.id === createdApp.id)!;
+    const hiredSeeker = appApi().jobSeekers.find((s) => s.id === juanSeeker.id)!;
     assert(hiredApp.currentStatus === 'hired', 'updateApplicationStatus transitions application to "hired"');
     assert(hiredSeeker.employmentStatus === 'hired', 'Hiring updates seeker employmentStatus to "hired"');
     assert(hiredSeeker.currentEmployer === approvedJob.companyName, 'Hiring records currentEmployer on seeker profile');
     assert(hiredSeeker.hiredPosition === approvedJob.title, 'Hiring records hiredPosition on seeker profile');
     assert(Boolean(hiredSeeker.hiredAt), 'Hiring records hiredAt timestamp');
     assert(
-      mounted.getApi().notifications.some(
+      appApi().notifications.some(
         (n) => n.recipientId === juanSeeker.userId && n.title.includes('Congratulations! You are HIRED')
       ),
       'Seeker receives celebratory hired notification'
@@ -273,7 +303,7 @@ async function runMilestone03Tests() {
 
     let scheduleRes!: ReturnType<AppApi['scheduleInterview']>;
     await mounted.act(async () => {
-      scheduleRes = mounted.getApi().scheduleInterview({
+      scheduleRes = appApi().scheduleInterview({
         applicationId: createdApp.id,
         jobId: approvedJob.id,
         jobTitle: approvedJob.title,
@@ -293,19 +323,19 @@ async function runMilestone03Tests() {
     const createdInterview = scheduleRes.interview!;
     assert(createdInterview.status === 'scheduled', 'Scheduled interview starts with "scheduled" status');
     assert(
-      mounted.getApi().applications.find((a) => a.id === createdApp.id)?.currentStatus === 'interview_scheduled',
+      appApi().applications.find((a) => a.id === createdApp.id)?.currentStatus === 'interview_scheduled',
       'scheduleInterview updates linked application status to "interview_scheduled"'
     );
     assert(
-      mounted.getApi().notifications.some(
-        (n) => n.recipientId === juanSeeker.userId && n.title === 'Interview Invitation Received'
+      appApi().notifications.some(
+        (n) => n.recipientId === juanSeeker.userId && n.title.includes('Interview Scheduled')
       ),
       'Seeker receives interview invitation notification'
     );
 
     let conflictRes!: ReturnType<AppApi['scheduleInterview']>;
     await mounted.act(async () => {
-      conflictRes = mounted.getApi().scheduleInterview({
+      conflictRes = appApi().scheduleInterview({
         applicationId: createdApp.id,
         jobId: approvedJob.id,
         jobTitle: approvedJob.title,
@@ -323,16 +353,16 @@ async function runMilestone03Tests() {
     assert(conflictRes.success === false && conflictRes.message.includes('Conflict detected'), 'scheduleInterview rejects double-booked seeker time slot');
 
     await mounted.act(async () => {
-      await mounted.getApi().loginAs(juanSeeker.email, 'password123');
+      await appApi().loginAs(juanSeeker.email, 'password123');
     });
     await mounted.act(async () => {
-      mounted.getApi().respondToInterview(createdInterview.id, 'accepted', 'Confirmed availability.');
+      appApi().respondToInterview(createdInterview.id, 'accepted', 'Confirmed availability.');
     });
 
-    const acceptedInterview = mounted.getApi().interviews.find((i) => i.id === createdInterview.id)!;
+    const acceptedInterview = appApi().interviews.find((i) => i.id === createdInterview.id)!;
     assert(acceptedInterview.status === 'accepted', 'respondToInterview transitions interview to "accepted"');
     assert(
-      mounted.getApi().notifications.some(
+      appApi().notifications.some(
         (n) => n.recipientId === puregoldEmployer.userId && n.title === 'Interview ACCEPTED'
       ),
       'respondToInterview notifies employer userId of acceptance'
@@ -344,7 +374,7 @@ async function runMilestone03Tests() {
     console.log('\n[Suite 6] Employer Profile Recovery, Demo Reset & Dual-Persistence Serialization');
 
     await mounted.act(async () => {
-      mounted.getApi().registerUser(
+      appApi().registerUser(
         {
           email: 'onboarding.emp@roxas.ph',
           name: 'Lorna Diaz',
@@ -359,32 +389,46 @@ async function runMilestone03Tests() {
       );
     });
     assert(
-      mounted.getApi().currentEmployerProfile !== null &&
-        mounted.getApi().currentEmployerProfile?.companyName === 'Roxas Trading Post',
+      appApi().currentEmployerProfile !== null &&
+        appApi().currentEmployerProfile?.companyName === 'ROXAS TRADING POST',
       'AppContext provides non-null currentEmployerProfile immediately after employer signup'
     );
 
     await mounted.act(async () => {
-      mounted.getApi().updateEmployerProfile({
+      appApi().updateEmployerProfile({
         companyName: 'Roxas Trading Post Inc.',
         isProfileCompleted: true,
       });
     });
     assert(
-      mounted.getApi().currentEmployerProfile?.isProfileCompleted === true &&
-        mounted.getApi().currentEmployerProfile?.companyName === 'Roxas Trading Post Inc.',
+      appApi().currentEmployerProfile?.isProfileCompleted === true &&
+        appApi().currentEmployerProfile?.companyName === 'ROXAS TRADING POST INC.',
       'updateEmployerProfile persists employer onboarding completion'
     );
 
     await mounted.act(async () => {
-      await mounted.getApi().resetToDemoData();
+      appApi().addJobSubscription({
+        userId: juanSeeker.userId,
+        title: 'Reset Check Alert',
+        categories: ['Customer Service & Retail'],
+        municipalities: ['Roxas'],
+        keywords: ['Cashier'],
+        employmentTypes: ['Full-time'],
+        isActive: true,
+        isEmailAlertEnabled: true,
+        isToastAlertEnabled: false,
+      });
     });
-    assert(mounted.getApi().currentUser === null, 'resetToDemoData clears active user session');
+
+    await mounted.act(async () => {
+      await appApi().resetToDemoData();
+    });
+    assert(appApi().currentUser === null, 'resetToDemoData clears active user session');
     assert(
-      mounted.getApi().jobSubscriptions.length === INITIAL_JOB_SUBSCRIPTIONS.length &&
-        mounted.getApi().referralSlips.length === INITIAL_REFERRAL_SLIPS.length &&
-        mounted.getApi().localRecruitmentActivities.length === INITIAL_LRA_EVENTS.length,
-      'resetToDemoData restores INITIAL_JOB_SUBSCRIPTIONS, INITIAL_REFERRAL_SLIPS, and INITIAL_LRA_EVENTS'
+      appApi().jobSubscriptions.length === INITIAL_JOB_SUBSCRIPTIONS.length &&
+        appApi().referralSlips.length === INITIAL_REFERRAL_SLIPS.length &&
+        appApi().localRecruitmentActivities.length === INITIAL_LRA_EVENTS.length,
+      'resetToDemoData restores clean-slate INITIAL_JOB_SUBSCRIPTIONS, INITIAL_REFERRAL_SLIPS, and INITIAL_LRA_EVENTS'
     );
 
     // Table mappings and snake_case / camelCase transformers
@@ -478,18 +522,18 @@ async function runMilestone03Tests() {
     }
 
     const seedTablePairs: Array<{ table: string; rows: any[]; ignored?: string[] }> = [
-      { table: 'users', rows: INITIAL_USERS, ignored: ['password'] },
-      { table: 'employer_profiles', rows: INITIAL_EMPLOYERS },
-      { table: 'seeker_profiles', rows: INITIAL_JOB_SEEKERS },
-      { table: 'job_posts', rows: INITIAL_JOB_POSTS },
-      { table: 'applications', rows: INITIAL_APPLICATIONS },
-      { table: 'interviews', rows: INITIAL_INTERVIEWS },
-      { table: 'notifications', rows: INITIAL_NOTIFICATIONS },
-      { table: 'audit_logs', rows: INITIAL_AUDIT_LOGS },
-      { table: 'system_announcements', rows: INITIAL_ANNOUNCEMENTS },
-      { table: 'job_alert_subscriptions', rows: INITIAL_JOB_SUBSCRIPTIONS },
-      { table: 'peso_referral_slips', rows: INITIAL_REFERRAL_SLIPS },
-      { table: 'lra_events', rows: INITIAL_LRA_EVENTS },
+      { table: 'users', rows: TEST_USERS, ignored: ['password'] },
+      { table: 'employer_profiles', rows: TEST_EMPLOYERS },
+      { table: 'seeker_profiles', rows: TEST_JOB_SEEKERS },
+      { table: 'job_posts', rows: TEST_JOB_POSTS },
+      { table: 'applications', rows: TEST_APPLICATIONS },
+      { table: 'interviews', rows: TEST_INTERVIEWS },
+      { table: 'notifications', rows: TEST_NOTIFICATIONS },
+      { table: 'audit_logs', rows: TEST_AUDIT_LOGS },
+      { table: 'system_announcements', rows: TEST_ANNOUNCEMENTS },
+      { table: 'job_alert_subscriptions', rows: TEST_JOB_SUBSCRIPTIONS },
+      { table: 'peso_referral_slips', rows: TEST_REFERRAL_SLIPS },
+      { table: 'lra_events', rows: TEST_LRA_EVENTS },
       {
         table: 'candidate_matches',
         rows: [

@@ -130,11 +130,11 @@ export const ChatSocialProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const resetChatSocialState = () => {
-    setBookmarkedJobIds(INITIAL_BOOKMARKED_JOB_IDS);
-    setConversations(INITIAL_CONVERSATIONS);
-    setChatMessages(INITIAL_CHAT_MESSAGES);
-    setCompanyReviews(INITIAL_COMPANY_REVIEWS);
-    setProfileViews(INITIAL_PROFILE_VIEWS);
+    setBookmarkedJobIds([]);
+    setConversations([]);
+    setChatMessages([]);
+    setCompanyReviews([]);
+    setProfileViews([]);
   };
 
   return (

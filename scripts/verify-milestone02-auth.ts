@@ -23,6 +23,7 @@ import { storageAdapter } from '../src/lib/storageAdapter';
 import { AuthProvider, useAuth, AuthContextType } from '../src/context/AuthContext';
 import { UserRole } from '../src/types';
 import { mountWithProvider } from './testContextHarness';
+import { TEST_EMPLOYERS, TEST_JOB_SEEKERS, TEST_USERS } from './testFixtures';
 
 console.log('--- eHANAP Milestone 02: Multi-Role Authentication, Authorization & Real AuthContext Verification ---');
 
@@ -72,42 +73,27 @@ async function runMilestone02Tests() {
   listenerSub.unsubscribe();
 
   // ---------------------------------------------------------------------------
-  // Suite 2: Multi-Role Personas & Demo Account Metadata
+  // Suite 2: Clean-Slate Demo Account Metadata Contract
   // ---------------------------------------------------------------------------
-  console.log('\n[Suite 2] Multi-Role Personas & Demo Account Metadata');
+  console.log('\n[Suite 2] Clean-Slate Demo Account Metadata Contract');
 
-  assert(DEMO_ACCOUNTS.length >= 5, `DEMO_ACCOUNTS registers all key personas (found: ${DEMO_ACCOUNTS.length})`);
+  assert(Array.isArray(DEMO_ACCOUNTS) && DEMO_ACCOUNTS.length === 0, 'DEMO_ACCOUNTS is empty under clean-slate policy');
+  assert(PRIMARY_DEMO_ACCOUNTS.seeker === undefined, 'PRIMARY_DEMO_ACCOUNTS.seeker is undefined under clean-slate policy');
+  assert(PRIMARY_DEMO_ACCOUNTS.employer === undefined, 'PRIMARY_DEMO_ACCOUNTS.employer is undefined under clean-slate policy');
+  assert(PRIMARY_DEMO_ACCOUNTS.admin === undefined, 'PRIMARY_DEMO_ACCOUNTS.admin is undefined under clean-slate policy');
+  assert(getDemoAccountByEmail('puregold.roxas@employer.ph') === undefined, 'getDemoAccountByEmail returns undefined in clean-slate mode');
+  assert(getDemoAccountsByRole('employer').length === 0, 'getDemoAccountsByRole("employer") returns empty array');
+  assert(getDemoAccountsByRole('job_seeker').length === 0, 'getDemoAccountsByRole("job_seeker") returns empty array');
 
-  const seekerDemo = DEMO_ACCOUNTS.find((a) => a.role === 'job_seeker');
-  assert(Boolean(seekerDemo), 'DEMO_ACCOUNTS registers at least one Job Seeker persona');
-  assert(seekerDemo?.email === 'juan.delacruz@jobseeker.ph', 'Primary Job Seeker persona is Juan Dela Cruz');
-  assert(seekerDemo?.password === 'password123', 'Job Seeker demo password is standard');
-
-  const employerDemo = DEMO_ACCOUNTS.find((a) => a.role === 'employer');
-  assert(Boolean(employerDemo), 'DEMO_ACCOUNTS registers at least one Employer persona');
-  assert(employerDemo?.email === 'puregold.roxas@employer.ph', 'Primary Employer persona is Puregold Roxas');
-
-  const adminDemo = DEMO_ACCOUNTS.find((a) => a.role === 'admin');
-  assert(Boolean(adminDemo), 'DEMO_ACCOUNTS registers PESO Municipal Admin persona');
-  assert(adminDemo?.email === 'peso.admin@roxas.gov.ph', 'Admin persona email matches municipal oversight');
-
-  assert(Boolean(PRIMARY_DEMO_ACCOUNTS.seeker), 'PRIMARY_DEMO_ACCOUNTS exports primary seeker');
-  assert(Boolean(PRIMARY_DEMO_ACCOUNTS.employer), 'PRIMARY_DEMO_ACCOUNTS exports primary employer');
-  assert(Boolean(PRIMARY_DEMO_ACCOUNTS.admin), 'PRIMARY_DEMO_ACCOUNTS exports primary admin');
-
-  const lookupResult = getDemoAccountByEmail('puregold.roxas@employer.ph');
-  assert(lookupResult?.id === 'demo-emp-puregold', 'getDemoAccountByEmail case-insensitively resolves demo account');
-
-  const employerAccounts = getDemoAccountsByRole('employer');
-  assert(employerAccounts.length >= 3, `getDemoAccountsByRole retrieves employers (found: ${employerAccounts.length})`);
-
-  const seekerAccounts = getDemoAccountsByRole('job_seeker');
-  assert(seekerAccounts.length >= 2, `getDemoAccountsByRole retrieves seekers (found: ${seekerAccounts.length})`);
-
-  // Mount real AuthProvider for Suites 3, 5, and 6
+  // Mount real AuthProvider for Suites 3, 5, and 6 and inject local test fixtures
   const mounted = await mountWithProvider<AuthContextType>(AuthProvider, useAuth);
 
   try {
+    await mounted.act(async () => {
+      mounted.getApi().setUsers(TEST_USERS);
+      storageAdapter.setStoredEmployers(TEST_EMPLOYERS);
+      storageAdapter.setStoredJobSeekers(TEST_JOB_SEEKERS);
+    });
     // ---------------------------------------------------------------------------
     // Suite 3: Real AuthContext Multi-Role Authentication & Session Hydration
     // ---------------------------------------------------------------------------
@@ -209,40 +195,14 @@ async function runMilestone02Tests() {
     assert(getRoleDefaultView(null) === 'landing', 'Default home view for guest is landing');
 
     // ---------------------------------------------------------------------------
-    // Suite 5: Real AuthContext 1-Click Demo Persona Switching
+    // Suite 5: Passwordless Role Switch Removal (WP-10 Security Hardening)
     // ---------------------------------------------------------------------------
-    console.log('\n[Suite 5] Real AuthContext 1-Click Demo Persona Switching');
+    console.log('\n[Suite 5] Passwordless Role Switch Removal');
 
-    let switchSeeker!: Awaited<ReturnType<AuthContextType['switchDemoRole']>>;
-    await mounted.act(async () => {
-      switchSeeker = await mounted.getApi().switchDemoRole('job_seeker');
-    });
-    assert(switchSeeker.success === true, 'Real switchDemoRole("job_seeker") succeeds');
-    assert(mounted.getApi().currentRole === 'job_seeker', 'switchDemoRole activates job_seeker role');
-    assert(mounted.getApi().currentUser?.email === 'juan.delacruz@jobseeker.ph', 'switchDemoRole activates Juan Dela Cruz');
-
-    let switchEmployer!: Awaited<ReturnType<AuthContextType['switchDemoRole']>>;
-    await mounted.act(async () => {
-      switchEmployer = await mounted.getApi().switchDemoRole('employer');
-    });
-    assert(switchEmployer.success === true, 'Real switchDemoRole("employer") succeeds');
-    assert(mounted.getApi().currentRole === 'employer', 'switchDemoRole activates employer role');
-    assert(mounted.getApi().currentUser?.email === 'puregold.roxas@employer.ph', 'switchDemoRole activates Puregold Roxas');
-
-    let switchAdmin!: Awaited<ReturnType<AuthContextType['switchDemoRole']>>;
-    await mounted.act(async () => {
-      switchAdmin = await mounted.getApi().switchDemoRole('admin');
-    });
-    assert(switchAdmin.success === true, 'Real switchDemoRole("admin") succeeds');
-    assert(mounted.getApi().currentRole === 'admin', 'switchDemoRole activates admin role');
-    assert(mounted.getApi().currentUser?.email === 'peso.admin@roxas.gov.ph', 'switchDemoRole activates PESO Admin');
-
-    let switchCustomDemo!: Awaited<ReturnType<AuthContextType['switchDemoRole']>>;
-    await mounted.act(async () => {
-      switchCustomDemo = await mounted.getApi().switchDemoRole('demo-emp-tech');
-    });
-    assert(switchCustomDemo.success === true, 'Real switchDemoRole by demo ID succeeds');
-    assert(mounted.getApi().currentUser?.email === 'tech.innovations@employer.ph', 'switchDemoRole activates Mindoro Tech Innovations');
+    assert(
+      !('switchDemoRole' in mounted.getApi()),
+      'AuthContext no longer exposes passwordless switchDemoRole bypass'
+    );
 
     // ---------------------------------------------------------------------------
     // Suite 6: Registration, Employer Storage, Google OAuth, OTP & Password Recovery
@@ -362,15 +322,15 @@ async function runMilestone02Tests() {
       recoveryOtp = mounted.getApi().sendOtp(newSeekerEmail, 'email');
     });
 
-    let badRecoverRes!: ReturnType<AuthContextType['recoverPassword']>;
+    let badRecoverRes!: Awaited<ReturnType<AuthContextType['recoverPassword']>>;
     await mounted.act(async () => {
-      badRecoverRes = mounted.getApi().recoverPassword(newSeekerEmail, '000000', 'RecoveredPass9!');
+      badRecoverRes = await mounted.getApi().recoverPassword(newSeekerEmail, '000000', 'RecoveredPass9!');
     });
     assert(badRecoverRes.success === false, 'recoverPassword rejects invalid OTP code');
 
-    let goodRecoverRes!: ReturnType<AuthContextType['recoverPassword']>;
+    let goodRecoverRes!: Awaited<ReturnType<AuthContextType['recoverPassword']>>;
     await mounted.act(async () => {
-      goodRecoverRes = mounted.getApi().recoverPassword(newSeekerEmail, recoveryOtp.code!, 'RecoveredPass9!');
+      goodRecoverRes = await mounted.getApi().recoverPassword(newSeekerEmail, recoveryOtp.code!, 'RecoveredPass9!');
     });
     assert(goodRecoverRes.success === true, 'recoverPassword succeeds with valid OTP and new password');
 

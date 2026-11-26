@@ -1,89 +1,66 @@
 # eHANAP — Audit Remediation Progress
 
-Tracking remediation of the production and code quality findings documented in [SPEC.md](SPEC.md).
+Tracking remediation of the post-merge production and code quality findings documented in [SPEC.md](SPEC.md).
 
 ---
 
-## Baseline Verification
+## Baseline Verification (2026-11-26)
+- **Git State**: Branch `faye-updates` sits on `d630aef` with 18 uncommitted conflict-resolution files (0 conflict markers); local `main` sits at `55d3e7d`.
 - **TypeScript Check**: `npm run lint` (`tsc --noEmit`) passes with 0 errors.
-- **Automated Verification Suite**: `npm test` (`npx tsx scripts/verify-milestone07.ts`) reports 424/424 assertions passing (note: auth, data-flow, and server checks currently test simulated helpers rather than live `AuthContext`/`AppContext`/HTTP handlers — tracked in WP-06).
-- **Production Audit**: 19 findings logged in [SPEC.md](SPEC.md) (11 Must Fix, 6 Should Fix, 2 Nice to Have).
+- **Production Build**: `npm run build` (`vite build` + `esbuild server.ts`) passes (`dist/server.cjs` 65.0kb).
+- **Standalone Passing Suites**: `npx tsx scripts/verify-wp05.ts` (29/29), `npx tsx scripts/verify-ats-engine.ts` (29/29), `npx tsx scripts/verify-arch08-modular-server.ts` (82/82).
+- **Failing Verification Suite**: `npm test` (`npx tsx scripts/verify-milestone07.ts`) reports **271/329** tests passing across 12 suites (3 passed, 9 failed: clean-slate empty arrays break seed-dependent suites; `verify-decision-tree.ts` 34/46; `verify-arch07-match-resolver.ts` 58/62).
+- **Post-Merge Audit**: 11 findings logged in [SPEC.md](SPEC.md) (6 Must Fix, 5 Should Fix).
 
 ---
 
 ## Remediation Roadmap (from SPEC.md)
 
-| Work Package | Findings | Title & Scope | Status | Verification |
+| Work Package | Findings | Title & Scope | Status | Verification Target |
 | :--- | :---: | :--- | :---: | :--- |
-| **WP-01** | #1, #3, #17 | **Database Security & Schema Alignment** | **DONE** | `npm run lint`, `npm test` (424/424), `npm run build`, SQL RLS parity check |
-| **WP-02** | #2, #7, #13 | **Auth Hardening, Google OAuth Redirect & Employer Profile Recovery** | **DONE** | `npm run lint`, `npm test` (424/424), `npm run build`, storageAdapter/signIn checks |
-| **WP-03** | #4, #5, #6, #16 | **Decision Tree Accuracy & Admin Matching Consistency** | **DONE** | `npm run lint`, `npm test` (8 suites; Suite 4: 39/39), `npm run build` |
-| **WP-04** | #8, #10, #14, #18 | **Notifications, Status Constraints, Admin Metrics & Demo Reset** | **DONE** | `npm run lint`, `npm test` (8 suites), `npx tsx scripts/verify-wp04.ts` (19/19), `npm run build` |
-| **WP-05** | #9, #11, #19 | **Server Hardening, OCR Fix & Batch Persistence** | **DONE** | `npm run lint`, `npm test` (8 suites), `npx tsx scripts/verify-wp05.ts` (29/29), `npm run build` |
-| **WP-06** | #12 | **Real Auth, Context & API Integration Tests** | **DONE** | `npm run lint`, `npm test` (592/592 across 11 suites), `npm run build` |
-| **WP-07** | #15 | **Remaining God-Module Decomposition (`AppContext` & Wizard)** | **DONE** | `npm run lint`, `npm test` (630/630 across 12 suites), `npx tsx scripts/verify-wp07.ts` (38/38), `npm run build` |
+| **WP-08** | #1, #2, #3 | **Supabase Schema, RLS & Payload Alignment** | **DONE** | `npm run lint`, `npm run build`, `scripts/verify-wp08.ts` (29/29) |
+| **WP-09** | #4, #5, #6, #10 | **Auth Recovery, Employer Profile Fallback & Admin Alerts** | **DONE** | `npm run lint`, `npm run build`, `scripts/verify-wp09.ts` (25/25) |
+| **WP-10** | #7, #8, #11 | **Auth Surface Cleanup, Homepage Consistency & Dead Code Removal** | **DONE** | `npm run lint`, `npm run build`, auth/grep checks, `verify-arch01-context-slicing.ts` (57/57) |
+| **WP-11** | #9 | **Test Suite & Verification Repair (Clean-Slate + Sliced Contexts)** | **DONE** | `npm run lint`, `npm run build`, `npm test` (14/14, 665/665), `verify-arch07-match-resolver.ts` (93/93) |
 
 ---
 
 ## Work Package Checklists
 
-### WP-01: Database Security & Schema Alignment
-- **Status:** [x] **DONE**
-- **Targets:** `supabase_schema.sql`, `supabase/migrations/20261109000001_initial_ehanap_schema.sql`, `src/context/AuthContext.tsx`, `src/services/supabaseService.ts`, `package.json`, `bun.lock`
+### WP-08: Supabase Schema, RLS & Payload Alignment
+- **Status:** [x] **DONE** (2026-11-26)
+- **Targets:** `supabase_schema.sql`, `supabase/migrations/20261109000001_initial_ehanap_schema.sql`, `src/services/supabaseService.ts`, `src/context/JobsContext.tsx`, `src/views/employer/EmployerProfilePage.tsx`, `src/views/employer/CreateJobModal.tsx`, `scripts/verify-wp08.ts`
 - **Deliverables:**
-  - [x] Replace permissive `FOR ALL USING (true)` RLS policies with role- and `auth.uid()`-scoped policies across all 13 tables.
-  - [x] Register credentials via `signUpWithSupabase` and omit `password` from `users` table upserts.
-  - [x] Sync `supabase/migrations/20261109000001_initial_ehanap_schema.sql` with `supabase_schema.sql`.
-  - [x] Remove unused `autoprefixer` from `package.json` and delete redundant `bun.lock`.
+  - [x] Aligned `employer_profiles` schema, `CHECK` constraints, and RLS (`'incomplete'` / `'pending_verification'` / `'pending'`, `documents JSONB`, non-admin self-verification blocked), mapped `bir2303No`/`bir2303File`, and cleared `complianceRemarks` (`''`) on resubmission.
+  - [x] Allowed PESO-verified employers to publish `JobsContext.createJobPost` directly to `status: 'active'` with immediate candidate matching and Admin alerts (aligned with `job_posts` RLS checking `get_employer_status(employer_id) = 'verified'`), kept non-admin `updateJobVacancyStatus` moderation guards, updated `CreateJobModal` publication toast, expanded `job_posts` `employment_type` `CHECK` + feature columns, and stripped duplicate aliases/unmapped fields via `sanitizeForTable`.
+  - [x] Added `'rescheduled'` status `CHECK` and `reminders_sent JSONB` to `interviews`, stopped emitting duplicate UI aliases (`vacancyId`, `seekerId`, `format`, `notes`) in `scheduleInterview` / `rescheduleInterview`, and enforced `sanitizeForTable` column allowlists.
+  - [x] Kept `supabase_schema.sql` and `supabase/migrations/20261109000001_initial_ehanap_schema.sql` DDL, idempotent upgrade statements, and RLS policies strictly identical.
+  - [x] Verified with `npm run lint`, `npm run build`, `npx tsx scripts/verify-wp08.ts` (29/29), `npx tsx scripts/verify-wp05.ts` (29/29), `npx tsx scripts/verify-ats-engine.ts` (29/29), and `npx tsx scripts/verify-arch08-modular-server.ts` (82/82).
 
-### WP-02: Auth Hardening, Google OAuth Redirect & Employer Profile Recovery
-- **Status:** [x] **DONE**
-- **Targets:** `src/context/AuthContext.tsx`, `src/views/AuthModal.tsx`, `src/lib/storageAdapter.ts`, `src/context/AppContext.tsx`, `src/views/employer/EmployerProfileSetupWizard.tsx`, `src/views/employer/EmployerProfilePage.tsx`, `src/services/supabaseService.ts`, `src/components/Navbar.tsx`
+### WP-09: Auth Recovery, Employer Profile Fallback & Admin Alerts
+- **Status:** [x] **DONE** (2026-11-26)
+- **Targets:** `src/context/DirectoryContext.tsx`, `src/views/employer/EmployerProfilePage.tsx`, `src/context/AuthContext.tsx`, `src/context/AppContext.tsx`, `src/services/supabaseService.ts`, `src/views/AuthModal.tsx`, `src/App.tsx`, `src/utils/notificationUtils.ts`, `src/context/NotificationContext.tsx`, `src/components/NotificationDrawer.tsx`, `scripts/verify-milestone02-auth.ts`, `scripts/verify-wp09.ts`
 - **Deliverables:**
-  - [x] Await `signInWithSupabase` in `loginAs` when Supabase is configured and reject invalid passwords (keep demo fallback strictly offline).
-  - [x] Remove hardcoded `'123456'` OTP bypass in `verifyOtp`.
-  - [x] Fix swapped `(code, newPassword)` arguments in `AuthModal.tsx` and persist the new password in `recoverPassword`.
-  - [x] Read `ehanap_oauth_intended_role` inside `onSupabaseAuthStateChange` after Google OAuth redirect to create/hydrate missing `User` and `EmployerProfile` / `JobSeekerProfile` records.
-  - [x] Persist newly registered employers in `storageAdapter`, match `currentEmployerProfile` by `userId`/`id`/`email` with a fallback object in `AppContext`, and replace `if (!currentEmployerProfile) return null` in `EmployerProfileSetupWizard` and `EmployerProfilePage`.
-  - [x] Point Apple/Facebook quick sign-in to valid demo accounts or remove stubbed buttons (removed stubbed Apple/Facebook buttons; kept Google OAuth).
+  - [x] Returned a synthesized fallback `EmployerProfile` in `DirectoryContext` when `currentUser.role === 'employer'` and no row is loaded yet (and respected `isEmployerProfileComplete` storage flags), eliminating the `EmployerProfileSetupWizard` redirect loop.
+  - [x] Moved `saveDocument`, `updateEmployerProfile`, `updateRecord`, and `deleteRecord` side effects out of React `setState(prev => ...)` updater callbacks across `DirectoryContext.tsx`, `EmployerProfilePage.tsx`, and `NotificationContext.tsx`.
+  - [x] Wired `requestPasswordReset` and `recoverPassword` in `AuthContext.tsx`, `supabaseService.ts`, `AuthModal.tsx`, and `App.tsx` to real Supabase Auth (`resetPasswordForEmail`, `PASSWORD_RECOVERY` listener, `verifyOtp` recovery token, and `updateUser({ password })`), removing stripped local `users.password` writes in Supabase mode while keeping offline OTP recovery parity.
+  - [x] Extracted `isNotificationRecipient` in `src/utils/notificationUtils.ts`, reused it in `NotificationContext.tsx` (`markAllNotificationsRead` and `clearAllNotifications`), updated `NotificationDrawer.tsx` to pass role context, and verified `recipientRole === 'admin'` alerts reach clean-slate PESO admins.
+  - [x] Verified with `npm run lint`, `npm run build`, `npx tsx scripts/verify-wp09.ts` (25/25), `npx tsx scripts/verify-wp08.ts` (29/29), `npx tsx scripts/verify-wp05.ts` (29/29), `npx tsx scripts/verify-ats-engine.ts` (29/29), `npx tsx scripts/verify-arch08-modular-server.ts` (82/82), and `npx tsx scripts/verify-arch01-context-slicing.ts` (57/57).
 
-### WP-03: Decision Tree Accuracy & Admin Matching Consistency
-- **Status:** [x] **DONE**
-- **Targets:** `src/utils/decisionTree.ts`, `src/utils/matchResolver.ts`, `src/views/admin/AdminJobMatchingPage.tsx`, `src/components/admin/PesoReferralSlipModal.tsx`, `src/views/LandingPage.tsx`, `scripts/verify-decision-tree.ts`
+### WP-10: Auth Surface Cleanup, Homepage Consistency & Dead Code Removal
+- **Status:** [x] **DONE** (2026-11-26)
+- **Targets:** `src/context/AuthContext.tsx`, `src/context/AppContext.tsx`, `src/components/Navbar.tsx`, `src/components/navbar/DemoPersonaPill.tsx`, `src/components/navbar/UserProfileDropdown.tsx`, `src/components/navbar/MobileNavDrawer.tsx`, `src/views/LandingPage.tsx`, `src/views/seeker/SeekerProfileSetupWizard.tsx`, `scripts/verify-arch01-context-slicing.ts`, `scripts/verify-milestone02-auth.ts`
 - **Deliverables:**
-  - [x] Add all wizard/extractor attainment values (`College Graduate`, `High School Graduate`, `Senior High School`, `Vocational / TVET`, `College Undergraduate`, `Doctorate Degree`) to `EDUCATION_LEVELS`.
-  - [x] Match short degree codes (`is`, `it`, `cs`) using word-boundary regexes in `evaluateDegreeAlignment`.
-  - [x] Replace custom scoring in `AdminJobMatchingPage` and hardcoded `94`/`88` in `PesoReferralSlipModal` with `getOrCalculateMatch`, and use `vacanciesCount`.
-  - [x] Update `LandingPage` FAQ weights to match `decisionTree.ts` (35% skills, 25% degree, 20% experience, 12% education, 8% certifications).
+  - [x] Deleted passwordless `switchDemoRole` from `AuthContext` / `AppContext`, removed `handleQuickRoleSwitch`, unused `Key` import, and `onSwitchRole` wiring from `Navbar.tsx` plus `onSwitchRole` / dead `handleRoleSwitch` handlers in `DemoPersonaPill.tsx`, `UserProfileDropdown.tsx`, and `MobileNavDrawer.tsx`, and updated `verify-arch01-context-slicing.ts` and `verify-milestone02-auth.ts` to verify removal.
+  - [x] Updated the Stage 2.0 weight breakdown table in `LandingPage.tsx:L295-315` to match `12%` education, `25%` degree, `35%` skills, `20%` experience, and `8%` certifications.
+  - [x] Deleted dead `isCelebrationOpen` state, `AnimatePresence` celebration modal JSX, and unused imports (`User`, `PartyPopper`, `motion`, `AnimatePresence`) in `SeekerProfileSetupWizard.tsx`.
+  - [x] Verified with `npm run lint` (0 errors), `npm run build`, grep cleanliness checks across `src/`, `npx tsx scripts/verify-wp09.ts` (25/25), `npx tsx scripts/verify-wp08.ts` (29/29), `npx tsx scripts/verify-wp05.ts` (29/29), `npx tsx scripts/verify-ats-engine.ts` (29/29), `npx tsx scripts/verify-arch08-modular-server.ts` (82/82), `npx tsx scripts/verify-arch01-context-slicing.ts` (57/57), and `npx tsx scripts/verify-arch05-code-splitting.ts` (60/60).
 
-### WP-04: Notifications, Status Constraints, Admin Metrics & Demo Reset
-- **Status:** [x] **DONE**
-- **Targets:** `src/context/AppContext.tsx`, `src/views/admin/AdminDashboard.tsx`, `src/views/admin/AdminUsersPage.tsx`, `src/views/employer/EmployerJobsPage.tsx`, `scripts/verify-wp04.ts`
+### WP-11: Test Suite & Verification Repair for Clean-Slate + Sliced Architecture
+- **Status:** [x] **DONE** (2026-11-26)
+- **Targets:** `scripts/testFixtures.ts`, `scripts/verify-milestone07.ts`, `scripts/verify-phase1-supabase.ts`, `scripts/verify-milestone02-auth.ts`, `scripts/verify-milestone03-data-flow.ts`, `scripts/verify-decision-tree.ts`, `scripts/verify-milestone04-candidate-ranking.ts`, `scripts/verify-milestone05-peso-lra-analytics.ts`, `scripts/verify-e2e-scenarios.ts`, `scripts/verify-arch07-match-resolver.ts`, `scripts/verify-wp04.ts`, `scripts/verify-wp07.ts`, `scripts/verify-wp08.ts`, `scripts/verify-wp09.ts`
 - **Deliverables:**
-  - [x] Route `reviewJobVacancy` notifications to `emp.userId` instead of `job.employerId`.
-  - [x] Fix `establishmentType === 'local_established'` and `vacanciesCount` checks in `AdminDashboard` and `AdminUsersPage`.
-  - [x] Remove unsupported `'paused'` status and `job.department` references in `EmployerJobsPage`.
-  - [x] Restore `INITIAL_JOB_SUBSCRIPTIONS`, `INITIAL_REFERRAL_SLIPS`, and `INITIAL_LRA_EVENTS` in `resetToDemoData`.
-
-### WP-05: Server Hardening, OCR Fix & Batch Persistence
-- **Status:** [x] **DONE**
-- **Targets:** `server/app.ts`, `server/services/aiResumeService.ts`, `src/utils/resumeParser.ts`, `src/context/AppContext.tsx`, `src/services/supabaseService.ts`, `src/views/employer/EmployerApplicantsPage.tsx`, `scripts/verify-wp05.ts`, `scripts/verify-arch08-modular-server.ts`
-- **Deliverables:**
-  - [x] Require Supabase auth token verification and per-IP rate limiting on `/api/parse-resume` and `/api/extract-resume`, and forward the Supabase session Bearer token from `src/utils/resumeParser.ts`.
-  - [x] Skip `rawDocText` DOB/sex stripping when `rawDocText` is empty (image/scanned PDF OCR mode).
-  - [x] Replace `Date.now()` loop/generated IDs with `crypto.randomUUID()` and batch-upsert `candidate_matches`, notifications, and demo seed records via `saveRecords`.
-  - [x] Memoize `hasInvitedCandidate` in `AppContext` to stop recomputing ATS scores on every render in `EmployerApplicantsPage`.
-
-### WP-06: Real Auth, Context & API Integration Tests
-- **Status:** [x] **DONE**
-- **Targets:** `scripts/testContextHarness.ts`, `scripts/verify-milestone02-auth.ts`, `scripts/verify-milestone03-data-flow.ts`, `scripts/verify-arch08-modular-server.ts`, `scripts/verify-decision-tree.ts`, `scripts/verify-milestone07.ts`
-- **Deliverables:**
-  - [x] Add tests exercising real `AuthContext`, `AppContext`, and `createApp()` HTTP endpoints instead of local `simulate*` helpers.
-  - [x] Add regression tests covering RLS/schema column alignment, `EDUCATION_LEVELS` mappings, degree word-boundary checks, and OCR sanitization.
-
-### WP-07: Remaining God-Module Decomposition
-- **Status:** [x] **DONE**
-- **Targets:** `src/context/AppContext.tsx`, `src/context/DirectoryContext.tsx`, `src/context/JobsContext.tsx`, `src/context/PesoLraContext.tsx`, `src/context/ChatSocialContext.tsx`, `src/context/persistence.ts`, `src/context/index.ts`, `src/views/seeker/SeekerProfileSetupWizard.tsx`, `src/views/seeker/wizard/*`, `scripts/verify-wp07.ts`, `scripts/verify-wp04.ts`, `scripts/verify-wp05.ts`, `scripts/verify-milestone07.ts`
-- **Deliverables:**
-  - [x] Slice `AppContext.tsx` (2,267 → 567 lines) into focused domain contexts (`DirectoryContext`, `JobsContext`, `PesoLraContext`, `ChatSocialContext`) and shared `persistence.ts`, preserving `useApp()` compatibility.
-  - [x] Decompose `SeekerProfileSetupWizard.tsx` (1,780 → 602 lines) into isolated step components under `src/views/seeker/wizard/` (`WizardStepResumeUpload`, `WizardStepPersonalEducation`, `WizardStepSkillsInventory`, `WizardStepJobPreferences`, `WizardStepValidation`, `wizardConstants`).
+  - [x] Extracted shared clean-slate test fixtures (`scripts/testFixtures.ts`, non-legacy IDs avoiding `storageAdapter.filterOutLegacyDemoRecords`) and updated `verify-phase1-supabase.ts`, `verify-milestone02-auth.ts`, `verify-milestone03-data-flow.ts`, `verify-milestone04-candidate-ranking.ts`, `verify-milestone05-peso-lra-analytics.ts`, `verify-e2e-scenarios.ts`, `verify-wp04.ts`, and `verify-wp07.ts` to inject local fixtures and assert clean-slate defaults (`seed.sql`, `demoAccounts.ts`, `resetToDemoData`).
+  - [x] Updated `verify-arch07-match-resolver.ts` to inspect `JobsContext.tsx` for `SUPABASE_TABLES.CANDIDATE_MATCHES`, `subscribeToSupabaseTable`, `setCandidateMatches`, and `updateJobPost` cache invalidation, and verify 15 pairwise score-parity calculations against `TEST_JOB_SEEKERS` and `TEST_JOB_POSTS`.
+  - [x] Aligned `verify-decision-tree.ts` with confirmed `src/utils/decisionTree.ts` scoring rules (`College Undergraduate` rank `3.5` -> `85%`, `BS IT` synonym `100%` vs `BS CS`/`BS IS` related `84%`, 80/20 license/location weighting `20%`, updated rationale strings) and added `verify-wp08.ts` (#1–#3) + `verify-wp09.ts` (#4–#6, #10) as Suites 13–14 in `scripts/verify-milestone07.ts`.
+  - [x] Verified with `npm run lint` (0 errors), `npm run build`, `npm test` (**14/14 suites, 665/665 assertions passed**), `npx tsx scripts/verify-arch07-match-resolver.ts` (**93/93**), `npx tsx scripts/verify-arch01-context-slicing.ts` (**57/57**), and `npx tsx scripts/verify-arch05-code-splitting.ts` (**60/60**).

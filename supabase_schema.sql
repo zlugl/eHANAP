@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS employer_profiles (
     description TEXT,
     website TEXT,
     logo_url TEXT,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'verified', 'for_compliance', 'rejected', 'suspended')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('incomplete', 'pending_verification', 'pending', 'verified', 'for_compliance', 'rejected', 'suspended')),
     is_profile_completed BOOLEAN NOT NULL DEFAULT FALSE,
     profile_setup_completed_at TIMESTAMPTZ,
     establishment_type TEXT CHECK (establishment_type IN ('local_established', 'new_external')),
@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS employer_profiles (
     bir_2303_no TEXT,
     bir_2303_file TEXT,
     document_url TEXT,
+    documents JSONB DEFAULT '[]'::jsonb,
     submitted_requirements TEXT[] DEFAULT '{}',
     requirements_submitted BOOLEAN DEFAULT FALSE,
     compliance_remarks TEXT,
@@ -209,14 +210,23 @@ CREATE TABLE IF NOT EXISTS job_posts (
     company_verified BOOLEAN NOT NULL DEFAULT FALSE,
     title TEXT NOT NULL,
     category TEXT NOT NULL,
+    sub_category TEXT,
     industry TEXT,
     description TEXT NOT NULL,
     responsibilities TEXT[] DEFAULT '{}',
-    employment_type TEXT NOT NULL CHECK (employment_type IN ('Full-time', 'Part-time', 'Contract', 'Temporary', 'Internship')),
+    employment_type TEXT NOT NULL CHECK (employment_type IN ('Full-time', 'Part-time', 'Contract', 'Contractual / Project-Based', 'Probationary', 'Seasonal', 'Seasonal / Temporary', 'Temporary', 'Internship', 'Internship / OJT', 'Freelance')),
+    work_setup TEXT,
+    work_schedule TEXT,
     work_location TEXT NOT NULL,
     municipality TEXT NOT NULL DEFAULT 'Roxas',
+    barangay TEXT,
     vacancies_count INTEGER NOT NULL DEFAULT 1,
     salary_range TEXT,
+    min_salary NUMERIC(12,2),
+    max_salary NUMERIC(12,2),
+    pay_schedule TEXT,
+    is_salary_negotiable BOOLEAN DEFAULT FALSE,
+    is_urgent BOOLEAN DEFAULT FALSE,
     application_deadline TEXT,
     posted_date TEXT NOT NULL,
     status TEXT NOT NULL DEFAULT 'pending_approval' CHECK (status IN ('active', 'closed', 'pending_approval', 'for_compliance', 'rejected', 'archived')),
@@ -226,15 +236,27 @@ CREATE TABLE IF NOT EXISTS job_posts (
     deployment_location_type TEXT CHECK (deployment_location_type IN ('local', 'out_of_town')),
     lra_event_id TEXT,
     min_educational_attainment TEXT NOT NULL,
+    required_education_level TEXT,
+    accepted_education_levels TEXT[] DEFAULT '{}',
     preferred_degree TEXT NOT NULL,
+    preferred_courses TEXT[] DEFAULT '{}',
+    preferred_tesda_qualifications TEXT[] DEFAULT '{}',
+    any_course_allowed BOOLEAN DEFAULT FALSE,
     degree_importance TEXT DEFAULT 'required' CHECK (degree_importance IN ('required', 'preferred', 'optional')),
+    career_level TEXT,
     required_skills TEXT[] DEFAULT '{}',
     preferred_skills TEXT[] DEFAULT '{}',
     min_experience_years INTEGER DEFAULT 0,
+    open_to_fresh_graduates BOOLEAN DEFAULT FALSE,
     experience_importance TEXT DEFAULT 'required' CHECK (experience_importance IN ('required', 'preferred', 'optional')),
+    required_licenses TEXT[] DEFAULT '{}',
     required_certifications TEXT[] DEFAULT '{}',
+    skills JSONB DEFAULT '[]'::jsonb,
+    evaluated_skills JSONB DEFAULT '[]'::jsonb,
     technical_skills TEXT[] DEFAULT '{}',
     soft_skills TEXT[] DEFAULT '{}',
+    match_weights JSONB,
+    benefits TEXT[] DEFAULT '{}',
     other_qualifications TEXT,
     requirements JSONB DEFAULT '[]'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -344,9 +366,10 @@ CREATE TABLE IF NOT EXISTS interviews (
     instructions TEXT,
     contact_person TEXT NOT NULL,
     contact_phone TEXT,
-    status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'accepted', 'reschedule_requested', 'declined', 'completed', 'cancelled')),
+    status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'rescheduled', 'accepted', 'reschedule_requested', 'declined', 'completed', 'cancelled')),
     proposed_slots JSONB DEFAULT '[]'::jsonb,
     reschedule_notes TEXT,
+    reminders_sent JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -534,6 +557,38 @@ CREATE TABLE IF NOT EXISTS job_alert_subscriptions (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Idempotent column & constraint alignment for pre-existing deployments
+ALTER TABLE employer_profiles ADD COLUMN IF NOT EXISTS documents JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS sub_category TEXT;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS barangay TEXT;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS work_setup TEXT;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS work_schedule TEXT;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS min_salary NUMERIC(12,2);
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS max_salary NUMERIC(12,2);
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS pay_schedule TEXT;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS is_salary_negotiable BOOLEAN DEFAULT FALSE;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS is_urgent BOOLEAN DEFAULT FALSE;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS required_education_level TEXT;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS accepted_education_levels TEXT[] DEFAULT '{}';
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS preferred_courses TEXT[] DEFAULT '{}';
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS preferred_tesda_qualifications TEXT[] DEFAULT '{}';
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS any_course_allowed BOOLEAN DEFAULT FALSE;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS career_level TEXT;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS open_to_fresh_graduates BOOLEAN DEFAULT FALSE;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS required_licenses TEXT[] DEFAULT '{}';
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS skills JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS evaluated_skills JSONB DEFAULT '[]'::jsonb;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS match_weights JSONB;
+ALTER TABLE job_posts ADD COLUMN IF NOT EXISTS benefits TEXT[] DEFAULT '{}';
+ALTER TABLE interviews ADD COLUMN IF NOT EXISTS reminders_sent JSONB DEFAULT '{}'::jsonb;
+
+ALTER TABLE employer_profiles DROP CONSTRAINT IF EXISTS employer_profiles_status_check;
+ALTER TABLE employer_profiles ADD CONSTRAINT employer_profiles_status_check CHECK (status IN ('incomplete', 'pending_verification', 'pending', 'verified', 'for_compliance', 'rejected', 'suspended'));
+ALTER TABLE job_posts DROP CONSTRAINT IF EXISTS job_posts_employment_type_check;
+ALTER TABLE job_posts ADD CONSTRAINT job_posts_employment_type_check CHECK (employment_type IN ('Full-time', 'Part-time', 'Contract', 'Contractual / Project-Based', 'Probationary', 'Seasonal', 'Seasonal / Temporary', 'Temporary', 'Internship', 'Internship / OJT', 'Freelance'));
+ALTER TABLE interviews DROP CONSTRAINT IF EXISTS interviews_status_check;
+ALTER TABLE interviews ADD CONSTRAINT interviews_status_check CHECK (status IN ('scheduled', 'rescheduled', 'accepted', 'reschedule_requested', 'declined', 'completed', 'cancelled'));
+
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) HELPERS & POLICIES
 -- ==============================================================================
@@ -683,7 +738,7 @@ CREATE POLICY "Employers insert own pending or admin" ON employer_profiles
         OR (
             auth.uid() IS NOT NULL
             AND user_id = public.current_app_user_id()
-            AND status = 'pending'
+            AND status IN ('incomplete', 'pending_verification', 'pending')
         )
     );
 CREATE POLICY "Employers update own non-status or admin" ON employer_profiles
@@ -696,8 +751,11 @@ CREATE POLICY "Employers update own non-status or admin" ON employer_profiles
             auth.uid() IS NOT NULL
             AND user_id = public.current_app_user_id()
             AND (
-                status = COALESCE(public.get_employer_status(id), 'pending')
-                OR (public.get_employer_status(id) = 'for_compliance' AND status = 'pending')
+                status = COALESCE(public.get_employer_status(id), 'incomplete')
+                OR (
+                    COALESCE(public.get_employer_status(id), 'incomplete') IN ('incomplete', 'pending_verification', 'pending', 'for_compliance')
+                    AND status IN ('incomplete', 'pending_verification', 'pending')
+                )
             )
         )
     );
@@ -732,6 +790,7 @@ CREATE POLICY "Seekers delete admin only" ON seeker_profiles
 
 DROP POLICY IF EXISTS "Public read access to active job posts" ON job_posts;
 DROP POLICY IF EXISTS "Job posts insert employer pending or admin" ON job_posts;
+DROP POLICY IF EXISTS "Job posts insert verified employer or admin" ON job_posts;
 DROP POLICY IF EXISTS "Job posts update employer non-approve or admin" ON job_posts;
 DROP POLICY IF EXISTS "Job posts delete employer own or admin" ON job_posts;
 CREATE POLICY "Public read access to active job posts" ON job_posts
@@ -743,13 +802,19 @@ CREATE POLICY "Public read access to active job posts" ON job_posts
             AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
         )
     );
-CREATE POLICY "Job posts insert employer pending or admin" ON job_posts
+CREATE POLICY "Job posts insert verified employer or admin" ON job_posts
     FOR INSERT WITH CHECK (
         public.is_peso_admin()
         OR (
             auth.uid() IS NOT NULL
-            AND status = 'pending_approval'
             AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            AND (
+                status = 'pending_approval'
+                OR (
+                    status = 'active'
+                    AND public.get_employer_status(employer_id) = 'verified'
+                )
+            )
         )
     );
 CREATE POLICY "Job posts update employer non-approve or admin" ON job_posts

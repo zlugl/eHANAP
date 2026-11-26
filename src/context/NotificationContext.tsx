@@ -1,8 +1,9 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { NotificationItem, UserRole } from '../types';
 import { INITIAL_NOTIFICATIONS } from '../data/mockData';
 import { storageAdapter } from '../lib/storageAdapter';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { isNotificationRecipient } from '../utils/notificationUtils';
 import {
   subscribeToSupabaseTable,
   saveRecord,
@@ -10,6 +11,13 @@ import {
   deleteRecord,
   SUPABASE_TABLES,
 } from '../services/supabaseService';
+
+export interface NotificationContextFilter {
+  userEmail?: string;
+  seekerId?: string;
+  seekerUserId?: string;
+  currentUserRole?: UserRole;
+}
 
 export interface NewNotificationInput {
   recipientId: string;
@@ -26,17 +34,9 @@ export interface NotificationContextType {
   unreadCount: number;
   addNotification: (notifData: NewNotificationInput) => void;
   markNotificationRead: (notificationId: string) => void;
-  markAllNotificationsRead: (recipientId: string) => void;
+  markAllNotificationsRead: (recipientId: string, contextFilter?: NotificationContextFilter) => void;
   deleteNotification: (notificationId: string) => void;
-  clearAllNotifications: (
-    recipientId: string,
-    contextFilter?: {
-      userEmail?: string;
-      seekerId?: string;
-      seekerUserId?: string;
-      currentUserRole?: UserRole;
-    }
-  ) => void;
+  clearAllNotifications: (recipientId: string, contextFilter?: NotificationContextFilter) => void;
   setNotifications: React.Dispatch<React.SetStateAction<NotificationItem[]>>;
 }
 
@@ -46,6 +46,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [notifications, setNotifications] = useState<NotificationItem[]>(() =>
     storageAdapter.getStoredNotifications(INITIAL_NOTIFICATIONS)
   );
+  const notificationsRef = useRef<NotificationItem[]>(notifications);
+  notificationsRef.current = notifications;
 
   useEffect(() => {
     storageAdapter.setStoredNotifications(notifications);
@@ -99,6 +101,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       link: notifData.link || notifData.actionUrl || '/seeker/dashboard',
     };
 
+    notificationsRef.current = [notif, ...notificationsRef.current];
     setNotifications((prev) => [notif, ...prev]);
 
     if (isSupabaseConfigured()) {
@@ -109,39 +112,57 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const markNotificationRead = useCallback((notificationId: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => {
-        if (n.id === notificationId) {
-          const updated = { ...n, read: true };
-          if (isSupabaseConfigured()) {
-            updateRecord(SUPABASE_TABLES.NOTIFICATIONS, notificationId, { read: true }).catch((err) => {
-              console.warn('[Supabase] Failed to mark notification read:', err);
-            });
-          }
-          return updated;
-        }
-        return n;
-      })
+    const next = notificationsRef.current.map((n) =>
+      n.id === notificationId ? { ...n, read: true } : n
     );
+    notificationsRef.current = next;
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))
+    );
+
+    if (isSupabaseConfigured()) {
+      updateRecord(SUPABASE_TABLES.NOTIFICATIONS, notificationId, { read: true }).catch((err) => {
+        console.warn('[Supabase] Failed to mark notification read:', err);
+      });
+    }
   }, []);
 
-  const markAllNotificationsRead = useCallback((recipientId: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => {
-        if (n.recipientId === recipientId || (recipientId === 'admin' && n.recipientRole === 'admin')) {
-          if (isSupabaseConfigured()) {
-            updateRecord(SUPABASE_TABLES.NOTIFICATIONS, n.id, { read: true }).catch((err) => {
-              console.warn('[Supabase] Failed to mark all notifications read:', err);
-            });
-          }
-          return { ...n, read: true };
-        }
-        return n;
-      })
-    );
-  }, []);
+  const markAllNotificationsRead = useCallback(
+    (recipientId: string, contextFilter?: NotificationContextFilter) => {
+      const recipientContext = {
+        userId: recipientId,
+        userEmail: contextFilter?.userEmail,
+        seekerId: contextFilter?.seekerId,
+        seekerUserId: contextFilter?.seekerUserId,
+        currentUserRole: contextFilter?.currentUserRole,
+      };
+
+      const targetIds = notificationsRef.current
+        .filter((n) => !n.read && isNotificationRecipient(n, recipientContext))
+        .map((n) => n.id);
+
+      notificationsRef.current = notificationsRef.current.map((n) =>
+        isNotificationRecipient(n, recipientContext) ? { ...n, read: true } : n
+      );
+      setNotifications((prev) =>
+        prev.map((n) =>
+          isNotificationRecipient(n, recipientContext) ? { ...n, read: true } : n
+        )
+      );
+
+      if (isSupabaseConfigured()) {
+        targetIds.forEach((id) => {
+          updateRecord(SUPABASE_TABLES.NOTIFICATIONS, id, { read: true }).catch((err) => {
+            console.warn('[Supabase] Failed to mark all notifications read:', err);
+          });
+        });
+      }
+    },
+    []
+  );
 
   const deleteNotification = useCallback((notificationId: string) => {
+    notificationsRef.current = notificationsRef.current.filter((n) => n.id !== notificationId);
     setNotifications((prev) => prev.filter((n) => n.id !== notificationId));
     if (isSupabaseConfigured()) {
       deleteRecord(SUPABASE_TABLES.NOTIFICATIONS, notificationId).catch((err) => {
@@ -151,41 +172,33 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   }, []);
 
   const clearAllNotifications = useCallback(
-    (
-      recipientId: string,
-      contextFilter?: {
-        userEmail?: string;
-        seekerId?: string;
-        seekerUserId?: string;
-        currentUserRole?: UserRole;
-      }
-    ) => {
-      const emailLower = (contextFilter?.userEmail || '').toLowerCase();
-      const seekerId = contextFilter?.seekerId;
-      const seekerUserId = contextFilter?.seekerUserId;
-      const role = contextFilter?.currentUserRole;
+    (recipientId: string, contextFilter?: NotificationContextFilter) => {
+      const recipientContext = {
+        userId: recipientId,
+        userEmail: contextFilter?.userEmail,
+        seekerId: contextFilter?.seekerId,
+        seekerUserId: contextFilter?.seekerUserId,
+        currentUserRole: contextFilter?.currentUserRole,
+      };
 
-      setNotifications((prev) =>
-        prev.filter((n) => {
-          const isTarget =
-            n.recipientId === recipientId ||
-            (emailLower && n.recipientId?.toLowerCase() === emailLower) ||
-            (seekerId && n.recipientId === seekerId) ||
-            (seekerUserId && n.recipientId === seekerUserId) ||
-            (role === 'admin' && n.recipientRole === 'admin') ||
-            (!n.recipientId && role && n.recipientRole === role);
+      const targetIds = notificationsRef.current
+        .filter((n) => isNotificationRecipient(n, recipientContext, null, { includeBroadcasts: false }))
+        .map((n) => n.id);
 
-          if (isTarget) {
-            if (isSupabaseConfigured()) {
-              deleteRecord(SUPABASE_TABLES.NOTIFICATIONS, n.id).catch((err) => {
-                console.warn('[Supabase] Failed to clear notification:', err);
-              });
-            }
-            return false;
-          }
-          return true;
-        })
+      notificationsRef.current = notificationsRef.current.filter(
+        (n) => !isNotificationRecipient(n, recipientContext, null, { includeBroadcasts: false })
       );
+      setNotifications((prev) =>
+        prev.filter((n) => !isNotificationRecipient(n, recipientContext, null, { includeBroadcasts: false }))
+      );
+
+      if (isSupabaseConfigured()) {
+        targetIds.forEach((id) => {
+          deleteRecord(SUPABASE_TABLES.NOTIFICATIONS, id).catch((err) => {
+            console.warn('[Supabase] Failed to clear notification:', err);
+          });
+        });
+      }
     },
     []
   );

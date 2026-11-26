@@ -76,6 +76,14 @@ const suites = [
     name: '12. Domain Context Slicing & Seeker Wizard Decomposition (WP-07)',
     command: 'npx tsx scripts/verify-wp07.ts',
   },
+  {
+    name: '13. Supabase Schema, RLS & Payload Alignment (WP-08)',
+    command: 'npx tsx scripts/verify-wp08.ts',
+  },
+  {
+    name: '14. Auth Recovery, Employer Profile Fallback & Admin Alerts (WP-09)',
+    command: 'npx tsx scripts/verify-wp09.ts',
+  },
 ];
 
 const results: SuiteResult[] = [];

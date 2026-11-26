@@ -21,7 +21,6 @@ export interface UserProfileDropdownProps {
   jobPostsCount?: number;
   onNavigate: (view: string) => void;
   onLogout: () => void;
-  onSwitchRole: (role: 'job_seeker' | 'employer' | 'admin') => void;
   onOpenSubscriptions?: () => void;
 }
 
@@ -31,7 +30,6 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
   jobPostsCount = 0,
   onNavigate,
   onLogout,
-  onSwitchRole,
   onOpenSubscriptions
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -56,11 +54,6 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
     if (view) {
       onNavigate(view);
     }
-  };
-
-  const handleRoleSwitch = (role: 'job_seeker' | 'employer' | 'admin') => {
-    setIsOpen(false);
-    onSwitchRole(role);
   };
 
   if (!currentUser) return null;

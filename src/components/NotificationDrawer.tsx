@@ -325,7 +325,14 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({ isOpen, 
                 {unreadCount > 0 ? (
                   <button
                     type="button"
-                    onClick={() => markAllNotificationsRead(currentUser.id)}
+                    onClick={() =>
+                      markAllNotificationsRead(currentUser.id, {
+                        userEmail: currentUser.email,
+                        seekerId: currentSeekerProfile?.id,
+                        seekerUserId: currentSeekerProfile?.userId,
+                        currentUserRole: currentUser.role,
+                      })
+                    }
                     className="text-xs font-semibold text-[#2331ea] hover:underline flex items-center gap-1 cursor-pointer"
                     title="Mark all notifications as read"
                   >

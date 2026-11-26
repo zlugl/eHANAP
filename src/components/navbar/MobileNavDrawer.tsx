@@ -32,7 +32,6 @@ export interface MobileNavDrawerProps {
   isEmployerIncomplete?: boolean;
   onNavigate: (view: string) => void;
   onLogout: () => void;
-  onSwitchRole: (role: 'job_seeker' | 'employer' | 'admin') => void;
   onOpenAuth: (mode: 'login' | 'register', initialRole?: 'job_seeker' | 'employer') => void;
   onOpenSubscriptions?: () => void;
   onOpenPostJobModal?: () => void;
@@ -49,7 +48,6 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   isEmployerIncomplete,
   onNavigate,
   onLogout,
-  onSwitchRole,
   onOpenAuth,
   onOpenSubscriptions,
   onOpenPostJobModal
@@ -62,11 +60,6 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   const handleNav = (view: string) => {
     onClose();
     onNavigate(view);
-  };
-
-  const handleRoleSwitch = (role: 'job_seeker' | 'employer' | 'admin') => {
-    onClose();
-    onSwitchRole(role);
   };
 
   const handleLogout = () => {

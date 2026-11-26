@@ -52,10 +52,16 @@ export const COLLECTIONS = {
   CANDIDATE_MATCHES: SUPABASE_TABLES.CANDIDATE_MATCHES,
 } as const;
 
+const SNAKE_KEY_OVERRIDES: Record<string, string> = {
+  bir2303No: 'bir_2303_no',
+  bir2303File: 'bir_2303_file',
+};
+
 /**
  * Utility: Converts a camelCase string to snake_case.
  */
 function camelToSnake(str: string): string {
+  if (SNAKE_KEY_OVERRIDES[str]) return SNAKE_KEY_OVERRIDES[str];
   return str.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 }
 
@@ -203,12 +209,253 @@ export async function fetchUserByEmail(email: string): Promise<User | null> {
   }
 }
 
-function sanitizeForTable<T>(table: SupabaseTableName, record: T): T {
-  // The PostgreSQL `users` table does not store passwords (Supabase Auth owns credentials).
-  if (table === SUPABASE_TABLES.USERS && record && typeof record === 'object') {
-    const { password: _password, ...rest } = record as Record<string, any>;
+const EMPLOYER_PROFILE_ALLOWED_KEYS = new Set([
+  'id',
+  'userId',
+  'companyName',
+  'representativeName',
+  'contactNumber',
+  'email',
+  'address',
+  'municipality',
+  'barangay',
+  'industry',
+  'companyDescription',
+  'description',
+  'website',
+  'logoUrl',
+  'status',
+  'isProfileCompleted',
+  'profileSetupCompletedAt',
+  'establishmentType',
+  'authorizedBranchManager',
+  'hrContactPerson',
+  'hrContactNumber',
+  'branchLocation',
+  'mayorsPermitFile',
+  'dtiSecFile',
+  'dtiSecRegistration',
+  'sanitaryPermitFile',
+  'letterOfIntentFile',
+  'aitrFile',
+  'sedulaFile',
+  'barangayClearanceFile',
+  'environmentCertFile',
+  'zoningClearanceFile',
+  'buildingPermitFile',
+  'tourismClearanceFile',
+  'paymentReceiptFile',
+  'fireSafetyFile',
+  'businessPermitNo',
+  'businessPermitFile',
+  'bir2303No',
+  'bir2303File',
+  'documentUrl',
+  'documents',
+  'submittedRequirements',
+  'requirementsSubmitted',
+  'complianceRemarks',
+  'verificationNotes',
+  'accreditationSubmittedAt',
+  'dataPrivacyConsent',
+  'createdAt',
+  'updatedAt',
+]);
+
+const JOB_POST_ALLOWED_KEYS = new Set([
+  'id',
+  'employerId',
+  'companyName',
+  'companyLogo',
+  'companyMunicipality',
+  'companyVerified',
+  'title',
+  'category',
+  'subCategory',
+  'industry',
+  'description',
+  'responsibilities',
+  'employmentType',
+  'workSetup',
+  'workSchedule',
+  'workLocation',
+  'municipality',
+  'barangay',
+  'vacanciesCount',
+  'salaryRange',
+  'minSalary',
+  'maxSalary',
+  'paySchedule',
+  'isSalaryNegotiable',
+  'isUrgent',
+  'applicationDeadline',
+  'postedDate',
+  'status',
+  'reviewNotes',
+  'complianceRemarks',
+  'targetApplicantType',
+  'deploymentLocationType',
+  'lraEventId',
+  'minEducationalAttainment',
+  'requiredEducationLevel',
+  'acceptedEducationLevels',
+  'preferredDegree',
+  'preferredCourses',
+  'preferredTesdaQualifications',
+  'anyCourseAllowed',
+  'degreeImportance',
+  'careerLevel',
+  'requiredSkills',
+  'preferredSkills',
+  'minExperienceYears',
+  'openToFreshGraduates',
+  'experienceImportance',
+  'requiredLicenses',
+  'requiredCertifications',
+  'skills',
+  'evaluatedSkills',
+  'technicalSkills',
+  'softSkills',
+  'matchWeights',
+  'benefits',
+  'otherQualifications',
+  'requirements',
+  'createdAt',
+  'updatedAt',
+]);
+
+const INTERVIEW_ALLOWED_KEYS = new Set([
+  'id',
+  'applicationId',
+  'jobId',
+  'jobTitle',
+  'employerId',
+  'companyName',
+  'jobSeekerId',
+  'applicantName',
+  'interviewType',
+  'date',
+  'time',
+  'locationOrLink',
+  'instructions',
+  'contactPerson',
+  'contactPhone',
+  'status',
+  'proposedSlots',
+  'rescheduleNotes',
+  'remindersSent',
+  'createdAt',
+  'updatedAt',
+]);
+
+const VALID_EMPLOYER_STATUSES = new Set([
+  'incomplete',
+  'pending_verification',
+  'pending',
+  'verified',
+  'for_compliance',
+  'rejected',
+  'suspended',
+]);
+
+const VALID_JOB_STATUSES = new Set([
+  'active',
+  'closed',
+  'pending_approval',
+  'for_compliance',
+  'rejected',
+  'archived',
+]);
+
+const VALID_INTERVIEW_STATUSES = new Set([
+  'scheduled',
+  'rescheduled',
+  'accepted',
+  'reschedule_requested',
+  'declined',
+  'completed',
+  'cancelled',
+]);
+
+function pickAllowedFields(source: Record<string, any>, allowedKeys: Set<string>): Record<string, any> {
+  const clean: Record<string, any> = {};
+  for (const [key, value] of Object.entries(source)) {
+    if (allowedKeys.has(key) && value !== undefined) {
+      clean[key] = value;
+    }
+  }
+  return clean;
+}
+
+/**
+ * Strips frontend-only keys and UI aliases so payloads align with PostgreSQL columns and CHECK constraints.
+ */
+export function sanitizeForTable<T>(table: SupabaseTableName, record: T): T {
+  if (!record || typeof record !== 'object') return record;
+  const raw = record as Record<string, any>;
+
+  if (table === SUPABASE_TABLES.USERS) {
+    const { password: _password, ...rest } = raw;
     return rest as T;
   }
+
+  if (table === SUPABASE_TABLES.EMPLOYERS) {
+    const normalized: Record<string, any> = { ...raw };
+    if ('status' in normalized && !VALID_EMPLOYER_STATUSES.has(normalized.status)) {
+      normalized.status = 'pending';
+    }
+    return pickAllowedFields(normalized, EMPLOYER_PROFILE_ALLOWED_KEYS) as T;
+  }
+
+  if (table === SUPABASE_TABLES.JOB_POSTS) {
+    const normalized: Record<string, any> = { ...raw };
+    if (normalized.subCategory === undefined && normalized.department !== undefined) {
+      normalized.subCategory = normalized.department;
+    }
+    if (normalized.vacanciesCount === undefined) {
+      normalized.vacanciesCount = normalized.vacancies ?? normalized.positionsAvailable;
+    }
+    if (normalized.applicationDeadline === undefined && normalized.deadline !== undefined) {
+      normalized.applicationDeadline = normalized.deadline;
+    }
+    if (normalized.paySchedule === undefined && normalized.payFrequency !== undefined) {
+      normalized.paySchedule = normalized.payFrequency;
+    }
+    if (normalized.isSalaryNegotiable === undefined && normalized.salaryNegotiable !== undefined) {
+      normalized.isSalaryNegotiable = normalized.salaryNegotiable;
+    }
+    if (normalized.careerLevel === undefined && normalized.experienceLevel !== undefined) {
+      normalized.careerLevel = normalized.experienceLevel;
+    }
+    if (normalized.requiredSkills === undefined && Array.isArray(normalized.skillsRequired)) {
+      normalized.requiredSkills = normalized.skillsRequired;
+    }
+    if ('status' in normalized && !VALID_JOB_STATUSES.has(normalized.status)) {
+      normalized.status = normalized.status === 'paused' ? 'archived' : 'pending_approval';
+    }
+    return pickAllowedFields(normalized, JOB_POST_ALLOWED_KEYS) as T;
+  }
+
+  if (table === SUPABASE_TABLES.INTERVIEWS) {
+    const normalized: Record<string, any> = { ...raw };
+    if (normalized.jobId === undefined && normalized.vacancyId !== undefined) {
+      normalized.jobId = normalized.vacancyId;
+    }
+    if (normalized.jobSeekerId === undefined && normalized.seekerId !== undefined) {
+      normalized.jobSeekerId = normalized.seekerId;
+    }
+    if (normalized.interviewType === undefined && normalized.format !== undefined) {
+      normalized.interviewType = normalized.format;
+    }
+    if (normalized.instructions === undefined && normalized.notes !== undefined) {
+      normalized.instructions = normalized.notes;
+    }
+    if ('status' in normalized && !VALID_INTERVIEW_STATUSES.has(normalized.status)) {
+      normalized.status = 'scheduled';
+    }
+    return pickAllowedFields(normalized, INTERVIEW_ALLOWED_KEYS) as T;
+  }
+
   return record;
 }
 
@@ -402,36 +649,7 @@ export async function ensureDemoAccountsExistInSupabase(): Promise<boolean> {
  * Clean-slate mode: no demo data is seeded.
  */
 export async function seedDemoDataToSupabase(): Promise<boolean> {
-<<<<<<< HEAD
   return true;
-=======
-  if (!isSupabaseConfigured()) return false;
-
-  try {
-    // Batch-upsert in foreign-key dependency tiers
-    await Promise.all([
-      saveRecords(SUPABASE_TABLES.USERS, INITIAL_USERS),
-      saveRecords(SUPABASE_TABLES.NOTIFICATIONS, INITIAL_NOTIFICATIONS),
-      saveRecords(SUPABASE_TABLES.AUDIT_LOGS, INITIAL_AUDIT_LOGS),
-      saveRecords(SUPABASE_TABLES.ANNOUNCEMENTS, INITIAL_ANNOUNCEMENTS),
-    ]);
-
-    await Promise.all([
-      saveRecords(SUPABASE_TABLES.EMPLOYERS, INITIAL_EMPLOYERS),
-      saveRecords(SUPABASE_TABLES.JOB_SEEKERS, INITIAL_JOB_SEEKERS),
-    ]);
-
-    await saveRecords(SUPABASE_TABLES.JOB_POSTS, INITIAL_JOB_POSTS);
-    await saveRecords(SUPABASE_TABLES.APPLICATIONS, INITIAL_APPLICATIONS);
-    await saveRecords(SUPABASE_TABLES.INTERVIEWS, INITIAL_INTERVIEWS);
-
-    console.log('[Supabase] Successfully seeded initial Roxas demo accounts and records.');
-    return true;
-  } catch (error) {
-    console.warn('[Supabase] Error seeding demo data to Supabase:', error);
-    return false;
-  }
->>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
 }
 
 /**
@@ -662,6 +880,73 @@ export async function signInWithSupabaseOAuth(
     return { success: true, data };
   } catch (err: any) {
     return { success: false, error: err?.message || 'Supabase OAuth authentication failed.' };
+  }
+}
+
+/**
+ * Supabase Auth: Send a password recovery email link/token.
+ */
+export async function resetPasswordWithSupabase(
+  email: string,
+  redirectTo?: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true };
+  }
+
+  try {
+    const targetRedirect = redirectTo || (typeof window !== 'undefined' ? window.location.origin : undefined);
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email,
+      targetRedirect ? { redirectTo: targetRedirect } : undefined
+    );
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to dispatch password reset email.' };
+  }
+}
+
+/**
+ * Supabase Auth: Update password during an active PASSWORD_RECOVERY session
+ * or after verifying an email recovery OTP token.
+ */
+export async function updatePasswordWithSupabase(
+  newPassword: string,
+  options?: { email?: string; token?: string }
+): Promise<{ success: boolean; error?: string }> {
+  if (!isSupabaseConfigured()) {
+    return { success: true };
+  }
+
+  try {
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData?.session) {
+      if (!options?.email || !options?.token) {
+        return {
+          success: false,
+          error: 'No active recovery session. Open the recovery link sent to your email or enter your 6-digit recovery code.',
+        };
+      }
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: options.email,
+        token: options.token,
+        type: 'recovery',
+      });
+      if (verifyError) {
+        return { success: false, error: verifyError.message };
+      }
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || 'Failed to update password in Supabase Auth.' };
   }
 }
 

@@ -10,8 +10,7 @@ import {
   PesoReferralSlip,
   User 
 } from '../src/types';
-import { INITIAL_USERS, INITIAL_EMPLOYERS, INITIAL_JOB_POSTS, INITIAL_JOB_SEEKERS } from '../src/data/mockData';
-import { INITIAL_LRA_EVENTS, INITIAL_REFERRAL_SLIPS } from '../src/data/pesoLguData';
+import { TEST_EMPLOYERS, TEST_JOB_POSTS, TEST_JOB_SEEKERS, TEST_LRA_EVENTS } from './testFixtures';
 
 console.log('--- eHANAP Milestone 07: End-to-End Multi-Role Workflow Scenarios ---');
 
@@ -35,18 +34,18 @@ function assert(condition: boolean, testName: string, details?: string) {
 console.log('\n[Scenario 1] Job Seeker Journey: Profile -> ATS Screen -> Match Alerts -> 1-Click Apply');
 
 // Step 1: Seeker Profile State
-const seeker = INITIAL_JOB_SEEKERS[0]; // Juan Dela Cruz
+const seeker = TEST_JOB_SEEKERS[0]; // Juan Dela Cruz
 assert(Boolean(seeker), 'Seeker profile hydrated from initial seed data');
 assert(seeker.educationalAttainment === "College Graduate" || seeker.educationalAttainment.includes('College') || seeker.educationalAttainment.includes("Bachelor"), 'Seeker has valid educational attainment');
 assert(seeker.municipality === 'Roxas', 'Seeker is located in Roxas, Oriental Mindoro');
 
 // Step 2: ATS Resume Analysis
-const atsResult = evaluateResumeForAts(seeker, INITIAL_JOB_POSTS[0]);
+const atsResult = evaluateResumeForAts(seeker, TEST_JOB_POSTS[0]);
 assert(atsResult.score >= 70, `ATS Scan produces qualifying score for seeker (Score: ${atsResult.score}%)`);
 assert(atsResult.contactCompleteness >= 75, 'Seeker contact completeness verified');
 
 // Step 3: Automated Compatibility Matching across active vacancies
-const activeJobs = INITIAL_JOB_POSTS.filter(j => j.status === 'active');
+const activeJobs = TEST_JOB_POSTS.filter(j => j.status === 'active');
 assert(activeJobs.length > 0, `Active jobs present in Roxas labor exchange (Count: ${activeJobs.length})`);
 
 const matches = activeJobs.map(job => ({
@@ -88,7 +87,7 @@ assert(newApplication.matchResult.overallMatch === topMatch.matchResult.overallM
 // ---------------------------------------------------------------------------
 console.log('\n[Scenario 2] Roxas Employer Journey: Post Job -> Automated Ranking Roster -> Candidate Progression');
 
-const employer = INITIAL_EMPLOYERS[0]; // Puregold Price Club (Roxas)
+const employer = TEST_EMPLOYERS[0]; // Puregold Price Club (Roxas)
 assert(Boolean(employer), 'Employer profile hydrated');
 
 // Step 1: Employer Creates Job Post (starts in pending_approval for PESO compliance moderation)
@@ -135,7 +134,7 @@ assert(approvedJob.status === 'active', 'Job transitions to active upon PESO mod
 
 // Step 3: CORE THESIS HIGHLIGHT — Automated Candidate Ranking Engine
 // Evaluates all registered job seekers in Roxas against the newly approved job
-const candidateRankingRoster = INITIAL_JOB_SEEKERS.map(cand => {
+const candidateRankingRoster = TEST_JOB_SEEKERS.map(cand => {
   const matchResult = calculateDecisionTreeMatch(cand, approvedJob);
   return {
     candidate: cand,
@@ -151,7 +150,7 @@ const candidateRankingRoster = INITIAL_JOB_SEEKERS.map(cand => {
   };
 }).sort((a, b) => b.score - a.score);
 
-assert(candidateRankingRoster.length === INITIAL_JOB_SEEKERS.length, 'Candidate ranking roster contains all registered seekers');
+assert(candidateRankingRoster.length === TEST_JOB_SEEKERS.length, 'Candidate ranking roster contains all registered seekers');
 assert(candidateRankingRoster[0].score >= candidateRankingRoster[candidateRankingRoster.length - 1].score, 'Candidate roster is deterministically sorted descending by score');
 assert(candidateRankingRoster[0].reasons.length > 0, 'Top ranked candidate has transparent, explainable reasons');
 
@@ -272,11 +271,11 @@ assert(newReferralSlip.referralNumber.startsWith('REF-ROXAS-2026-'), 'Generated 
 assert(newReferralSlip.status === 'issued', 'Referral slip issued with validity window');
 
 // Step 4: Municipal Labor Market Analytics Aggregation
-const totalSeekers = INITIAL_JOB_SEEKERS.length;
-const totalEmployers = INITIAL_EMPLOYERS.length;
-const verifiedEmployersCount = INITIAL_EMPLOYERS.filter(e => e.status === 'verified').length;
-const activeVacanciesCount = INITIAL_JOB_POSTS.filter(j => j.status === 'active').reduce((sum, j) => sum + (j.vacanciesCount || 1), 0);
-const totalHots = INITIAL_LRA_EVENTS.reduce((sum, l) => sum + (l.hotsCount || 0), 0) + newLraEvent.hotsCount;
+const totalSeekers = TEST_JOB_SEEKERS.length;
+const totalEmployers = TEST_EMPLOYERS.length;
+const verifiedEmployersCount = TEST_EMPLOYERS.filter(e => e.status === 'verified').length;
+const activeVacanciesCount = TEST_JOB_POSTS.filter(j => j.status === 'active').reduce((sum, j) => sum + (j.vacanciesCount || 1), 0);
+const totalHots = TEST_LRA_EVENTS.reduce((sum, l) => sum + (l.hotsCount || 0), 0) + newLraEvent.hotsCount;
 
 assert(totalSeekers > 0, `Total job seekers count calculated (${totalSeekers})`);
 assert(totalEmployers > 0, `Total registered employers counted (${totalEmployers})`);

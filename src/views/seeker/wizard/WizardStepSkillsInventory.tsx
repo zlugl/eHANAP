@@ -168,10 +168,10 @@ export const WizardStepSkillsInventory: React.FC<WizardStepSkillsInventoryProps>
                 <input
                   type="text"
                   value={inputs[cat.key]}
-                  onChange={e => setInputs(prev => ({ ...prev, [cat.key]: e.target.value }))}
+                  onChange={e => setInputs(prev => ({ ...prev, [cat.key]: e.target.value.toUpperCase() }))}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleSubmitSkill(cat.key))}
                   placeholder={cat.placeholder}
-                  className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
+                  className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] uppercase focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 />
                 <button
                   type="button"

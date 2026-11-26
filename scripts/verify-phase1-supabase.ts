@@ -8,7 +8,7 @@ import {
   toCamelCase, 
   testSupabaseConnection 
 } from '../src/services/supabaseService';
-import { INITIAL_USERS, INITIAL_EMPLOYERS, INITIAL_JOB_POSTS, INITIAL_JOB_SEEKERS } from '../src/data/mockData';
+import { TEST_EMPLOYERS, TEST_JOB_SEEKERS } from './testFixtures';
 
 console.log('--- eHANAP Phase 1 Verification Suite ---');
 
@@ -53,14 +53,12 @@ assert(migrationSql.includes('ENABLE ROW LEVEL SECURITY'), 'SQL Migration enable
 assert(migrationSql.includes('update_updated_at_column'), 'SQL Migration creates updated_at trigger function');
 assert(migrationSql.includes('ALTER PUBLICATION supabase_realtime'), 'SQL Migration configures Supabase Realtime');
 
-// 2. Verify SQL Seed File
+// 2. Verify SQL Seed File (Clean-Slate Architecture)
 const seedPath = path.resolve(process.cwd(), 'supabase/seed.sql');
 assert(fs.existsSync(seedPath), 'SQL Seed file exists on disk');
 const seedSql = fs.readFileSync(seedPath, 'utf-8');
-assert(seedSql.includes('user-peso-admin-01'), 'SQL Seed provisions PESO Admin account');
-assert(seedSql.includes('emp-puregold-01'), 'SQL Seed provisions Puregold employer profile');
-assert(seedSql.includes('job-puregold-cashier'), 'SQL Seed provisions Supermarket Cashier vacancy');
-assert(seedSql.includes('seeker-juan-01'), 'SQL Seed provisions Juan Dela Cruz seeker profile');
+assert(seedSql.includes('Clean-Slate'), 'SQL Seed documents Clean-Slate database contract');
+assert(!/INSERT\s+INTO/i.test(seedSql), 'SQL Seed contains zero hardcoded demo INSERT statements');
 
 // 3. Verify Supabase Client & Configuration Guards
 assert(typeof isSupabaseConfigured === 'function', 'isSupabaseConfigured is exported');
@@ -75,7 +73,7 @@ for (const table of requiredTables) {
 }
 
 // 5. Verify toSnakeCase and toCamelCase Bidirectional Transformers
-const testEmployer = INITIAL_EMPLOYERS[0];
+const testEmployer = TEST_EMPLOYERS[0];
 const snakeEmployer = toSnakeCase(testEmployer);
 assert(snakeEmployer.company_name === testEmployer.companyName, 'toSnakeCase converts companyName to company_name');
 assert(snakeEmployer.business_permit_no === testEmployer.businessPermitNo, 'toSnakeCase converts businessPermitNo to business_permit_no');
@@ -86,7 +84,7 @@ assert(roundTripEmployer.businessPermitNo === testEmployer.businessPermitNo, 'to
 assert(Array.isArray(roundTripEmployer.submittedRequirements), 'toCamelCase preserves array fields');
 
 // Test Seeker Profile with nested JSON
-const testSeeker = INITIAL_JOB_SEEKERS[0];
+const testSeeker = TEST_JOB_SEEKERS[0];
 const snakeSeeker = toSnakeCase(testSeeker);
 assert(snakeSeeker.first_name === testSeeker.firstName, 'toSnakeCase converts firstName to first_name');
 assert(Array.isArray(snakeSeeker.technical_skills), 'toSnakeCase preserves technical_skills array');

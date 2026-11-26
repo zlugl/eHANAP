@@ -10,9 +10,10 @@ import {
   usePesoLra,
   useChatSocial,
 } from '../src/context';
-import { INITIAL_EMPLOYERS, INITIAL_JOB_SEEKERS, INITIAL_JOB_POSTS, INITIAL_USERS } from '../src/data/mockData';
+import { storageAdapter } from '../src/lib/storageAdapter';
 import { distributeExtractedSkills, toDateInputValue } from '../src/views/seeker/wizard/wizardConstants';
 import { mountWithProvider } from './testContextHarness';
+import { TEST_EMPLOYERS, TEST_JOB_POSTS, TEST_JOB_SEEKERS, TEST_USERS } from './testFixtures';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,17 +51,26 @@ async function run() {
   const mounted = await mountWithProvider(AppProvider, useCombinedContexts);
 
   try {
-    const adminUser = INITIAL_USERS.find((u) => u.role === 'admin')!;
-    const puregoldEmployer = INITIAL_EMPLOYERS[0];
-    const juanSeeker = INITIAL_JOB_SEEKERS[0];
+    const adminUser = TEST_USERS.find((u) => u.role === 'admin')!;
+    const puregoldEmployer = TEST_EMPLOYERS[0];
+    const juanSeeker = TEST_JOB_SEEKERS[0];
+
+    await mounted.act(async () => {
+      mounted.getApi().auth.setUsers(TEST_USERS);
+      mounted.getApi().dir.setEmployers(TEST_EMPLOYERS);
+      mounted.getApi().dir.setJobSeekers(TEST_JOB_SEEKERS);
+      mounted.getApi().jobs.setJobPosts(TEST_JOB_POSTS);
+      storageAdapter.setStoredEmployers(TEST_EMPLOYERS);
+      storageAdapter.setStoredJobSeekers(TEST_JOB_SEEKERS);
+    });
 
     await mounted.act(async () => {
       await mounted.getApi().auth.loginAs(adminUser.email, 'password123');
     });
 
     assert(
-      mounted.getApi().dir.employers.length === INITIAL_EMPLOYERS.length &&
-        mounted.getApi().dir.jobSeekers.length === INITIAL_JOB_SEEKERS.length,
+      mounted.getApi().dir.employers.length === TEST_EMPLOYERS.length &&
+        mounted.getApi().dir.jobSeekers.length === TEST_JOB_SEEKERS.length,
       'useDirectory exposes employers and jobSeekers state'
     );
 
@@ -151,7 +161,7 @@ async function run() {
     );
 
     // ChatSocialContext: bookmarks, reviews, conversation read state
-    const targetJobId = INITIAL_JOB_POSTS[0].id;
+    const targetJobId = TEST_JOB_POSTS[0].id;
     const wasBookmarked = mounted.getApi().social.isJobBookmarked(targetJobId);
     await mounted.act(async () => {
       mounted.getApi().social.toggleBookmarkJob(targetJobId);
@@ -181,8 +191,12 @@ async function run() {
     });
     assert(
       mounted.getApi().app.currentUser === null &&
-        mounted.getApi().dir.employers.find((e) => e.id === puregoldEmployer.id)?.status === 'verified',
-      'resetToDemoData resets Auth, Directory, Jobs, PesoLra, and ChatSocial slices'
+        mounted.getApi().dir.employers.length === 0 &&
+        mounted.getApi().dir.jobSeekers.length === 0 &&
+        mounted.getApi().jobs.jobPosts.length === 0 &&
+        mounted.getApi().lra.localRecruitmentActivities.length === 0 &&
+        mounted.getApi().social.companyReviews.length === 0,
+      'resetToDemoData resets Auth, Directory, Jobs, PesoLra, and ChatSocial slices to clean slate'
     );
   } finally {
     await mounted.unmount();
