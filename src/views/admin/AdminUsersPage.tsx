@@ -85,7 +85,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigate }) =>
     const matchesSearch = name.includes(searchQuery.toLowerCase()) || ind.includes(searchQuery.toLowerCase());
     const matchesMuni = !selectedMunicipality || e.municipality === selectedMunicipality;
 
-    const isEstablished = e.isEstablishedLocal || ['Retail / Supermarket', 'Food & Beverage', 'Utilities / Electric Cooperative', 'Agriculture & Trading'].includes(e.industry);
+    const isEstablished = e.establishmentType === 'local_established';
     const matchesType = employerTypeFilter === 'all' ||
       (employerTypeFilter === 'established_local' && isEstablished) ||
       (employerTypeFilter === 'new_external' && !isEstablished);
@@ -438,7 +438,7 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigate }) =>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredEmployers.map(emp => {
               const empJobs = jobPosts.filter(j => j.employerId === emp.id);
-              const isEstablished = emp.isEstablishedLocal || ['Retail / Supermarket', 'Food & Beverage', 'Utilities / Electric Cooperative', 'Agriculture & Trading'].includes(emp.industry);
+              const isEstablished = emp.establishmentType === 'local_established';
 
               return (
                 <div key={emp.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between hover:border-amber-400 transition-all">

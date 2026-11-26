@@ -1,8 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { markProfileCompletedInStorage } from '../../utils/routeGuards';
-import { 
-  extractResumeInfoFromText, 
+import {
   ExtractedResumePayload,
   formatProperName,
   normalizeCivilStatus,
@@ -10,152 +9,50 @@ import {
   normalizeEducationalAttainment,
   normalizeBarangay,
   computeAgeFromDob,
-  TRADE_SKILLS,
-  ADMIN_SKILLS,
-  SERVICE_HOSPITALITY_SKILLS,
-  SALES_COMMERCE_SKILLS,
-  IT_CREATIVE_SKILLS,
-  SOFT_SKILLS_LIST
 } from '../../utils/resumeExtractorCore';
 import { parseResumeFile } from '../../utils/resumeParser';
-import { ROXAS_BARANGAYS } from '../../constants';
 import { JobSeekerProfile } from '../../types';
-import { 
-  Upload, 
-  Camera,
-  CheckCircle2, 
-  AlertCircle, 
-  FileText, 
-  User, 
-  Briefcase, 
-  Sparkles, 
-  ChevronRight, 
-  ChevronLeft, 
-  ShieldCheck, 
-  MapPin, 
-  Phone, 
-  Mail, 
-  GraduationCap, 
-  Calendar, 
-  Award, 
-  X, 
-  Plus, 
-  Check, 
-  Loader2, 
+import {
+  Sparkles,
   ArrowRight,
-  SlidersHorizontal,
-  FolderCheck,
+  User,
   PartyPopper,
-  Lock
+  Lock,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import {
+  distributeExtractedSkills,
+  WizardStepResumeUpload,
+  WizardStepPersonalEducation,
+  WizardStepSkillsInventory,
+  WizardStepJobPreferences,
+  WizardStepValidation,
+  SkillCategoryKey,
+} from './wizard';
 
 interface SeekerProfileSetupWizardProps {
   onComplete: (view: string, params?: any) => void;
   onNavigate: (view: string, params?: any) => void;
 }
 
-// Helper to normalize any date string to YYYY-MM-DD for native HTML5 date input
-function toDateInputValue(val?: string): string {
-  if (!val) return '';
-  const trimmed = val.trim();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed;
-  const parsed = new Date(trimmed);
-  if (!isNaN(parsed.getTime())) {
-    const y = parsed.getFullYear();
-    const m = String(parsed.getMonth() + 1).padStart(2, '0');
-    const d = String(parsed.getDate()).padStart(2, '0');
-    if (y >= 1930 && y <= new Date().getFullYear()) {
-      return `${y}-${m}-${d}`;
-    }
-  }
-  return '';
-}
+const STEP_TITLES: Record<number, string> = {
+  1: 'Upload Resume / Bio-data',
+  2: 'Review & Edit Personal Info & Education',
+  3: 'Skills Inventory',
+  4: 'Job Preferences',
+  5: 'Profile Validation & Done',
+};
 
-// Predefined Job Categories for Step 3
-const PRESET_CATEGORIES = [
-  // Industry sectors
-  { id: 'it', label: 'Information Technology & Software', group: 'Industry Sectors' },
-  { id: 'business', label: 'Business, Accounting & Finance', group: 'Industry Sectors' },
-  { id: 'agri', label: 'Agriculture & Agribusiness', group: 'Industry Sectors' },
-  { id: 'tourism', label: 'Tourism, Hotel & Restaurant', group: 'Industry Sectors' },
-  { id: 'engineering', label: 'Engineering & Construction', group: 'Industry Sectors' },
-  { id: 'healthcare', label: 'Healthcare, Nursing & Medical', group: 'Industry Sectors' },
-  { id: 'education', label: 'Education & Academic Services', group: 'Industry Sectors' },
-  { id: 'retail', label: 'Customer Service & Retail', group: 'Industry Sectors' },
-  { id: 'govt', label: 'Government & Public Administration', group: 'Industry Sectors' },
-  // Functional department tracks
-  { id: 'admin_office', label: 'Administration & Office Management', group: 'Department Tracks' },
-  { id: 'accounting_track', label: 'Accounting, Auditing & Bookkeeping', group: 'Department Tracks' },
-  { id: 'customer_ops', label: 'Customer Support & Operations', group: 'Department Tracks' },
-  { id: 'marketing_sales', label: 'Marketing, Sales & Advertising', group: 'Department Tracks' },
-  { id: 'human_resources', label: 'Human Resources & Recruitment', group: 'Department Tracks' },
-  // Vocational & technical trade fields
-  { id: 'auto_trade', label: 'Automotive & Mechanical Servicing', group: 'Technical & Trade' },
-  { id: 'electric_trade', label: 'Electrical Wiring & Electronics', group: 'Technical & Trade' },
-  { id: 'weld_trade', label: 'Welding & Metal Fabrication (SMAW)', group: 'Technical & Trade' },
-  { id: 'carpentry_trade', label: 'Carpentry & Construction Trade', group: 'Technical & Trade' },
-  { id: 'rac_trade', label: 'Refrigeration & Air Conditioning (RAC)', group: 'Technical & Trade' },
-];
-
-// Predefined Locations for Step 3
-const PRESET_LOCATIONS = [
-  // Municipalities & Cities
-  { id: 'roxas', label: 'Roxas, Oriental Mindoro', group: 'Municipalities & Cities' },
-  { id: 'mansalay', label: 'Mansalay, Oriental Mindoro', group: 'Municipalities & Cities' },
-  { id: 'bongabong', label: 'Bongabong, Oriental Mindoro', group: 'Municipalities & Cities' },
-  { id: 'calapan', label: 'Calapan City, Oriental Mindoro', group: 'Municipalities & Cities' },
-  { id: 'puerto_galera', label: 'Puerto Galera, Oriental Mindoro', group: 'Municipalities & Cities' },
-  { id: 'pinamalayan', label: 'Pinamalayan, Oriental Mindoro', group: 'Municipalities & Cities' },
-  { id: 'gloria', label: 'Gloria, Oriental Mindoro', group: 'Municipalities & Cities' },
-  { id: 'bansud', label: 'Bansud, Oriental Mindoro', group: 'Municipalities & Cities' },
-  // Specific Barangays in Roxas
-  { id: 'brgy_dangay', label: 'Brgy. Dangay, Roxas', group: 'Specific Barangays' },
-  { id: 'brgy_bagumbayan', label: 'Brgy. Bagumbayan, Roxas', group: 'Specific Barangays' },
-  { id: 'brgy_poblacion', label: 'Brgy. Poblacion, Roxas', group: 'Specific Barangays' },
-  { id: 'brgy_san_mariano', label: 'Brgy. San Mariano, Roxas', group: 'Specific Barangays' },
-  { id: 'brgy_paclasan', label: 'Brgy. Paclasan, Roxas', group: 'Specific Barangays' },
-  { id: 'brgy_cantil', label: 'Brgy. Cantil, Roxas', group: 'Specific Barangays' },
-  // Broader coverage & flexible arrangements
-  { id: 'within_mindoro', label: 'Within Oriental Mindoro', group: 'Regional & Flexible' },
-  { id: 'outside_province', label: 'Outside Province (Nationwide)', group: 'Regional & Flexible' },
-  { id: 'remote_wfh', label: 'Remote / Work From Home', group: 'Regional & Flexible' },
-  { id: 'any_location', label: 'Any Location (Open to Relocation)', group: 'Regional & Flexible' },
-];
-
-// Predefined Employment Types for Step 3
-const PRESET_EMPLOYMENT_TYPES = [
-  { id: 'full_time', label: 'Full-Time', desc: 'Standard 40+ hours regular schedule' },
-  { id: 'part_time', label: 'Part-Time', desc: 'Flexible reduced hours' },
-  { id: 'flexible', label: 'Flexible Schedule', desc: 'Self-paced or shifting hours' },
-  { id: 'permanent', label: 'Permanent / Regular', desc: 'Long-term job security with benefits' },
-  { id: 'contractual', label: 'Contractual / Fixed-Term', desc: 'Defined contract period' },
-  { id: 'project_based', label: 'Project-Based', desc: 'Specific milestone duration' },
-  { id: 'freelance', label: 'Freelance / Consultant', desc: 'Independent service arrangement' },
-  { id: 'seasonal', label: 'Seasonal / On-Call', desc: 'Peak-season demand' },
-  { id: 'internship', label: 'Internship / OJT', desc: 'Academic or on-the-job training' },
-  { id: 'apprenticeship', label: 'Apprenticeship', desc: 'Hands-on trade qualification' },
-];
-
-const PRESET_SALARIES = [
-  '₱12,000 - ₱18,000 (Entry Level)',
-  '₱18,000 - ₱25,000 (Mid Level)',
-  '₱25,000 - ₱40,000 (Professional)',
-  '₱40,000 - ₱60,000 (Senior / Supervisory)',
-  '₱60,000+ (Executive / Highly Specialized)',
-  'Negotiable based on standard rate'
-];
-
-export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> = ({ onComplete, onNavigate }) => {
+export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> = ({ onComplete }) => {
   const { currentUser, currentSeekerProfile, updateJobSeekerProfile, addNotification, showToast } = useApp();
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isProcessingFile, setIsProcessingFile] = useState<boolean>(false);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [extractionSuccess, setExtractionSuccess] = useState<boolean>(false);
   const [activeFileName, setActiveFileName] = useState<string>('');
   const [isCelebrationOpen, setIsCelebrationOpen] = useState<boolean>(false);
 
+<<<<<<< HEAD
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -188,6 +85,10 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
     };
     reader.readAsDataURL(file);
   };
+=======
+  // Personal & Contact state
+  const [profilePicture, setProfilePicture] = useState(currentSeekerProfile?.profilePicture || currentUser?.avatar || '');
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   const [firstName, setFirstName] = useState(currentSeekerProfile?.firstName || '');
   const [middleName, setMiddleName] = useState(currentSeekerProfile?.middleName || '');
   const [lastName, setLastName] = useState(currentSeekerProfile?.lastName || '');
@@ -202,7 +103,11 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   const [municipality, setMunicipality] = useState(currentSeekerProfile?.municipality || '');
 
   // Education state
+<<<<<<< HEAD
   const [educationalAttainment, setEducationalAttainment] = useState(currentSeekerProfile?.educationalAttainment || '');
+=======
+  const [educationalAttainment, setEducationalAttainment] = useState(currentSeekerProfile?.educationalAttainment || 'College Graduate');
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   const [primaryDegree, setPrimaryDegree] = useState(currentSeekerProfile?.primaryDegree || '');
   const [school, setSchool] = useState(currentSeekerProfile?.education?.[0]?.school || '');
   const [yearGraduated, setYearGraduated] = useState<string>(
@@ -226,6 +131,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   const [itSkills, setItSkills] = useState<string[]>(currentSeekerProfile?.itCreativeSkills || currentSeekerProfile?.technicalSkills || []);
   const [softSkills, setSoftSkills] = useState<string[]>(currentSeekerProfile?.softSkills || []);
 
+<<<<<<< HEAD
   // Temporary skill inputs for adding new ones
   const [inputSkillTrade, setInputSkillTrade] = useState('');
   const [inputSkillAdmin, setInputSkillAdmin] = useState('');
@@ -235,6 +141,9 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   const [inputSkillSoft, setInputSkillSoft] = useState('');
 
   // Step 3: Job Preferences state (starts blank until user selects)
+=======
+  // Step 4: Job Preferences state
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
     currentSeekerProfile?.jobPreferences?.categories || []
   );
@@ -251,11 +160,36 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   // Resume File details for active document storage
   const [uploadedResumeObj, setUploadedResumeObj] = useState<any>(null);
 
-  // File Upload Handler
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const skillSetters: Record<SkillCategoryKey, React.Dispatch<React.SetStateAction<string[]>>> = {
+    trade: setTradeSkills,
+    admin: setAdminSkills,
+    service: setServiceSkills,
+    sales: setSalesSkills,
+    it: setItSkills,
+    soft: setSoftSkills,
+  };
+
+  const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    await processUploadedFile(file);
+    if (file.size > 5 * 1024 * 1024) {
+      showToast({
+        type: 'alert',
+        title: 'Image File Too Large',
+        message: 'Please choose an image file under 5MB.',
+      });
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfilePicture(reader.result as string);
+      showToast({
+        type: 'success',
+        title: 'Profile Photo Uploaded! 📸',
+        message: 'Photo preview updated.',
+      });
+    };
+    reader.readAsDataURL(file);
   };
 
   const processUploadedFile = async (file: File) => {
@@ -263,10 +197,8 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
     setActiveFileName(file.name);
 
     try {
-      // 1. High-accuracy resume/bio-data parsing via server route + local fallback
       const extractedData: ExtractedResumePayload = await parseResumeFile(file);
 
-      // 2. Clean & normalize personal data
       const cleanFirst = formatProperName(extractedData.firstName);
       const cleanMiddle = formatProperName(extractedData.middleName);
       const cleanLast = formatProperName(extractedData.lastName);
@@ -278,19 +210,15 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
         ? String(extractedData.age)
         : computeAgeFromDob(extractedData.dateOfBirth);
 
-      // 3. Auto-populate Personal & Contact details into Step 2 state
       if (cleanFirst) setFirstName(cleanFirst);
       if (cleanMiddle) setMiddleName(cleanMiddle);
       if (cleanLast) setLastName(cleanLast);
       if (extractedData.email) setEmail(extractedData.email);
       if (extractedData.contactNumber) setContactNumber(extractedData.contactNumber);
-      
-      // Leave birthday blank if not stated in resume as requested
+
       setDateOfBirth(extractedData.dateOfBirth ? extractedData.dateOfBirth.trim() : '');
       setAge(resolvedAge || '');
       setCivilStatus(normalizedCivil || 'Single');
-
-      // Leave gender blank if not stated in resume so choices (Male/Female) show when clicked
       setSex(normalizedSexVal || '');
       if (extractedData.address) {
         setAddress(extractedData.address);
@@ -300,7 +228,10 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       if (normalizedBrgy) setBarangay(normalizedBrgy);
       if (extractedData.municipality) setMunicipality(extractedData.municipality);
 
+<<<<<<< HEAD
       // 4. Auto-populate Education & Work Experience details
+=======
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       setEducationalAttainment(normalizedAttainment);
       if (extractedData.primaryDegree) setPrimaryDegree(extractedData.primaryDegree);
       if (extractedData.school) setSchool(extractedData.school);
@@ -334,20 +265,21 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
         );
       }
 
-      // 5. Deep Skill Categorization across all 6 distinct buckets
-      const newTrade = new Set<string>(extractedData.tradeSkills || []);
-      const newAdmin = new Set<string>(extractedData.administrativeSkills || []);
-      const newService = new Set<string>(extractedData.serviceHospitalitySkills || []);
-      const newSales = new Set<string>(extractedData.salesCustomerSkills || []);
-      const newIt = new Set<string>(extractedData.itCreativeSkills || extractedData.technicalSkills || []);
-      const newSoft = new Set<string>(extractedData.softSkills || []);
+      const skills = distributeExtractedSkills(extractedData);
+      setTradeSkills(skills.tradeSkills);
+      setAdminSkills(skills.adminSkills);
+      setServiceSkills(skills.serviceSkills);
+      setSalesSkills(skills.salesSkills);
+      setItSkills(skills.itSkills);
+      setSoftSkills(skills.softSkills);
 
-      // If general extractedSkills or technicalSkills have unassigned items, distribute them
-      const generalSkills = [
-        ...(extractedData.extractedSkills || []),
-        ...(extractedData.technicalSkills || []),
-      ];
+      const parsedCandidateName = [extractedData.firstName, extractedData.middleName, extractedData.lastName]
+        .filter(Boolean)
+        .map(s => (s || '').trim())
+        .filter(Boolean)
+        .join(' ');
 
+<<<<<<< HEAD
       for (const rawSkill of generalSkills) {
         const s = rawSkill.trim();
         if (!s) continue;
@@ -378,6 +310,9 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       const parsedCandidateName = [extractedData.firstName, extractedData.middleName, extractedData.lastName].filter(Boolean).map(s => (s || '').trim()).filter(Boolean).join(' ');
       // Resume document metadata
       const newResumeRecord = {
+=======
+      setUploadedResumeObj({
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
         id: `resume-${Date.now()}`,
         fileName: file.name,
         fileType: file.type || 'application/pdf',
@@ -385,12 +320,12 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
         uploadedAt: new Date().toISOString(),
         parsedDegree: extractedData.primaryDegree || 'Educational Attainment',
         parsedSkills: Array.from(new Set([
-          ...Array.from(newTrade),
-          ...Array.from(newAdmin),
-          ...Array.from(newService),
-          ...Array.from(newSales),
-          ...Array.from(newIt),
-          ...Array.from(newSoft)
+          ...skills.tradeSkills,
+          ...skills.adminSkills,
+          ...skills.serviceSkills,
+          ...skills.salesSkills,
+          ...skills.itSkills,
+          ...skills.softSkills,
         ])),
         parsedAttainment: normalizedAttainment,
         candidateName: parsedCandidateName || undefined,
@@ -398,10 +333,10 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
         middleName: extractedData.middleName || undefined,
         lastName: extractedData.lastName || undefined,
         isPrimary: true,
-      };
-      setUploadedResumeObj(newResumeRecord);
+      });
 
       setExtractionSuccess(true);
+<<<<<<< HEAD
       showToast({
         title: 'Resume Extracted Successfully',
         message: 'Personal details, education, skills, and work experience have been auto-filled into your profile.',
@@ -409,6 +344,10 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       });
       
       // Advance smoothly to Step 2: Information Review & Confirmation
+=======
+      showToast('Resume data extracted into your profile fields! Reviewing details...', 'success');
+
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       setTimeout(() => {
         setCurrentStep(2);
       }, 700);
@@ -425,6 +364,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
     }
   };
 
+<<<<<<< HEAD
   // Skill Add / Delete helpers (Enforces ALL CAPS)
   const handleAddSkill = (
     skill: string, 
@@ -435,16 +375,16 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
     if (!trimmed) return;
     setList(prev => Array.from(new Set([...prev, trimmed])));
     clearInput('');
+=======
+  const handleAddSkill = (category: SkillCategoryKey, skill: string) => {
+    skillSetters[category](prev => Array.from(new Set([...prev, skill])));
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
   };
 
-  const handleRemoveSkill = (
-    skillToRemove: string, 
-    setList: React.Dispatch<React.SetStateAction<string[]>>
-  ) => {
-    setList(prev => prev.filter(s => s !== skillToRemove));
+  const handleRemoveSkill = (category: SkillCategoryKey, skillToRemove: string) => {
+    skillSetters[category](prev => prev.filter(s => s !== skillToRemove));
   };
 
-  // Preference Toggle Helpers
   const toggleSelection = (item: string, currentList: string[], setList: React.Dispatch<React.SetStateAction<string[]>>) => {
     if (currentList.includes(item)) {
       if (currentList.length > 1) {
@@ -457,37 +397,30 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
     }
   };
 
-  // Validation Checks for Step 4
-  const totalEnteredSkills = 
-    tradeSkills.length + 
-    adminSkills.length + 
-    serviceSkills.length + 
-    salesSkills.length + 
-    itSkills.length + 
-    softSkills.length;
+  const technicalSkillsCount = tradeSkills.length + adminSkills.length + serviceSkills.length + salesSkills.length + itSkills.length;
+  const totalEnteredSkills = technicalSkillsCount + softSkills.length;
 
   const validationResults = {
     hasName: Boolean(firstName.trim() && lastName.trim()),
     hasContact: Boolean(contactNumber.trim() && email.trim()),
     hasAddress: Boolean(address.trim() || municipality.trim()),
     hasEducation: Boolean(educationalAttainment.trim() && primaryDegree.trim()),
-    hasSkills: true, // Skills are optional - not everyone has skills in all categories
+    hasSkills: true,
     hasPreferences: selectedCategories.length > 0 && selectedLocations.length > 0 && selectedEmpTypes.length > 0,
   };
 
   const isProfileValid = Object.values(validationResults).every(Boolean);
 
-  // Finish Profile Setup & Save
   const handleCompleteSetup = () => {
     const seekerId = currentSeekerProfile?.id || (currentUser ? `seeker-${currentUser.id}` : `seeker-${Date.now()}`);
     const userId = currentUser?.id || currentSeekerProfile?.userId || `user-${Date.now()}`;
 
     const allTechCombined = Array.from(new Set([
-      ...tradeSkills, 
-      ...adminSkills, 
-      ...serviceSkills, 
-      ...salesSkills, 
-      ...itSkills
+      ...tradeSkills,
+      ...adminSkills,
+      ...serviceSkills,
+      ...salesSkills,
+      ...itSkills,
     ]));
 
     const eduRecord = (primaryDegree.trim() || school.trim() || educationalAttainment.trim()) ? [{
@@ -501,14 +434,14 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
     const userFullName = [firstName, middleName, lastName].filter(Boolean).map(s => s.trim()).filter(Boolean).join(' ');
     const activeResumeRecord = uploadedResumeObj ? {
       ...uploadedResumeObj,
-      candidateName: userFullName || (uploadedResumeObj as any).candidateName,
-      firstName: firstName.trim() || (uploadedResumeObj as any).firstName,
-      middleName: middleName.trim() || (uploadedResumeObj as any).middleName,
-      lastName: lastName.trim() || (uploadedResumeObj as any).lastName,
+      candidateName: userFullName || uploadedResumeObj.candidateName,
+      firstName: firstName.trim() || uploadedResumeObj.firstName,
+      middleName: middleName.trim() || uploadedResumeObj.middleName,
+      lastName: lastName.trim() || uploadedResumeObj.lastName,
     } : null;
 
     const existingResumes = currentSeekerProfile?.resumes || [];
-    const updatedResumes = activeResumeRecord 
+    const updatedResumes = activeResumeRecord
       ? [activeResumeRecord, ...existingResumes.filter(r => r.fileName !== activeResumeRecord.fileName)]
       : existingResumes;
 
@@ -554,13 +487,9 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       updatedAt: new Date().toISOString(),
     };
 
-    // Save profile to context and persistent database
     updateJobSeekerProfile(seekerId, updatedProfile);
-
-    // Persist completion state in storage so subsequent logins immediately recognize setup completion
     markProfileCompletedInStorage([currentUser?.id, currentUser?.email, email, seekerId], 'job_seeker');
 
-    // Create real-time notification
     if (typeof addNotification === 'function') {
       addNotification({
         recipientId: userId,
@@ -580,7 +509,6 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       });
     }
 
-    // Direct transition to Job Seeker Dashboard showing profile-matched job recommendations
     onComplete('seeker-dashboard');
   };
 
@@ -625,11 +553,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
               </span>
             </div>
             <div className="text-sm font-semibold text-[var(--color-accent)] mt-1">
-              {currentStep === 1 && 'Upload Resume / Bio-data'}
-              {currentStep === 2 && 'Review & Edit Personal Info & Education'}
-              {currentStep === 3 && 'Skills Inventory'}
-              {currentStep === 4 && 'Job Preferences'}
-              {currentStep === 5 && 'Profile Validation & Done'}
+              {STEP_TITLES[currentStep]}
             </div>
           </div>
         </div>
@@ -649,7 +573,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
             <span className="font-bold text-[var(--color-ink)] tabular-nums">{Math.round((currentStep / 5) * 100)}%</span>
           </div>
           <div className="w-full h-2 bg-[var(--color-paper-warm)] border border-[var(--color-rule)] rounded-full overflow-hidden">
-            <div 
+            <div
               className="h-full bg-[var(--color-accent)] rounded-full"
               style={{ width: `${(currentStep / 5) * 100}%` }}
             />
@@ -657,140 +581,18 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
         </div>
       </div>
 
-      {/* STEP 1: Upload Resume or Bio-data */}
       {currentStep === 1 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
-          className="bg-[var(--color-paper)] rounded-2xl border border-[var(--color-rule)] p-6 sm:p-8"
-        >
-          <div className="text-center max-w-xl mx-auto space-y-4">
-            <div className="w-14 h-14 bg-[var(--color-paper-warm)] border border-[var(--color-rule)] text-[var(--color-accent)] rounded-2xl flex items-center justify-center mx-auto">
-              <Upload className="w-7 h-7" aria-hidden="true" />
-            </div>
-            <div>
-              <h2 className="text-lg sm:text-xl font-bold text-[var(--color-ink)] font-display">
-                Upload your Resume or Bio-data
-              </h2>
-              <p className="text-xs sm:text-sm text-[var(--color-ink-muted)] mt-1">
-                Upload your resume, CV, or bio-data. Our AI-driven parser will automatically extract your personal details, education, degree, and skills so you don’t have to type them from scratch.
-              </p>
-            </div>
-
-            {/* Drag & Drop Upload Zone */}
-            <div
-              onClick={() => !isProcessingFile && fileInputRef.current?.click()}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (!isProcessingFile) setIsDragging(true);
-              }}
-              onDragEnter={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                if (!isProcessingFile) setIsDragging(true);
-              }}
-              onDragLeave={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsDragging(false);
-              }}
-              onDrop={async (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setIsDragging(false);
-                if (isProcessingFile) return;
-                const file = e.dataTransfer.files?.[0];
-                if (file) {
-                  await processUploadedFile(file);
-                }
-              }}
-              className={`relative border-2 border-dashed rounded-2xl p-8 sm:p-10 cursor-pointer transition-colors duration-200 overflow-hidden focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] ${
-                isProcessingFile
-                  ? 'border-[var(--color-accent)] bg-[var(--color-paper-warm)] cursor-wait ring-2 ring-[var(--color-accent)]/20'
-                  : isDragging
-                    ? 'border-[var(--color-accent)] bg-[var(--color-paper-warm)] ring-2 ring-[var(--color-accent)]/30'
-                    : 'border-[var(--color-rule)] hover:border-[var(--color-accent)] bg-[var(--color-paper)] hover:bg-[var(--color-paper-warm)]'
-              }`}
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".pdf,.docx,.doc,.txt,image/*"
-                onChange={handleFileChange}
-                className="hidden"
-              />
-
-              {isProcessingFile ? (
-                <div className="flex flex-col items-center justify-center space-y-3">
-                  <Loader2 className="w-10 h-10 text-[var(--color-accent)] motion-safe:animate-spin" aria-hidden="true" />
-                  <div className="text-sm font-bold text-[var(--color-ink)]">
-                    Extracting data from <span className="text-[var(--color-accent)] font-mono">{activeFileName}</span>…
-                  </div>
-                  <p className="text-xs text-[var(--color-ink-muted)] max-w-md text-center">
-                    Accurately identifying full name, education, course, university, and 6 skill categories. Unstated fields will remain blank for your manual review.
-                  </p>
-                </div>
-              ) : extractionSuccess ? (
-                <div className="flex flex-col items-center justify-center space-y-2">
-                  <CheckCircle2 className="w-10 h-10 text-emerald-600" aria-hidden="true" />
-                  <div className="text-sm font-bold text-[var(--color-ink)]">Resume Extracted Successfully!</div>
-                  <p className="text-xs text-[var(--color-ink-muted)] font-mono">{activeFileName}</p>
-                  <span className="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                    Redirecting to Step 2 review…
-                  </span>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center space-y-3.5">
-                  <div className="w-14 h-14 rounded-2xl bg-[var(--color-paper-warm)] border border-[var(--color-rule)] flex items-center justify-center text-[var(--color-accent)]">
-                    <FileText className="w-7 h-7" aria-hidden="true" />
-                  </div>
-                  <div className="text-center">
-                    <div className="text-sm font-bold text-[var(--color-ink)]">
-                      Click to browse or drag and drop your file here
-                    </div>
-                    <p className="text-xs text-[var(--color-ink-muted)] mt-1">
-                      Supported formats: PDF, DOCX, DOC, TXT, or Image Bio-data (PNG, JPG)
-                    </p>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-                    <span className="text-[10px] font-medium text-[var(--color-ink)] bg-[var(--color-paper-warm)] border border-[var(--color-rule)] px-2.5 py-0.5 rounded-md">
-                      Smart Bio-Data & Resume Parser
-                    </span>
-                    <span className="text-[10px] font-medium text-[var(--color-ink)] bg-[var(--color-paper-warm)] border border-[var(--color-rule)] px-2.5 py-0.5 rounded-md">
-                      Unstated Gender & Birthday Remain Blank
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn btn--primary mt-1 px-5 py-2 text-xs font-semibold rounded-xl transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
-                  >
-                    Select Resume File
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Manual entry alternative */}
-            <div className="pt-4 flex items-center justify-center gap-2">
-              <span className="text-xs text-[var(--color-ink-muted)]">Don’t have a resume right now?</span>
-              <button
-                type="button"
-                onClick={() => setCurrentStep(2)}
-                className="text-xs font-semibold text-[var(--color-accent)] hover:underline cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
-              >
-                Proceed to Manual Information Entry
-              </button>
-            </div>
-          </div>
-        </motion.div>
+        <WizardStepResumeUpload
+          isProcessingFile={isProcessingFile}
+          extractionSuccess={extractionSuccess}
+          activeFileName={activeFileName}
+          onFileSelected={processUploadedFile}
+          onProceedManual={() => setCurrentStep(2)}
+        />
       )}
 
-      {/* STEP 2: Information Review & Edit */}
       {currentStep === 2 && (
+<<<<<<< HEAD
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1326,10 +1128,59 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
             </button>
           </div>
         </motion.div>
+=======
+        <WizardStepPersonalEducation
+          profilePicture={profilePicture}
+          setProfilePicture={setProfilePicture}
+          onAvatarFileUpload={handleAvatarFileUpload}
+          firstName={firstName}
+          setFirstName={setFirstName}
+          middleName={middleName}
+          setMiddleName={setMiddleName}
+          lastName={lastName}
+          setLastName={setLastName}
+          dateOfBirth={dateOfBirth}
+          setDateOfBirth={setDateOfBirth}
+          age={age}
+          setAge={setAge}
+          civilStatus={civilStatus}
+          setCivilStatus={setCivilStatus}
+          sex={sex}
+          setSex={setSex}
+          contactNumber={contactNumber}
+          setContactNumber={setContactNumber}
+          email={email}
+          setEmail={setEmail}
+          address={address}
+          setAddress={setAddress}
+          barangay={barangay}
+          setBarangay={setBarangay}
+          educationalAttainment={educationalAttainment}
+          setEducationalAttainment={setEducationalAttainment}
+          primaryDegree={primaryDegree}
+          setPrimaryDegree={setPrimaryDegree}
+          school={school}
+          setSchool={setSchool}
+          yearGraduated={yearGraduated}
+          setYearGraduated={setYearGraduated}
+          onBack={() => setCurrentStep(1)}
+          onNext={() => {
+            if (!firstName.trim() || !lastName.trim()) {
+              showToast('Please provide your First Name and Last Name.', 'error');
+              return;
+            }
+            if (!primaryDegree.trim()) {
+              showToast('Please specify your Course or Degree.', 'error');
+              return;
+            }
+            setCurrentStep(3);
+          }}
+        />
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       )}
 
-      {/* STEP 3: Skills Inventory across Categories */}
       {currentStep === 3 && (
+<<<<<<< HEAD
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1617,10 +1468,27 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
             </button>
           </div>
         </motion.div>
+=======
+        <WizardStepSkillsInventory
+          skillsByCategory={{
+            trade: tradeSkills,
+            admin: adminSkills,
+            service: serviceSkills,
+            sales: salesSkills,
+            it: itSkills,
+            soft: softSkills,
+          }}
+          totalEnteredSkills={totalEnteredSkills}
+          onAddSkill={handleAddSkill}
+          onRemoveSkill={handleRemoveSkill}
+          onBack={() => setCurrentStep(2)}
+          onNext={() => setCurrentStep(4)}
+        />
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       )}
 
-      {/* STEP 4: Job Preferences */}
       {currentStep === 4 && (
+<<<<<<< HEAD
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -1788,139 +1656,45 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
             </button>
           </div>
         </motion.div>
+=======
+        <WizardStepJobPreferences
+          selectedCategories={selectedCategories}
+          selectedLocations={selectedLocations}
+          selectedEmpTypes={selectedEmpTypes}
+          selectedSalary={selectedSalary}
+          onToggleCategory={label => toggleSelection(label, selectedCategories, setSelectedCategories)}
+          onToggleLocation={label => toggleSelection(label, selectedLocations, setSelectedLocations)}
+          onToggleEmpType={label => toggleSelection(label, selectedEmpTypes, setSelectedEmpTypes)}
+          onSalaryChange={setSelectedSalary}
+          onBack={() => setCurrentStep(3)}
+          onNext={() => setCurrentStep(5)}
+        />
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       )}
 
-      {/* STEP 5: Profile Validation & Completion */}
       {currentStep === 5 && (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -12 }}
-          className="bg-[var(--color-paper)] rounded-2xl border border-[var(--color-rule)] p-6 sm:p-8 space-y-6"
-        >
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold text-[var(--color-ink)] font-display">
-              System Qualification Check
-            </h2>
-            <p className="text-xs sm:text-sm text-[var(--color-ink-muted)] mt-1">
-              eHANAP Roxas verifies that your profile contains all necessary qualification parameters required for our mathematical Decision Tree matching algorithm.
-            </p>
-          </div>
-
-          {/* Validation Checklist */}
-          <div className="space-y-3 bg-[var(--color-paper-warm)] p-4 sm:p-5 rounded-2xl border border-[var(--color-rule)]">
-            {[
-              {
-                id: 'name',
-                title: 'Full Candidate Name & Identity',
-                detail: `${firstName} ${middleName ? middleName + ' ' : ''}${lastName}`,
-                valid: validationResults.hasName,
-              },
-              {
-                id: 'contact',
-                title: 'Contact Information & Email Verification',
-                detail: `${contactNumber} • ${email}`,
-                valid: validationResults.hasContact,
-              },
-              {
-                id: 'address',
-                title: 'Residential Address & Municipality',
-                detail: address || `${barangay ? 'Brgy. ' + barangay + ', ' : ''}${municipality}, Oriental Mindoro`,
-                valid: validationResults.hasAddress,
-              },
-              {
-                id: 'education',
-                title: 'Educational Attainment & Program / Degree',
-                detail: `${educationalAttainment} in ${primaryDegree || 'Field of Study'}`,
-                valid: validationResults.hasEducation,
-              },
-              {
-                id: 'skills',
-                title: 'Skills & Competencies Inventory (Optional)',
-                detail: totalEnteredSkills > 0
-                  ? `${tradeSkills.length + adminSkills.length + serviceSkills.length + salesSkills.length + itSkills.length} Technical/Trade skills • ${softSkills.length} Soft competencies recorded`
-                  : 'No skills entered (Optional — not required to complete profile)',
-                valid: true,
-                isOptional: true,
-              },
-              {
-                id: 'preferences',
-                title: 'Selected Career & Job Preferences',
-                detail: `${selectedCategories.length} Categories • ${selectedLocations.length} Locations • ${selectedEmpTypes.length} Employment Types`,
-                valid: validationResults.hasPreferences,
-              },
-            ].map(item => (
-              <div
-                key={item.id}
-                className="flex items-start justify-between gap-3 p-3 bg-[var(--color-paper)] rounded-xl border border-[var(--color-rule)]"
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${
-                    item.id === 'skills' && totalEnteredSkills === 0
-                      ? 'bg-[var(--color-paper-warm)] text-[var(--color-ink-muted)]'
-                      : item.valid
-                        ? 'bg-emerald-50 text-emerald-800'
-                        : 'bg-amber-50 text-amber-800'
-                  }`}>
-                    {item.valid ? <Check className="w-3.5 h-3.5" aria-hidden="true" /> : <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" />}
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-[var(--color-ink)]">{item.title}</div>
-                    <div className="text-[11px] text-[var(--color-ink-muted)] mt-0.5">{item.detail}</div>
-                  </div>
-                </div>
-                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 border ${
-                  item.id === 'skills'
-                    ? (totalEnteredSkills > 0 ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-[var(--color-paper-warm)] text-[var(--color-ink-muted)] border-[var(--color-rule)]')
-                    : item.valid ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200'
-                }`}>
-                  {item.id === 'skills'
-                    ? (totalEnteredSkills > 0 ? 'Recorded' : 'Optional (Skipped)')
-                    : item.valid ? 'Qualified' : 'Pending Info'}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Validation Status Summary */}
-          {isProfileValid ? (
-            <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
-              <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" aria-hidden="true" />
-              <div className="text-xs text-emerald-800">
-                <span className="font-bold">All qualification criteria passed!</span> Your profile is fully prepared to execute the Decision Tree matching engine.
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" aria-hidden="true" />
-              <div className="text-xs text-amber-800">
-                <span className="font-bold">Missing required information:</span> Please go back to previous steps (Step 2, 3, or 4) to fill in missing fields before proceeding.
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Controls */}
-          <div className="flex items-center justify-between pt-6 border-t border-[var(--color-rule)]">
-            <button
-              type="button"
-              onClick={() => setCurrentStep(4)}
-              className="btn btn--quiet px-4 py-2 text-xs font-medium text-[var(--color-ink-muted)] hover:text-[var(--color-ink)] flex items-center gap-1.5 cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
-            >
-              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-              <span>Back to Preferences</span>
-            </button>
-
-            <button
-              type="button"
-              disabled={!isProfileValid}
-              onClick={handleCompleteSetup}
-              className={`btn btn--primary px-6 py-2.5 text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-2 cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50`}
-            >
-              <Sparkles className="w-4 h-4 fill-current" aria-hidden="true" />
-              <span>Complete Profile Setup & View Matching Jobs</span>
-            </button>
-          </div>
-        </motion.div>
+        <WizardStepValidation
+          firstName={firstName}
+          middleName={middleName}
+          lastName={lastName}
+          contactNumber={contactNumber}
+          email={email}
+          address={address}
+          barangay={barangay}
+          municipality={municipality}
+          educationalAttainment={educationalAttainment}
+          primaryDegree={primaryDegree}
+          technicalSkillsCount={technicalSkillsCount}
+          softSkillsCount={softSkills.length}
+          totalEnteredSkills={totalEnteredSkills}
+          selectedCategoriesCount={selectedCategories.length}
+          selectedLocationsCount={selectedLocations.length}
+          selectedEmpTypesCount={selectedEmpTypes.length}
+          validationResults={validationResults}
+          isProfileValid={isProfileValid}
+          onBack={() => setCurrentStep(4)}
+          onComplete={handleCompleteSetup}
+        />
       )}
 
       {/* Step 5 Completion Pop-up Modal */}

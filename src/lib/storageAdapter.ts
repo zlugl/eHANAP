@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import {
   User,
   EmployerProfile,
@@ -13,6 +14,9 @@ import {
   CandidateMatch,
   CandidateInvitation,
 } from '../types';
+=======
+import { User, JobSeekerProfile, EmployerProfile, CandidateInvitation } from '../types';
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
 
 /**
  * eHANAP Centralized Storage Keys
@@ -370,6 +374,15 @@ export function getStoredCandidateMatches(fallback: CandidateMatch[] = []): Cand
 
 export function setStoredCandidateMatches(matches: CandidateMatch[]): void {
   setItem(STORAGE_KEYS.CANDIDATE_MATCHES, filterOutLegacyDemoRecords(matches));
+}
+
+export function getStoredEmployers(fallback: EmployerProfile[] = []): EmployerProfile[] {
+  const data = getItem<EmployerProfile[]>(STORAGE_KEYS.EMPLOYERS, fallback);
+  return Array.isArray(data) ? data : fallback;
+}
+
+export function setStoredEmployers(employers: EmployerProfile[]): void {
+  setItem(STORAGE_KEYS.EMPLOYERS, employers);
 }
 
 export function getStoredInvitations(fallback: CandidateInvitation[] = []): CandidateInvitation[] {

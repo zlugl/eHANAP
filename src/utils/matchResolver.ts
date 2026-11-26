@@ -211,6 +211,18 @@ export function getMatchScoreCategory(score: number): {
 }
 
 /**
+ * Maps a DecisionTreeOutcome to the official PESO Referral Slip tier label.
+ */
+export function outcomeToReferralTier(
+  outcome: DecisionTreeOutcome
+): 'Highly Qualified' | 'Qualified' | 'Moderately Qualified' | 'Low Match' {
+  if (outcome === 'HIGHLY QUALIFIED') return 'Highly Qualified';
+  if (outcome === 'QUALIFIED') return 'Qualified';
+  if (outcome === 'MODERATELY QUALIFIED') return 'Moderately Qualified';
+  return 'Low Match';
+}
+
+/**
  * Clears the entire in-memory match cache and resets metrics.
  */
 export function clearMatchCache(): void {

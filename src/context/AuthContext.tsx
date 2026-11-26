@@ -5,6 +5,8 @@ import { storageAdapter } from '../lib/storageAdapter';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   testSupabaseConnection,
+  fetchUserByEmail,
+  signUpWithSupabase,
   signInWithSupabase,
   signOutWithSupabase,
   signInWithSupabaseOAuth,
@@ -32,23 +34,23 @@ export interface AuthContextType {
   setCurrentUser: React.Dispatch<React.SetStateAction<User | null>>;
   setUsers: React.Dispatch<React.SetStateAction<User[]>>;
   switchUserRole: (userId: string | null) => void;
-  switchDemoRole: (target: 'job_seeker' | 'employer' | 'admin' | string) => {
+  switchDemoRole: (target: 'job_seeker' | 'employer' | 'admin' | string) => Promise<{
     success: boolean;
     user?: User;
     role?: UserRole;
     error?: string;
-  };
+  }>;
   loginAs: (
     email: string,
     password?: string
-  ) => {
+  ) => Promise<{
     success: boolean;
     user?: User;
     isProfileCompleted?: boolean;
     seekerProfile?: JobSeekerProfile | null;
     employerProfile?: EmployerProfile | null;
     error?: string;
-  };
+  }>;
   continueWithGoogle: (
     intendedRole?: UserRole
   ) => Promise<{
@@ -78,6 +80,103 @@ export interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const OAUTH_INTENDED_ROLE_KEY = 'ehanap_oauth_intended_role';
+
+function buildOAuthUserAndProfile(
+  oauthUser: any,
+  intendedRole: UserRole
+): {
+  newUser: User;
+  employerProfile?: EmployerProfile;
+  seekerProfile?: JobSeekerProfile;
+  profileTable: typeof SUPABASE_TABLES.EMPLOYERS | typeof SUPABASE_TABLES.JOB_SEEKERS;
+} {
+  const email = (oauthUser.email || '').toLowerCase().trim();
+  const metadata = oauthUser.user_metadata || {};
+  const name = metadata.full_name || metadata.name || oauthUser.displayName || email.split('@')[0];
+  const rawId = oauthUser.id ? String(oauthUser.id) : '';
+  const newUserId = rawId && !rawId.startsWith('offline-') ? rawId : `user-${Date.now()}`;
+  const avatarUrl = metadata.avatar_url || oauthUser.photoURL || undefined;
+  const resolvedRole: 'employer' | 'job_seeker' = intendedRole === 'employer' ? 'employer' : 'job_seeker';
+
+  clearProfileCompletedInStorage([newUserId, email], resolvedRole);
+
+  const newUser: User = {
+    id: newUserId,
+    email,
+    name,
+    role: resolvedRole,
+    isAccountVerified: true,
+    isProfileCompleted: false,
+    createdAt: new Date().toISOString(),
+    avatar: avatarUrl,
+  };
+
+  if (resolvedRole === 'employer') {
+    const employerProfile: EmployerProfile = {
+      id: `emp-${Date.now()}`,
+      userId: newUserId,
+      companyName: name || 'Business Establishment',
+      representativeName: name || 'Authorized Representative',
+      contactNumber: '',
+      email,
+      address: 'Roxas, Oriental Mindoro',
+      municipality: 'Roxas',
+      industry: 'Information Technology',
+      companyDescription: '',
+      status: 'pending',
+      isProfileCompleted: false,
+      logoUrl:
+        avatarUrl ||
+        'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
+      createdAt: new Date().toISOString(),
+    };
+
+    const existingEmployers = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
+    if (!existingEmployers.some((e) => e.userId === newUserId || e.email?.toLowerCase() === email)) {
+      storageAdapter.setStoredEmployers([...existingEmployers, employerProfile]);
+    }
+
+    return { newUser, employerProfile, profileTable: SUPABASE_TABLES.EMPLOYERS };
+  }
+
+  const nameParts = name.trim().split(/\s+/);
+  const firstName = nameParts[0] || 'Job';
+  const lastName = nameParts.slice(1).join(' ') || 'Seeker';
+
+  const seekerProfile: JobSeekerProfile = {
+    id: `seeker-${Date.now()}`,
+    userId: newUserId,
+    firstName,
+    lastName,
+    dateOfBirth: '2000-01-01',
+    email,
+    contactNumber: '',
+    address: 'Bagumbayan, Roxas',
+    municipality: 'Roxas',
+    profilePicture: avatarUrl,
+    professionalSummary: 'Job seeker registered via Google on eHANAP Roxas.',
+    educationalAttainment: "Bachelor's Degree",
+    primaryDegree: '',
+    technicalSkills: [],
+    softSkills: ['Communication', 'Teamwork'],
+    education: [],
+    workExperience: [],
+    certifications: [],
+    resumes: [],
+    isProfileCompleted: false,
+    employmentStatus: 'unemployed',
+    updatedAt: new Date().toISOString(),
+  };
+
+  const existingSeekers = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
+  if (!existingSeekers.some((s) => s.userId === newUserId || s.email?.toLowerCase() === email)) {
+    storageAdapter.setStoredJobSeekers([...existingSeekers, seekerProfile]);
+  }
+
+  return { newUser, seekerProfile, profileTable: SUPABASE_TABLES.JOB_SEEKERS };
+}
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   let toastContext: ReturnType<typeof useToast> | null = null;
   try {
@@ -93,6 +192,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const usersRef = useRef<User[]>(users);
+  usersRef.current = users;
 
   // Sync users state to storageAdapter
   useEffect(() => {
@@ -103,24 +204,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (!isSupabaseConfigured()) return;
 
+    let isMounted = true;
     let unsubs: Array<() => void> = [];
 
     async function initSupabaseAuth() {
       try {
         const conn = await testSupabaseConnection();
-        if (conn.connected) {
+        if (conn.connected && isMounted) {
           setIsSupabaseConnected(true);
 
-          const authSub = onSupabaseAuthStateChange((event, session) => {
-            if (session?.user?.email) {
-              const sessionEmail = session.user.email.toLowerCase();
-              setUsers((latestUsers) => {
-                const match = latestUsers.find((u) => u.email.toLowerCase() === sessionEmail);
-                if (match) {
-                  setCurrentUser(match);
-                }
-                return latestUsers;
+          const authSub = onSupabaseAuthStateChange(async (event, session) => {
+            if (!isMounted) return;
+            if (event === 'SIGNED_OUT' || !session?.user?.email) {
+              if (event === 'SIGNED_OUT') setCurrentUser(null);
+              return;
+            }
+
+            const sessionEmail = session.user.email.toLowerCase().trim();
+            const storedUsers = storageAdapter.getStoredUsers([]);
+            let match =
+              usersRef.current.find((u) => u.email.toLowerCase() === sessionEmail) ||
+              storedUsers.find((u) => u.email?.toLowerCase() === sessionEmail) ||
+              null;
+
+            if (!match) {
+              match = await fetchUserByEmail(sessionEmail);
+            }
+
+            const intendedRoleRaw = storageAdapter.getItem<string | null>(OAUTH_INTENDED_ROLE_KEY, null);
+            if (intendedRoleRaw) {
+              storageAdapter.removeItem(OAUTH_INTENDED_ROLE_KEY);
+            }
+
+            if (!isMounted) return;
+
+            if (match) {
+              const completed = Boolean(
+                match.isProfileCompleted ||
+                  (match.role === 'employer'
+                    ? storageAdapter.isEmployerCompletedInStorage(match.id) ||
+                      storageAdapter.isEmployerCompletedInStorage(sessionEmail)
+                    : storageAdapter.isProfileCompletedInStorage(match.id) ||
+                      storageAdapter.isProfileCompletedInStorage(sessionEmail))
+              );
+              const hydratedUser: User = { ...match, isProfileCompleted: completed };
+              setUsers((prev) => {
+                const map = new Map<string, User>();
+                prev.forEach((u) => map.set(u.id, u));
+                map.set(hydratedUser.id, hydratedUser);
+                return Array.from(map.values());
               });
+              setCurrentUser(hydratedUser);
+              return;
+            }
+
+            // Brand-new OAuth user after Google redirect: provision User + profile using intended role
+            const intendedRole: UserRole = intendedRoleRaw === 'employer' ? 'employer' : 'job_seeker';
+            const { newUser, employerProfile, seekerProfile, profileTable } = buildOAuthUserAndProfile(
+              session.user,
+              intendedRole
+            );
+
+            setUsers((prev) => {
+              if (prev.some((u) => u.email.toLowerCase() === sessionEmail)) return prev;
+              return [...prev, newUser];
+            });
+            setCurrentUser(newUser);
+
+            // Insert users row before profile row so RLS current_app_user_id() resolves
+            await saveRecord(SUPABASE_TABLES.USERS, newUser);
+            const profileRecord = employerProfile || seekerProfile;
+            if (profileRecord) {
+              await saveRecord(profileTable, profileRecord);
             }
           });
           unsubs.push(authSub.unsubscribe);
@@ -166,6 +321,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initSupabaseAuth();
 
     return () => {
+      isMounted = false;
       unsubs.forEach((unsub) => unsub());
     };
   }, []);
@@ -183,10 +339,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const loginAs = useCallback(
-    (email: string, password?: string) => {
+    async (email: string, password?: string) => {
       const cleanEmail = email.toLowerCase().trim();
+      const supabaseConfigured = isSupabaseConfigured();
 
-      let found = users.find((u) => u.email.toLowerCase() === cleanEmail);
+      if (!password) {
+        return { success: false, error: 'Please enter your password.' };
+      }
+
+      let found: (User & { password?: string }) | undefined = users.find(
+        (u) => u.email.toLowerCase() === cleanEmail
+      );
 
       if (!found) {
         const savedUsers = storageAdapter.getStoredUsers([]);
@@ -202,15 +365,85 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+<<<<<<< HEAD
       if (!found) {
         return {
           success: false,
           error: 'No account found with this email address. Please create an account first.',
         };
       }
+=======
+      if (supabaseConfigured) {
+        const authRes = await signInWithSupabase(cleanEmail, password);
+        if (!authRes.success) {
+          return { success: false, error: authRes.error || 'Incorrect email or password. Please try again.' };
+        }
 
-      if (password && (found as any).password && (found as any).password !== password) {
-        return { success: false, error: 'Incorrect password. Please try again.' };
+        if (!found) {
+          const dbUser = await fetchUserByEmail(cleanEmail);
+          if (dbUser) {
+            found = dbUser;
+          } else if (authRes.user) {
+            const meta = authRes.user.user_metadata || {};
+            const resolvedRole: UserRole =
+              meta.role === 'employer' || meta.role === 'admin' ? meta.role : 'job_seeker';
+            found = {
+              id: authRes.user.id || `user-${Date.now()}`,
+              email: cleanEmail,
+              name: meta.full_name || meta.name || cleanEmail.split('@')[0],
+              role: resolvedRole,
+              avatar: meta.avatar_url,
+              isAccountVerified: true,
+              createdAt: authRes.user.created_at || new Date().toISOString(),
+            };
+          }
+          if (found) {
+            const hydrated = found;
+            setUsers((prev) => {
+              const map = new Map<string, User>();
+              prev.forEach((u) => map.set(u.id, u));
+              map.set(hydrated.id, hydrated);
+              return Array.from(map.values());
+            });
+          }
+        }
+
+        if (!found) {
+          return {
+            success: false,
+            error: 'No account found with this email address. Please register for an account.',
+          };
+        }
+      } else {
+        // Offline-only demo fallback
+        if (!found) {
+          const demo = getDemoAccountByEmail(cleanEmail);
+          if (demo) {
+            found = {
+              id: demo.userId,
+              email: demo.email,
+              name: demo.name,
+              role: demo.role,
+              avatar: demo.avatar,
+              isAccountVerified: true,
+              createdAt: new Date().toISOString(),
+              password: demo.password,
+            };
+            setUsers((prev) => [found!, ...prev]);
+          }
+        }
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
+
+        if (!found) {
+          return {
+            success: false,
+            error: 'No account found with this email address. Please register for an account.',
+          };
+        }
+
+        if (!found.password || found.password !== password) {
+          return { success: false, error: 'Incorrect password. Please try again.' };
+        }
       }
 
       const storedSeekers = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
@@ -233,6 +466,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const isEmployerProfileCompleted = isEmployerProfileComplete(found, matchingEmployer);
 
+<<<<<<< HEAD
       if (found.role === 'job_seeker') {
         (found as any).isProfileCompleted = isSeekerProfileCompleted;
         if (isSeekerProfileCompleted) {
@@ -256,10 +490,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return {
         success: true,
         user: found,
+=======
+      const authenticatedUser: User = {
+        ...found,
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
         isProfileCompleted:
           found.role === 'job_seeker'
             ? isSeekerProfileCompleted
             : found.role === 'employer'
+            ? isEmployerProfileCompleted
+            : found.isProfileCompleted,
+      };
+
+      if (authenticatedUser.role === 'job_seeker' && isSeekerProfileCompleted) {
+        markProfileCompletedInStorage([authenticatedUser.id, cleanEmail], 'job_seeker');
+      } else if (authenticatedUser.role === 'employer' && isEmployerProfileCompleted) {
+        markProfileCompletedInStorage([authenticatedUser.id, cleanEmail], 'employer');
+      }
+
+      setCurrentUser(authenticatedUser);
+
+      return {
+        success: true,
+        user: authenticatedUser,
+        isProfileCompleted:
+          authenticatedUser.role === 'job_seeker'
+            ? isSeekerProfileCompleted
+            : authenticatedUser.role === 'employer'
             ? isEmployerProfileCompleted
             : true,
         seekerProfile: matchingSeeker,
@@ -270,7 +527,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   );
 
   const switchDemoRole = useCallback(
+<<<<<<< HEAD
     (target: 'job_seeker' | 'employer' | 'admin' | string) => {
+=======
+    async (target: 'job_seeker' | 'employer' | 'admin' | string) => {
+      let email = '';
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       const cleanTarget = (target || '').trim().toLowerCase();
       const roleMatch = users.find((u) => {
         if (cleanTarget === 'job_seeker' || cleanTarget === 'seeker') return u.role === 'job_seeker';
@@ -286,8 +548,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
       }
 
+<<<<<<< HEAD
       setCurrentUser(roleMatch);
       return { success: true, user: roleMatch, role: roleMatch.role };
+=======
+      const res = await loginAs(email, 'password123');
+      if (res.success && res.user) {
+        if (toastContext) {
+          toastContext.showToast({
+            title: `Persona: ${
+              res.user.role === 'admin'
+                ? 'PESO Admin'
+                : res.user.role === 'employer'
+                ? 'Employer'
+                : 'Job Seeker'
+            }`,
+            message: `Switched to ${res.user.name} (${res.user.email}).`,
+            type: 'status',
+          });
+        }
+        return { success: true, user: res.user, role: res.user.role };
+      }
+
+      return { success: false, error: res.error || 'Failed to switch demo account.' };
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
     },
     [users]
   );
@@ -301,7 +585,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
 
         if (res.data?.url && typeof window !== 'undefined') {
-          storageAdapter.setItem('ehanap_oauth_intended_role', intendedRole);
+          storageAdapter.setItem(OAUTH_INTENDED_ROLE_KEY, intendedRole);
           window.location.href = res.data.url;
           return { success: true };
         }
@@ -341,15 +625,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isProfileCompleted: isCompleted,
           };
         } else {
-          const metadata = googleUser.user_metadata || {};
-          const name =
-            metadata.full_name || metadata.name || googleUser.displayName || email.split('@')[0];
-          const newUserId = `user-${Date.now()}`;
-          const avatarUrl = metadata.avatar_url || googleUser.photoURL || undefined;
+          const { newUser, employerProfile, seekerProfile, profileTable } = buildOAuthUserAndProfile(
+            googleUser,
+            intendedRole
+          );
 
-          if (intendedRole === 'employer') {
-            clearProfileCompletedInStorage([newUserId, email], 'employer');
+          setUsers((prev) => [...prev, newUser]);
+          setCurrentUser(newUser);
 
+<<<<<<< HEAD
             const newUser: User = {
               id: newUserId,
               email,
@@ -456,7 +740,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               user: newUser,
               seekerProfile: newSeeker,
             };
+=======
+          if (isSupabaseConfigured()) {
+            await saveRecord(SUPABASE_TABLES.USERS, newUser);
+            const profileRecord = employerProfile || seekerProfile;
+            if (profileRecord) {
+              await saveRecord(profileTable, profileRecord);
+            }
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
           }
+
+          return {
+            success: true,
+            isNewUser: true,
+            isProfileCompleted: false,
+            user: newUser,
+            employerProfile,
+            seekerProfile,
+          };
         }
       } catch (err: any) {
         console.warn('Google sign-in notice:', err?.message || err);
@@ -517,10 +818,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      if (
-        code.trim() === '123456' ||
-        (stored && stored.code === code.trim() && Date.now() <= stored.expiresAt)
-      ) {
+      if (stored && stored.code === code.trim() && Date.now() <= stored.expiresAt) {
         otpStore.current.delete(cleanId);
         try {
           sessionStorage.removeItem(`otp_${cleanId}`);
@@ -533,7 +831,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const updatedUser = { ...targetUser, isAccountVerified: true };
           setUsers((prev) => prev.map((u) => (u.id === targetUser.id ? updatedUser : u)));
           if (isSupabaseConfigured()) {
-            saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
+            const { password: _pw, ...userForDb } = updatedUser as User & { password?: string };
+            saveRecord(SUPABASE_TABLES.USERS, userForDb).catch(() => {});
           }
         }
 
@@ -554,9 +853,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const recoverPassword = useCallback(
     (identifier: string, code: string, newPassword: string) => {
-      const verification = verifyOtp(identifier, code);
-      if (!verification.success) {
-        return verification;
+      if (!newPassword || newPassword.length < 6) {
+        return { success: false, error: 'Password must be at least 6 characters.' };
       }
 
       const cleanId = identifier.trim().toLowerCase();
@@ -567,12 +865,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'No account found with this email or mobile number.' };
       }
 
+<<<<<<< HEAD
       const updatedUser = { ...user, password: newPassword } as any;
       setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
       if (isSupabaseConfigured()) {
         saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
       }
 
+=======
+      const verification = verifyOtp(identifier, code);
+      if (!verification.success) {
+        return verification;
+      }
+
+      const updatedUser = {
+        ...user,
+        password: newPassword,
+        isAccountVerified: true,
+      } as User & { password?: string };
+
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
+
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       return { success: true };
     },
     [users, verifyOtp]
@@ -614,10 +928,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...(extraProfile?.password ? { password: extraProfile.password } : {}),
       };
 
+      const { password: _pw, ...userForDb } = newUser as User & { password?: string };
       setUsers((prev) => [...prev, newUser]);
-      if (isSupabaseConfigured()) {
-        saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
-      }
+
+      let profileToSave: JobSeekerProfile | EmployerProfile | null = null;
+      let profileTable: typeof SUPABASE_TABLES.JOB_SEEKERS | typeof SUPABASE_TABLES.EMPLOYERS | null = null;
 
       let createdSeeker: JobSeekerProfile | undefined;
       let createdEmployer: EmployerProfile | undefined;
@@ -651,10 +966,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdSeeker = newSeeker;
         const existingSeekers = storageAdapter.getStoredJobSeekers([]);
         storageAdapter.setStoredJobSeekers([...existingSeekers, newSeeker]);
-
-        if (isSupabaseConfigured()) {
-          saveRecord(SUPABASE_TABLES.JOB_SEEKERS, newSeeker).catch(() => {});
-        }
+        profileToSave = newSeeker;
+        profileTable = SUPABASE_TABLES.JOB_SEEKERS;
       } else if (userData.role === 'employer') {
         const newEmp: EmployerProfile = {
           id: `emp-${Date.now()}`,
@@ -676,6 +989,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: new Date().toISOString(),
         };
 
+<<<<<<< HEAD
         createdEmployer = newEmp;
         const existingEmployers = storageAdapter.getStoredEmployers([]);
         storageAdapter.setStoredEmployers([...existingEmployers, newEmp]);
@@ -683,6 +997,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isSupabaseConfigured()) {
           saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp).catch(() => {});
         }
+=======
+        const existingEmployers = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
+        storageAdapter.setStoredEmployers([...existingEmployers, newEmp]);
+        profileToSave = newEmp;
+        profileTable = SUPABASE_TABLES.EMPLOYERS;
+      }
+
+      if (isSupabaseConfigured()) {
+        signUpWithSupabase(cleanRegEmail, extraProfile?.password, {
+          name: userData.name,
+          role: userData.role,
+        })
+          .then(async (authRes) => {
+            if (!authRes.success) {
+              console.warn('[AuthContext] Supabase Auth signUp warning:', authRes.error);
+              return;
+            }
+            await saveRecord(SUPABASE_TABLES.USERS, userForDb);
+            if (profileToSave && profileTable) {
+              await saveRecord(profileTable, profileToSave);
+            }
+          })
+          .catch((err) => {
+            console.warn('[AuthContext] Supabase registration sync warning:', err);
+          });
+>>>>>>> 55d3e7db88e819bd118d64945937a3d53702b502
       }
 
       setCurrentUser(newUser);

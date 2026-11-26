@@ -81,8 +81,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     onNavigate('landing');
   };
 
-  const handleQuickRoleSwitch = (role: 'job_seeker' | 'employer' | 'admin') => {
-    const res = switchDemoRole(role);
+  const handleQuickRoleSwitch = async (role: 'job_seeker' | 'employer' | 'admin') => {
+    const res = await switchDemoRole(role);
     if (res.success && res.role) {
       setIsMobileMenuOpen(false);
       const targetView = res.role === 'admin' ? 'admin-dashboard' : res.role === 'employer' ? 'employer-dashboard' : 'seeker-dashboard';

@@ -535,7 +535,7 @@ CREATE TABLE IF NOT EXISTS job_alert_subscriptions (
 );
 
 -- ==============================================================================
--- ROW LEVEL SECURITY (RLS) POLICIES
+-- ROW LEVEL SECURITY (RLS) HELPERS & POLICIES
 -- ==============================================================================
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE employer_profiles ENABLE ROW LEVEL SECURITY;
@@ -551,11 +551,72 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE system_announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE job_alert_subscriptions ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies before creating so the script is safely re-runnable
-DROP POLICY IF EXISTS "Public read access to active job posts" ON job_posts;
-DROP POLICY IF EXISTS "Public read access to announcements" ON system_announcements;
-DROP POLICY IF EXISTS "Public read access to lra events" ON lra_events;
+-- SECURITY DEFINER helpers resolve the app user from auth.uid() or verified JWT email without RLS recursion
+CREATE OR REPLACE FUNCTION public.current_app_user_id()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT id
+    FROM public.users
+    WHERE auth.uid() IS NOT NULL
+      AND (
+          id = auth.uid()::text
+          OR lower(email) = lower(COALESCE(auth.jwt() ->> 'email', ''))
+      )
+    LIMIT 1;
+$$;
 
+CREATE OR REPLACE FUNCTION public.current_app_user_role()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT role
+    FROM public.users
+    WHERE auth.uid() IS NOT NULL
+      AND (
+          id = auth.uid()::text
+          OR lower(email) = lower(COALESCE(auth.jwt() ->> 'email', ''))
+      )
+    LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_peso_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT COALESCE(public.current_app_user_role() = 'admin', FALSE);
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_employer_status(emp_id TEXT)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT status FROM public.employer_profiles WHERE id = emp_id LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.get_job_post_status(target_job_id TEXT)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT status FROM public.job_posts WHERE id = target_job_id LIMIT 1;
+$$;
+
+-- Drop legacy permissive policies and existing scoped policies so script is idempotent
 DROP POLICY IF EXISTS "Allow all operations for anon and authenticated on users" ON users;
 DROP POLICY IF EXISTS "Allow all operations for anon and authenticated on employer_profiles" ON employer_profiles;
 DROP POLICY IF EXISTS "Allow all operations for anon and authenticated on seeker_profiles" ON seeker_profiles;
@@ -570,25 +631,367 @@ DROP POLICY IF EXISTS "Allow all operations for anon and authenticated on audit_
 DROP POLICY IF EXISTS "Allow all operations for anon and authenticated on system_announcements" ON system_announcements;
 DROP POLICY IF EXISTS "Allow all operations for anon and authenticated on job_alert_subscriptions" ON job_alert_subscriptions;
 
--- Allow public read access to active vacancies, approved announcements, and LRA events
-CREATE POLICY "Public read access to active job posts" ON job_posts FOR SELECT USING (status = 'active');
-CREATE POLICY "Public read access to announcements" ON system_announcements FOR SELECT USING (true);
-CREATE POLICY "Public read access to lra events" ON lra_events FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Users select own or admin" ON users;
+DROP POLICY IF EXISTS "Users insert self or admin" ON users;
+DROP POLICY IF EXISTS "Users update own or admin" ON users;
+DROP POLICY IF EXISTS "Users delete admin only" ON users;
+CREATE POLICY "Users select own or admin" ON users
+    FOR SELECT USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (id = auth.uid()::text OR lower(email) = lower(COALESCE(auth.jwt() ->> 'email', '')))
+        )
+    );
+CREATE POLICY "Users insert self or admin" ON users
+    FOR INSERT WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND role IN ('employer', 'job_seeker')
+            AND (id = auth.uid()::text OR lower(email) = lower(COALESCE(auth.jwt() ->> 'email', '')))
+        )
+    );
+CREATE POLICY "Users update own or admin" ON users
+    FOR UPDATE USING (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND id = public.current_app_user_id())
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND id = public.current_app_user_id()
+            AND role = public.current_app_user_role()
+        )
+    );
+CREATE POLICY "Users delete admin only" ON users
+    FOR DELETE USING (public.is_peso_admin());
 
--- Permissive policies for authenticated/anon client operations
-CREATE POLICY "Allow all operations for anon and authenticated on users" ON users FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on employer_profiles" ON employer_profiles FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on seeker_profiles" ON seeker_profiles FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on job_posts" ON job_posts FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on applications" ON applications FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on candidate_matches" ON candidate_matches FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on interviews" ON interviews FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on lra_events" ON lra_events FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on peso_referral_slips" ON peso_referral_slips FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on notifications" ON notifications FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on audit_logs" ON audit_logs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on system_announcements" ON system_announcements FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "Allow all operations for anon and authenticated on job_alert_subscriptions" ON job_alert_subscriptions FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Employers select verified, own, or admin" ON employer_profiles;
+DROP POLICY IF EXISTS "Employers insert own pending or admin" ON employer_profiles;
+DROP POLICY IF EXISTS "Employers update own non-status or admin" ON employer_profiles;
+DROP POLICY IF EXISTS "Employers delete admin only" ON employer_profiles;
+CREATE POLICY "Employers select verified, own, or admin" ON employer_profiles
+    FOR SELECT USING (
+        status = 'verified'
+        OR public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND user_id = public.current_app_user_id())
+    );
+CREATE POLICY "Employers insert own pending or admin" ON employer_profiles
+    FOR INSERT WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND user_id = public.current_app_user_id()
+            AND status = 'pending'
+        )
+    );
+CREATE POLICY "Employers update own non-status or admin" ON employer_profiles
+    FOR UPDATE USING (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND user_id = public.current_app_user_id())
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND user_id = public.current_app_user_id()
+            AND (
+                status = COALESCE(public.get_employer_status(id), 'pending')
+                OR (public.get_employer_status(id) = 'for_compliance' AND status = 'pending')
+            )
+        )
+    );
+CREATE POLICY "Employers delete admin only" ON employer_profiles
+    FOR DELETE USING (public.is_peso_admin());
+
+DROP POLICY IF EXISTS "Seekers select own, employer, or admin" ON seeker_profiles;
+DROP POLICY IF EXISTS "Seekers insert own or admin" ON seeker_profiles;
+DROP POLICY IF EXISTS "Seekers update own or admin" ON seeker_profiles;
+DROP POLICY IF EXISTS "Seekers delete admin only" ON seeker_profiles;
+CREATE POLICY "Seekers select own, employer, or admin" ON seeker_profiles
+    FOR SELECT USING (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND user_id = public.current_app_user_id())
+        OR (auth.uid() IS NOT NULL AND public.current_app_user_role() = 'employer')
+    );
+CREATE POLICY "Seekers insert own or admin" ON seeker_profiles
+    FOR INSERT WITH CHECK (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND user_id = public.current_app_user_id())
+    );
+CREATE POLICY "Seekers update own or admin" ON seeker_profiles
+    FOR UPDATE USING (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND user_id = public.current_app_user_id())
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND user_id = public.current_app_user_id())
+    );
+CREATE POLICY "Seekers delete admin only" ON seeker_profiles
+    FOR DELETE USING (public.is_peso_admin());
+
+DROP POLICY IF EXISTS "Public read access to active job posts" ON job_posts;
+DROP POLICY IF EXISTS "Job posts insert employer pending or admin" ON job_posts;
+DROP POLICY IF EXISTS "Job posts update employer non-approve or admin" ON job_posts;
+DROP POLICY IF EXISTS "Job posts delete employer own or admin" ON job_posts;
+CREATE POLICY "Public read access to active job posts" ON job_posts
+    FOR SELECT USING (
+        status = 'active'
+        OR public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+        )
+    );
+CREATE POLICY "Job posts insert employer pending or admin" ON job_posts
+    FOR INSERT WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND status = 'pending_approval'
+            AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+        )
+    );
+CREATE POLICY "Job posts update employer non-approve or admin" ON job_posts
+    FOR UPDATE USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+        )
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            AND (
+                status = COALESCE(public.get_job_post_status(id), 'pending_approval')
+                OR status IN ('closed', 'archived')
+            )
+        )
+    );
+CREATE POLICY "Job posts delete employer own or admin" ON job_posts
+    FOR DELETE USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+        )
+    );
+
+DROP POLICY IF EXISTS "Applications select participant or admin" ON applications;
+DROP POLICY IF EXISTS "Applications insert seeker own or admin" ON applications;
+DROP POLICY IF EXISTS "Applications update participant or admin" ON applications;
+DROP POLICY IF EXISTS "Applications delete admin only" ON applications;
+CREATE POLICY "Applications select participant or admin" ON applications
+    FOR SELECT USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            )
+        )
+    );
+CREATE POLICY "Applications insert seeker own or admin" ON applications
+    FOR INSERT WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+        )
+    );
+CREATE POLICY "Applications update participant or admin" ON applications
+    FOR UPDATE USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            )
+        )
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            )
+        )
+    );
+CREATE POLICY "Applications delete admin only" ON applications
+    FOR DELETE USING (public.is_peso_admin());
+
+DROP POLICY IF EXISTS "Candidate matches select participant or admin" ON candidate_matches;
+DROP POLICY IF EXISTS "Candidate matches write participant or admin" ON candidate_matches;
+CREATE POLICY "Candidate matches select participant or admin" ON candidate_matches
+    FOR SELECT USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR job_id IN (
+                    SELECT jp.id FROM public.job_posts jp
+                    JOIN public.employer_profiles ep ON ep.id = jp.employer_id
+                    WHERE ep.user_id = public.current_app_user_id()
+                )
+            )
+        )
+    );
+CREATE POLICY "Candidate matches write participant or admin" ON candidate_matches
+    FOR ALL USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR job_id IN (
+                    SELECT jp.id FROM public.job_posts jp
+                    JOIN public.employer_profiles ep ON ep.id = jp.employer_id
+                    WHERE ep.user_id = public.current_app_user_id()
+                )
+            )
+        )
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR job_id IN (
+                    SELECT jp.id FROM public.job_posts jp
+                    JOIN public.employer_profiles ep ON ep.id = jp.employer_id
+                    WHERE ep.user_id = public.current_app_user_id()
+                )
+            )
+        )
+    );
+
+DROP POLICY IF EXISTS "Interviews select participant or admin" ON interviews;
+DROP POLICY IF EXISTS "Interviews insert employer or admin" ON interviews;
+DROP POLICY IF EXISTS "Interviews update participant or admin" ON interviews;
+DROP POLICY IF EXISTS "Interviews delete employer or admin" ON interviews;
+CREATE POLICY "Interviews select participant or admin" ON interviews
+    FOR SELECT USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            )
+        )
+    );
+CREATE POLICY "Interviews insert employer or admin" ON interviews
+    FOR INSERT WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+        )
+    );
+CREATE POLICY "Interviews update participant or admin" ON interviews
+    FOR UPDATE USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            )
+        )
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            )
+        )
+    );
+CREATE POLICY "Interviews delete employer or admin" ON interviews
+    FOR DELETE USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+        )
+    );
+
+DROP POLICY IF EXISTS "Public read access to lra events" ON lra_events;
+DROP POLICY IF EXISTS "LRA events write admin only" ON lra_events;
+CREATE POLICY "Public read access to lra events" ON lra_events FOR SELECT USING (true);
+CREATE POLICY "LRA events write admin only" ON lra_events
+    FOR ALL USING (public.is_peso_admin()) WITH CHECK (public.is_peso_admin());
+
+DROP POLICY IF EXISTS "Referral slips select participant or admin" ON peso_referral_slips;
+DROP POLICY IF EXISTS "Referral slips write admin only" ON peso_referral_slips;
+CREATE POLICY "Referral slips select participant or admin" ON peso_referral_slips
+    FOR SELECT USING (
+        public.is_peso_admin()
+        OR (
+            auth.uid() IS NOT NULL
+            AND (
+                job_seeker_id IN (SELECT id FROM public.seeker_profiles WHERE user_id = public.current_app_user_id())
+                OR employer_id IN (SELECT id FROM public.employer_profiles WHERE user_id = public.current_app_user_id())
+            )
+        )
+    );
+CREATE POLICY "Referral slips write admin only" ON peso_referral_slips
+    FOR ALL USING (public.is_peso_admin()) WITH CHECK (public.is_peso_admin());
+
+DROP POLICY IF EXISTS "Notifications select own or admin" ON notifications;
+DROP POLICY IF EXISTS "Notifications insert authenticated or admin" ON notifications;
+DROP POLICY IF EXISTS "Notifications update own or admin" ON notifications;
+DROP POLICY IF EXISTS "Notifications delete own or admin" ON notifications;
+CREATE POLICY "Notifications select own or admin" ON notifications
+    FOR SELECT USING (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND recipient_id = public.current_app_user_id())
+    );
+CREATE POLICY "Notifications insert authenticated or admin" ON notifications
+    FOR INSERT WITH CHECK (
+        public.is_peso_admin()
+        OR auth.uid() IS NOT NULL
+    );
+CREATE POLICY "Notifications update own or admin" ON notifications
+    FOR UPDATE USING (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND recipient_id = public.current_app_user_id())
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND recipient_id = public.current_app_user_id())
+    );
+CREATE POLICY "Notifications delete own or admin" ON notifications
+    FOR DELETE USING (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND recipient_id = public.current_app_user_id())
+    );
+
+DROP POLICY IF EXISTS "Audit logs admin only" ON audit_logs;
+CREATE POLICY "Audit logs admin only" ON audit_logs
+    FOR ALL USING (public.is_peso_admin()) WITH CHECK (public.is_peso_admin());
+
+DROP POLICY IF EXISTS "Public read access to announcements" ON system_announcements;
+DROP POLICY IF EXISTS "Announcements write admin only" ON system_announcements;
+CREATE POLICY "Public read access to announcements" ON system_announcements FOR SELECT USING (true);
+CREATE POLICY "Announcements write admin only" ON system_announcements
+    FOR ALL USING (public.is_peso_admin()) WITH CHECK (public.is_peso_admin());
+
+DROP POLICY IF EXISTS "Job alert subscriptions own or admin" ON job_alert_subscriptions;
+CREATE POLICY "Job alert subscriptions own or admin" ON job_alert_subscriptions
+    FOR ALL USING (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND user_id = public.current_app_user_id())
+    ) WITH CHECK (
+        public.is_peso_admin()
+        OR (auth.uid() IS NOT NULL AND user_id = public.current_app_user_id())
+    );
 
 -- ==============================================================================
 -- REALTIME CONFIGURATION

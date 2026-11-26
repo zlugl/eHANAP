@@ -24,11 +24,11 @@ const CANDIDATES: CandidateSample[] = [
     education: 'BS Information Technology',
     score: 94,
     nodes: [
-      { label: 'Educational attainment', weight: '25%', score: '25%', status: 'meets requirement' },
-      { label: 'Degree alignment', weight: '20%', score: '20%', status: 'exact alignment' },
-      { label: 'Skills competency', weight: '30%', score: '25%', status: '5 of 6 matched domains' },
-      { label: 'Work experience', weight: '15%', score: '14%', status: '2 verifiable years' },
-      { label: 'Verified credentials', weight: '10%', score: '10%', status: 'civil service passer' },
+      { label: 'Educational attainment', weight: '12%', score: '12%', status: 'meets requirement' },
+      { label: 'Degree alignment', weight: '25%', score: '25%', status: 'exact alignment' },
+      { label: 'Skills competency', weight: '35%', score: '29%', status: '5 of 6 matched domains' },
+      { label: 'Work experience', weight: '20%', score: '20%', status: '2 verifiable years' },
+      { label: 'Verified credentials', weight: '8%', score: '8%', status: 'civil service passer' },
     ],
   },
   {
@@ -38,11 +38,11 @@ const CANDIDATES: CandidateSample[] = [
     education: 'TVET Automotive & Logistics',
     score: 88,
     nodes: [
-      { label: 'Educational attainment', weight: '25%', score: '25%', status: 'meets requirement' },
-      { label: 'Degree alignment', weight: '20%', score: '16%', status: 'related technical trade' },
-      { label: 'Skills competency', weight: '30%', score: '24%', status: '4 of 6 matched domains' },
-      { label: 'Work experience', weight: '15%', score: '13%', status: '3 verifiable years' },
-      { label: 'Verified credentials', weight: '10%', score: '10%', status: 'tesda national certificate' },
+      { label: 'Educational attainment', weight: '12%', score: '12%', status: 'meets requirement' },
+      { label: 'Degree alignment', weight: '25%', score: '20%', status: 'related technical trade' },
+      { label: 'Skills competency', weight: '35%', score: '28%', status: '4 of 6 matched domains' },
+      { label: 'Work experience', weight: '20%', score: '20%', status: '3 verifiable years' },
+      { label: 'Verified credentials', weight: '8%', score: '8%', status: 'tesda national certificate' },
     ],
   },
 ];
@@ -54,7 +54,7 @@ const FAQS = [
   },
   {
     question: 'How does the automated candidate ranking engine calculate compatibility?',
-    answer: 'The system evaluates five deterministic nodes: educational attainment (25%), degree alignment (20%), skills overlap (30%), experience (15%), and verified certifications (10%).',
+    answer: 'The system evaluates five deterministic nodes: skills overlap (35%), degree alignment (25%), experience (20%), educational attainment (12%), and verified certifications (8%).',
   },
   {
     question: 'What documentation must local Roxas employers submit for vacancy verification?',

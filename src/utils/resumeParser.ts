@@ -1,4 +1,5 @@
 import { extractResumeInfoFromText, ExtractedResumePayload } from './resumeExtractorCore';
+import { getSupabaseSession } from '../services/supabaseService';
 
 export type { ExtractedResumePayload, ExtractedEducationItem, ExtractedWorkExperienceItem } from './resumeExtractorCore';
 
@@ -39,10 +40,16 @@ export async function parseResumeFile(file: File): Promise<ExtractedResumePayloa
   }
 
   try {
+    const session = await getSupabaseSession();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+
     // Call server API route `/api/parse-resume`
     const response = await fetch('/api/parse-resume', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: JSON.stringify({
         fileName: file.name,
         mimeType: file.type || (file.name.endsWith('.pdf') ? 'application/pdf' : file.name.endsWith('.docx') ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' : 'application/octet-stream'),
