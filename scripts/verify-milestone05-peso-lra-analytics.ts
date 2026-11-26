@@ -371,7 +371,7 @@ async function runMilestone05Tests() {
 
   // Status transitions
   assert(sampleSlip.status === 'hired', 'Slip status accurately reflects confirmed placement');
-  const slipStatusOptions = ['issued', 'interview_scheduled', 'hired', 'hired_on_the_spot', 'not_hired', 'expired'];
+  const slipStatusOptions = ['issued', 'presented_to_employer', 'interview_scheduled', 'interviewed', 'under_review', 'hired', 'hired_on_the_spot', 'not_hired', 'declined', 'expired'];
   assert(slipStatusOptions.includes(sampleSlip.status), 'Referral slip status belongs to compliant enum');
 
   // Official PESO signing authority

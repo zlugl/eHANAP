@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { AppProvider, useApp, useAuth, useDirectory, useJobs, useNotification } from '../src/context';
+import { AppProvider, useApp, useAuth, useDirectory, useJobs, useNotification, usePesoLra } from '../src/context';
 import { sanitizeForTable, SUPABASE_TABLES, toSnakeCase } from '../src/services/supabaseService';
 import { EmployerProfile, JobSeekerProfile, User } from '../src/types';
 import { mountWithProvider } from './testContextHarness';
@@ -50,6 +50,7 @@ function useCombined() {
     dir: useDirectory(),
     jobs: useJobs(),
     notif: useNotification(),
+    lra: usePesoLra(),
   };
 }
 
@@ -74,6 +75,8 @@ async function run() {
   const empCols = new Set(schemaTables.employer_profiles || []);
   const jobCols = new Set(schemaTables.job_posts || []);
   const intCols = new Set(schemaTables.interviews || []);
+  const lraCols = new Set(schemaTables.lra_events || []);
+  const refCols = new Set(schemaTables.peso_referral_slips || []);
 
   assert(empCols.has('documents'), 'employer_profiles SQL includes documents JSONB column');
   assert(
@@ -114,6 +117,16 @@ async function run() {
     intCols.has('reminders_sent') &&
       schemaSql.includes("'scheduled', 'rescheduled', 'accepted', 'reschedule_requested', 'declined', 'completed', 'cancelled'"),
     'interviews SQL includes reminders_sent column and rescheduled status'
+  );
+  assert(
+    schemaSql.includes("'pending_review', 'approved', 'scheduled', 'ongoing', 'completed', 'cancelled'") &&
+      migrationSql.includes("'pending_review', 'approved', 'scheduled', 'ongoing', 'completed', 'cancelled'"),
+    'lra_events.status CHECK includes approved in both SQL files'
+  );
+  assert(
+    schemaSql.includes("'issued', 'presented_to_employer', 'interview_scheduled', 'interviewed', 'under_review', 'hired', 'hired_on_the_spot', 'not_hired', 'declined', 'expired'") &&
+      migrationSql.includes("'issued', 'presented_to_employer', 'interview_scheduled', 'interviewed', 'under_review', 'hired', 'hired_on_the_spot', 'not_hired', 'declined', 'expired'"),
+    'peso_referral_slips.status CHECK includes presented_to_employer, interviewed, under_review, and declined in both SQL files'
   );
   assert(
     !/FOR ALL\s+USING\s*\(\s*true\s*\)/i.test(schemaSql) && !/WITH CHECK\s*\(\s*true\s*\)/i.test(schemaSql),
@@ -203,6 +216,28 @@ async function run() {
   assert(intSnake.job_id === 'job-1' && intSnake.job_seeker_id === 'seeker-1' && intSnake.interview_type === 'video' && intSnake.instructions === 'Bring ID', 'sanitizeForTable maps interview aliases to canonical columns');
   assert(!('vacancy_id' in intSnake) && !('seeker_id' in intSnake) && !('format' in intSnake) && !('notes' in intSnake) && !('stray_key' in intSnake), 'sanitizeForTable strips interview aliases and unknown keys');
   assert(Object.keys(intSnake).every((col) => intCols.has(col)), 'All sanitized interviews keys match SQL columns');
+
+  const refPayload = sanitizeForTable(SUPABASE_TABLES.REFERRAL_SLIPS, {
+    id: 'ref-1',
+    referralNumber: 'PESO-RXS-REF-2026-0001',
+    status: 'presented_to_employer',
+    remarks: 'Status updated by PESO officer.',
+    strayUiKey: true,
+  } as any);
+  const refSnake = toSnakeCase<Record<string, any>>(refPayload);
+  assert(refSnake.status === 'presented_to_employer' && !('stray_ui_key' in refSnake), 'sanitizeForTable keeps valid referral slip status and strips unknown keys');
+  assert(Object.keys(refSnake).every((col) => refCols.has(col)), 'All sanitized peso_referral_slips keys match SQL columns');
+
+  const lraPayload = sanitizeForTable(SUPABASE_TABLES.LRA_EVENTS, {
+    id: 'lra-1',
+    companyName: 'Batangas Port Logistics',
+    status: 'approved',
+    letterOfIntentStatus: 'bad_loi',
+    strayUiKey: true,
+  } as any);
+  const lraSnake = toSnakeCase<Record<string, any>>(lraPayload);
+  assert(lraSnake.status === 'approved' && lraSnake.letter_of_intent_status === 'received' && !('stray_ui_key' in lraSnake), 'sanitizeForTable validates lra_events status/LOI and strips unknown keys');
+  assert(Object.keys(lraSnake).every((col) => lraCols.has(col)), 'All sanitized lra_events keys match SQL columns');
 
   // 3. Runtime context verification (clean-slate explicit fixtures)
   const mounted = await mountWithProvider(AppProvider, useCombined);
@@ -451,6 +486,72 @@ async function run() {
         !('notes' in resched) &&
         Boolean(resched.rescheduleNotes),
       'rescheduleInterview sets status rescheduled and rescheduleNotes without alias keys'
+    );
+
+    // WP-12: PesoLraContext referral status string remarks vs HOTS + createLraEvent NOT NULL defaults
+    let issuedSlip: any;
+    await mounted.act(async () => {
+      issuedSlip = mounted.getApi().lra.issueReferralSlip({
+        dateIssued: '2026-11-26',
+        validUntil: '2026-12-11',
+        jobSeekerId: seekerProfile.id,
+        jobSeekerName: 'JUAN DELA CRUZ',
+        jobSeekerContact: seekerProfile.contactNumber,
+        jobSeekerAddress: seekerProfile.address,
+        educationalAttainment: seekerProfile.educationalAttainment,
+        jobPostId: createdJob.id,
+        jobTitle: createdJob.title,
+        employerId: empProfile.id,
+        employerName: empProfile.companyName,
+        employerAddress: empProfile.address,
+        authorizedContactPerson: empProfile.representativeName,
+        matchingScore: 88,
+        matchingTier: 'Highly Qualified',
+        issuedByOfficerName: 'PESO Officer',
+        issuedByOfficerPosition: 'PESO Manager',
+        status: 'issued',
+      });
+    });
+
+    await mounted.act(async () => {
+      mounted.getApi().lra.updateReferralSlipStatus(issuedSlip.id, 'interviewed', 'Status updated by PESO officer.');
+    });
+    const updatedSlip = mounted.getApi().lra.referralSlips.find((s) => s.id === issuedSlip.id)!;
+    assert(
+      updatedSlip.status === 'interviewed' &&
+        updatedSlip.remarks === 'Status updated by PESO officer.' &&
+        !updatedSlip.remarks.includes('Hired On The Spot'),
+      'updateReferralSlipStatus stores string remarks without falsely tagging [Hired On The Spot]'
+    );
+
+    await mounted.act(async () => {
+      mounted.getApi().lra.updateReferralSlipStatus(issuedSlip.id, 'hired_on_the_spot', true);
+    });
+    const hotsSlip = mounted.getApi().lra.referralSlips.find((s) => s.id === issuedSlip.id)!;
+    const hotsSeeker = mounted.getApi().dir.jobSeekers.find((s) => s.id === seekerProfile.id)!;
+    assert(
+      hotsSlip.status === 'hired_on_the_spot' &&
+        Boolean(hotsSlip.remarks?.includes('[Hired On The Spot]')) &&
+        hotsSeeker.employmentStatus === 'hired_on_the_spot',
+      'updateReferralSlipStatus preserves boolean HOTS flagging and updates seeker employmentStatus'
+    );
+
+    let createdLra: any;
+    await mounted.act(async () => {
+      createdLra = mounted.getApi().lra.createLraEvent({
+        companyName: 'Batangas Port Logistics',
+        hasLetterOfIntent: true,
+        hasMayorsPermit: true,
+      });
+    });
+    const createdLraSnake = toSnakeCase<Record<string, any>>(sanitizeForTable(SUPABASE_TABLES.LRA_EVENTS, createdLra));
+    assert(
+      Boolean(createdLra.companyOrigin) &&
+        Boolean(createdLra.industry) &&
+        createdLra.letterOfIntentStatus === 'approved' &&
+        createdLra.mayorsApprovalVerified === true &&
+        Object.keys(createdLraSnake).every((col) => lraCols.has(col)),
+      'createLraEvent populates lra_events NOT NULL defaults and passes SQL column alignment'
     );
   } finally {
     await mounted.unmount();

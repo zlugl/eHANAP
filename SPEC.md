@@ -1,7 +1,7 @@
 # Post-Merge Production & Code Quality Audit — eHANAP
-**Audited date:** 2026-11-26
-**Git baseline:** Branch `faye-updates` at `d630aef` (with 18 uncommitted conflict-resolution files and 0 conflict markers; local `main` remains at `55d3e7d`, 68 files changed vs `55d3e7d`)
-**Baseline checks:** `npm run lint` (`tsc --noEmit`, 0 errors), `npm run build` (`vite build` 2,869 modules + `dist/server.cjs` 65.0kb, exit 0), `npx tsx scripts/verify-wp05.ts` (29/29), `npx tsx scripts/verify-ats-engine.ts` (29/29), `npx tsx scripts/verify-arch08-modular-server.ts` (82/82), `npm test` (`npx tsx scripts/verify-milestone07.ts`, **271/329** tests passed across 12 suites — 3 passed, 9 failed)
+**Audited date:** 2026-11-26 (updated post-commit for `445cca2` vs `2d128a4` reconciliation)
+**Git baseline:** Local `faye-updates` and `main` sit at `2d128a4` (`WP-08`–`WP-11` complete over `d630aef`); `origin/main` diverged at `445cca2` (also parented by `d630aef`, authored by Faye Margarette after `84070e6` and `d630aef`).
+**Verification snapshot:** On `2d128a4`, `npm run lint` (`tsc --noEmit`) passes with 0 errors (and the identical pre-commit tree passed `npm run build` + `npm test` 667/667 across 14 suites in the `WP-11` session). On `origin/main` (`445cca2`), `npm run lint` (0 errors) and `npm run build` pass, **but `npm test` fails (`270/329` across 12 suites — 2 passed, 10 failed)**.
 
 **What this repo does:** eHANAP is a web job-matching platform built for the Public Employment Service Office (PESO) in Roxas, Oriental Mindoro. Job seekers upload resumes or Philippine Bio-Data sheets, employers post vacancies and review ranked candidates, and PESO administrators verify business permits, run recruitment drives, and issue referral slips. **Assumed load:** a municipal pilot with hundreds to a few thousand local users, a few dozen employers, and one or two PESO staff online at the same time on a single Node/Express server backed by Supabase.
 
@@ -83,9 +83,24 @@
 
 ---
 
+## Upstream Reconciliation Findings (`origin/main` `445cca2` vs `faye-updates` `2d128a4`)
+
+12. **`PesoLraContext` referral status string bug and LRA `NOT NULL` defaults fixed in `445cca2`, missing in `2d128a4`** (`src/context/PesoLraContext.tsx:L27, L30, L128-141, L315-350`, `src/views/admin/AdminJobMatchingPage.tsx:L548-L556`, `src/views/admin/AdminLraPage.tsx:L109-L128`, `src/types.ts:L467-L505`, `supabase_schema.sql:L395-L408, L477`)
+    - **What this is:** Updating PESO referral slip statuses from `AdminJobMatchingPage`, creating LRA events from `AdminLraPage`, and keeping referral/LRA statuses aligned with `supabase_schema.sql`.
+    - **Problem:** In `2d128a4`, `AdminJobMatchingPage.tsx:L548` calls `updateReferralSlipStatus(slip.id, e.target.value as any, 'Status updated by PESO officer.')`, passing a truthy string into `isHots?: boolean` and erroneously tagging every status change as `[Hired On The Spot]`. `AdminLraPage.tsx:L109-L128` also calls `createLraEvent` without `industry`, `letterOfIntentStatus`, or `mayorsApprovalVerified`, which are `NOT NULL` in `lra_events` (`supabase_schema.sql:L395-L400`). Additionally, `AdminJobMatchingPage.tsx:L552-L556` renders `<option>` values (`presented_to_employer`, `interviewed`, `declined`) that `445cca2` added to `src/types.ts` (`PesoReferralSlip['status']`) and that are missing from `peso_referral_slips.status CHECK` (`supabase_schema.sql:L477`).
+    - **Fix:** Port `445cca2`'s `updateReferralSlipStatus(..., isHotsOrRemarks?: boolean | string)` and `createLraEvent` relaxed signature + `companyOrigin`/`industry`/`letterOfIntentStatus`/`mayorsApprovalVerified` defaults into `PesoLraContext.tsx` and `AppContext.tsx`; align `src/types.ts` compatibility fields (`PesoReferralSlip['status']`, `LocalRecruitmentActivity['status']`, `ResumeFile.isDefault`, `JobSeekerProfile`/`JobPost`/`Interview` aliases) and update `peso_referral_slips.status CHECK` / `sanitizeForTable` identically in `supabase_schema.sql` and `supabase/migrations/20261109000001_initial_ehanap_schema.sql`.
+    - **If we skip it:** Every referral status update in the Admin UI appends a false HOTS tag, LRA creations fail `lra_events` `NOT NULL` inserts in Supabase, and new referral statuses fail PostgreSQL `CHECK` constraints.
+
+13. **Diverged `origin/main` (`445cca2`) vs `faye-updates` (`2d128a4`) blocks fast-forward push** (`origin/main` at `445cca2`, local `faye-updates` & `main` at `2d128a4`, 15 overlapping files over `d630aef`)
+    - **What this is:** Reconciling Faye's conflict-resolution commit (`445cca2`) with `WP-08`–`WP-11` (`2d128a4`) so `main` can push to `origin/main` cleanly.
+    - **Problem:** `445cca2` cleared `d630aef`'s conflict markers across 16 files, **but** left `npm test` broken (`270/329`, 10/12 suites failing), omitted `WP-08` schema/RLS/sanitization, retained passwordless `switchDemoRole` and `Date.now()` IDs, lacked `WP-09` Supabase password recovery / pure state updaters / admin alert routing, and did not repair clean-slate tests (`WP-11`).
+    - **Fix:** After porting Finding #12 (and optionally `445cca2`'s Register-tab `Continue with Google` button in `src/views/AuthModal.tsx`), merge or rebase `faye-updates` onto `origin/main` (`445cca2`) while preserving all `WP-08`–`WP-11` changes on the 15 overlapping files; verify `npm run lint`, `npm run build`, and `npm test`, then fast-forward `main` and push to `origin/main`.
+    - **If we skip it:** `git push origin main` stays rejected, while overwriting `2d128a4` with `445cca2` would regress `WP-08`–`WP-11` and re-break 10 of 12 test suites.
+
+---
+
 ## Audit Summary
-- **Verdict:** Do not commit to `main` or deploy with Supabase yet — fix **1 through 6** first (items 7–11 for cleanup and green CI).
-- **Lean:** `-64 lines possible.`
+- **Verdict:** `WP-08` through `WP-12` are complete; `origin/main` (`445cca2`) is reconciled with `2d128a4` on `faye-updates` and `main`.
 - **Not checked:** Live Supabase writes/reads against a real project (`.env` credentials and live RLS evaluation), running `npm run dev` in a browser, and manual interactive UI flows.
 
 ---
@@ -94,10 +109,11 @@
 
 | Work Package | Audit Findings | Scope Summary | Priority |
 | :--- | :---: | :--- | :---: |
-| **WP-08: Supabase Schema, RLS & Payload Alignment** | #1, #2, #3 | Normalize or migrate employer statuses/documents, enforce/align `job_posts` RLS & `CreateJobModal` columns, and fix `interviews` `CHECK`/column writes; keep `supabase_schema.sql` and `supabase/migrations/` identical. | 🔴 Must Fix |
-| **WP-09: Auth Recovery, Employer Profile Fallback & Admin Alerts** | #4, #5, #6, #10 | Synthesize fallback `EmployerProfile` in `DirectoryContext`, move persistence side effects out of state updaters, wire `recoverPassword` to Supabase Auth, and unify admin notification filtering (`isNotificationRecipient`). | 🔴 Must Fix |
-| **WP-10: Auth Surface Cleanup, Homepage Consistency & Dead Code Removal** | #7, #8, #11 | Remove passwordless `switchDemoRole` & `Navbar` switch props, align `LandingPage` Stage 2.0 weight table (`12/25/35/20/8`), and delete dead `SeekerProfileSetupWizard` celebration modal (`-53` lines). | 🟠 Should Fix |
-| **WP-11: Test Suite & Verification Repair for Clean-Slate + Sliced Architecture** | #9 | Update seed-dependent scripts with explicit fixtures, point `verify-arch07-match-resolver.ts` at `JobsContext.tsx`, align `verify-decision-tree.ts`, add regression tests for #1–#6, and restore passing `npm test`. | 🟠 Should Fix |
+| **WP-08: Supabase Schema, RLS & Payload Alignment** | #1, #2, #3 | Normalize or migrate employer statuses/documents, enforce/align `job_posts` RLS & `CreateJobModal` columns, and fix `interviews` `CHECK`/column writes; keep `supabase_schema.sql` and `supabase/migrations/` identical. | ✅ Done |
+| **WP-09: Auth Recovery, Employer Profile Fallback & Admin Alerts** | #4, #5, #6, #10 | Synthesize fallback `EmployerProfile` in `DirectoryContext`, move persistence side effects out of state updaters, wire `recoverPassword` to Supabase Auth, and unify admin notification filtering (`isNotificationRecipient`). | ✅ Done |
+| **WP-10: Auth Surface Cleanup, Homepage Consistency & Dead Code Removal** | #7, #8, #11 | Remove passwordless `switchDemoRole` & `Navbar` switch props, align `LandingPage` Stage 2.0 weight table (`12/25/35/20/8`), and delete dead `SeekerProfileSetupWizard` celebration modal (`-53` lines). | ✅ Done |
+| **WP-11: Test Suite & Verification Repair for Clean-Slate + Sliced Architecture** | #9 | Update seed-dependent scripts with explicit fixtures, point `verify-arch07-match-resolver.ts` at `JobsContext.tsx`, align `verify-decision-tree.ts`, add regression tests for #1–#6, and restore passing `npm test`. | ✅ Done |
+| **WP-12: Upstream Reconciliation & `origin/main` Sync (`445cca2` ↔ `2d128a4`)** | #12, #13 | Port `445cca2`'s `PesoLraContext` referral/LRA fixes + `types.ts`/schema status parity (and optional Register Google button), reconcile `faye-updates` onto `origin/main` preserving `WP-08`–`WP-11`, verify green gates, fast-forward `main`, and push. | ✅ Done |
 
 ---
 

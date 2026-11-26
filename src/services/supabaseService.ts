@@ -348,6 +348,84 @@ const INTERVIEW_ALLOWED_KEYS = new Set([
   'updatedAt',
 ]);
 
+const LRA_EVENT_ALLOWED_KEYS = new Set([
+  'id',
+  'companyName',
+  'companyOrigin',
+  'industry',
+  'letterOfIntentStatus',
+  'letterOfIntentDate',
+  'mayorsApprovalVerified',
+  'mayorsPermitNo',
+  'eventTitle',
+  'eventDate',
+  'eventVenue',
+  'targetPositions',
+  'totalVacancies',
+  'targetApplicantTypes',
+  'willingnessToRelocateRequired',
+  'status',
+  'announcementPublished',
+  'registeredApplicantsCount',
+  'hotsCount',
+  'interviewsConductedCount',
+  'notes',
+  'nominatedCandidateIds',
+  'nominatedCandidates',
+  'eventName',
+  'startDate',
+  'endDate',
+  'venue',
+  'vacancies',
+  'totalSlotsAvailable',
+  'targetApplicantType',
+  'coordinatorName',
+  'coordinatorContact',
+  'hasLetterOfIntent',
+  'hasMayorsPermit',
+  'hasDoleRegistration',
+  'isDmwPoeaLicensed',
+  'isPubliclyAnnounced',
+  'remarks',
+  'hotsApplicantsCount',
+  'createdAt',
+  'updatedAt',
+]);
+
+const REFERRAL_SLIP_ALLOWED_KEYS = new Set([
+  'id',
+  'referralNumber',
+  'slipNumber',
+  'dateIssued',
+  'validUntil',
+  'jobSeekerId',
+  'jobSeekerName',
+  'jobSeekerContact',
+  'jobSeekerAddress',
+  'educationalAttainment',
+  'educationCategory',
+  'tradeCertifications',
+  'geographicMobility',
+  'jobPostId',
+  'jobTitle',
+  'employerId',
+  'employerName',
+  'employerAddress',
+  'authorizedContactPerson',
+  'authorizedContactNumber',
+  'matchingScore',
+  'matchingTier',
+  'decisionTreeRationale',
+  'interviewDate',
+  'interviewVenue',
+  'issuedByOfficerName',
+  'issuedByOfficerPosition',
+  'status',
+  'remarks',
+  'createdAt',
+  'updatedAt',
+]);
+
 const VALID_EMPLOYER_STATUSES = new Set([
   'incomplete',
   'pending_verification',
@@ -375,6 +453,35 @@ const VALID_INTERVIEW_STATUSES = new Set([
   'declined',
   'completed',
   'cancelled',
+]);
+
+const VALID_LRA_STATUSES = new Set([
+  'pending_review',
+  'approved',
+  'scheduled',
+  'ongoing',
+  'completed',
+  'cancelled',
+]);
+
+const VALID_LOI_STATUSES = new Set([
+  'received',
+  'under_review',
+  'approved',
+  'rejected',
+]);
+
+const VALID_REFERRAL_SLIP_STATUSES = new Set([
+  'issued',
+  'presented_to_employer',
+  'interview_scheduled',
+  'interviewed',
+  'under_review',
+  'hired',
+  'hired_on_the_spot',
+  'not_hired',
+  'declined',
+  'expired',
 ]);
 
 function pickAllowedFields(source: Record<string, any>, allowedKeys: Set<string>): Record<string, any> {
@@ -454,6 +561,25 @@ export function sanitizeForTable<T>(table: SupabaseTableName, record: T): T {
       normalized.status = 'scheduled';
     }
     return pickAllowedFields(normalized, INTERVIEW_ALLOWED_KEYS) as T;
+  }
+
+  if (table === SUPABASE_TABLES.LRA_EVENTS) {
+    const normalized: Record<string, any> = { ...raw };
+    if ('status' in normalized && !VALID_LRA_STATUSES.has(normalized.status)) {
+      normalized.status = 'pending_review';
+    }
+    if ('letterOfIntentStatus' in normalized && !VALID_LOI_STATUSES.has(normalized.letterOfIntentStatus)) {
+      normalized.letterOfIntentStatus = 'received';
+    }
+    return pickAllowedFields(normalized, LRA_EVENT_ALLOWED_KEYS) as T;
+  }
+
+  if (table === SUPABASE_TABLES.REFERRAL_SLIPS) {
+    const normalized: Record<string, any> = { ...raw };
+    if ('status' in normalized && !VALID_REFERRAL_SLIP_STATUSES.has(normalized.status)) {
+      normalized.status = 'issued';
+    }
+    return pickAllowedFields(normalized, REFERRAL_SLIP_ALLOWED_KEYS) as T;
   }
 
   return record;

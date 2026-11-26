@@ -4,13 +4,11 @@ Tracking remediation of the post-merge production and code quality findings docu
 
 ---
 
-## Baseline Verification (2026-11-26)
-- **Git State**: Branch `faye-updates` sits on `d630aef` with 18 uncommitted conflict-resolution files (0 conflict markers); local `main` sits at `55d3e7d`.
-- **TypeScript Check**: `npm run lint` (`tsc --noEmit`) passes with 0 errors.
-- **Production Build**: `npm run build` (`vite build` + `esbuild server.ts`) passes (`dist/server.cjs` 65.0kb).
-- **Standalone Passing Suites**: `npx tsx scripts/verify-wp05.ts` (29/29), `npx tsx scripts/verify-ats-engine.ts` (29/29), `npx tsx scripts/verify-arch08-modular-server.ts` (82/82).
-- **Failing Verification Suite**: `npm test` (`npx tsx scripts/verify-milestone07.ts`) reports **271/329** tests passing across 12 suites (3 passed, 9 failed: clean-slate empty arrays break seed-dependent suites; `verify-decision-tree.ts` 34/46; `verify-arch07-match-resolver.ts` 58/62).
-- **Post-Merge Audit**: 11 findings logged in [SPEC.md](SPEC.md) (6 Must Fix, 5 Should Fix).
+## Baseline & Current Divergence (2026-11-26)
+- **Git State**: Local `faye-updates` and `main` reconcile `2d128a4` (`WP-08`–`WP-11`) with `origin/main` (`445cca2`) via a `WP-12` merge commit.
+- **WP-12 Verification Status**: `npm run lint` (`tsc --noEmit`, 0 errors), `npm run build`, `npm test` (**14/14 suites, 676/676 assertions**), `verify-arch07-match-resolver.ts` (**93/93**), `verify-arch01-context-slicing.ts` (**57/57**), and `verify-arch05-code-splitting.ts` (**60/60**) all pass on the reconciled tree.
+- **Upstream `445cca2` (`origin/main`) Status**: `npm run lint` (0 errors) and `npm run build` pass, **but `npm test` fails (`270/329` across 12 suites — 2 passed, 10 failed)** due to unpatched clean-slate fixtures, `Date.now()` reminder IDs, and missing `WP-08`–`WP-11` fixes.
+- **Reconciliation Audit**: Findings `#1`–`#13` are resolved across `WP-08`–`WP-12`.
 
 ---
 
@@ -22,6 +20,7 @@ Tracking remediation of the post-merge production and code quality findings docu
 | **WP-09** | #4, #5, #6, #10 | **Auth Recovery, Employer Profile Fallback & Admin Alerts** | **DONE** | `npm run lint`, `npm run build`, `scripts/verify-wp09.ts` (25/25) |
 | **WP-10** | #7, #8, #11 | **Auth Surface Cleanup, Homepage Consistency & Dead Code Removal** | **DONE** | `npm run lint`, `npm run build`, auth/grep checks, `verify-arch01-context-slicing.ts` (57/57) |
 | **WP-11** | #9 | **Test Suite & Verification Repair (Clean-Slate + Sliced Contexts)** | **DONE** | `npm run lint`, `npm run build`, `npm test` (14/14, 665/665), `verify-arch07-match-resolver.ts` (93/93) |
+| **WP-12** | #12, #13 | **Upstream Reconciliation & `origin/main` Sync (`445cca2` ↔ `2d128a4`)** | **DONE** | `npm run lint`, `npm run build`, `npm test` (14/14, 676/676), `verify-arch07` (93/93), `verify-arch01` (57/57), `verify-arch05` (60/60) |
 
 ---
 
@@ -64,3 +63,12 @@ Tracking remediation of the post-merge production and code quality findings docu
   - [x] Updated `verify-arch07-match-resolver.ts` to inspect `JobsContext.tsx` for `SUPABASE_TABLES.CANDIDATE_MATCHES`, `subscribeToSupabaseTable`, `setCandidateMatches`, and `updateJobPost` cache invalidation, and verify 15 pairwise score-parity calculations against `TEST_JOB_SEEKERS` and `TEST_JOB_POSTS`.
   - [x] Aligned `verify-decision-tree.ts` with confirmed `src/utils/decisionTree.ts` scoring rules (`College Undergraduate` rank `3.5` -> `85%`, `BS IT` synonym `100%` vs `BS CS`/`BS IS` related `84%`, 80/20 license/location weighting `20%`, updated rationale strings) and added `verify-wp08.ts` (#1–#3) + `verify-wp09.ts` (#4–#6, #10) as Suites 13–14 in `scripts/verify-milestone07.ts`.
   - [x] Verified with `npm run lint` (0 errors), `npm run build`, `npm test` (**14/14 suites, 665/665 assertions passed**), `npx tsx scripts/verify-arch07-match-resolver.ts` (**93/93**), `npx tsx scripts/verify-arch01-context-slicing.ts` (**57/57**), and `npx tsx scripts/verify-arch05-code-splitting.ts` (**60/60**).
+
+### WP-12: Upstream Reconciliation & `origin/main` Sync (`445cca2` ↔ `2d128a4`)
+- **Status:** [x] **DONE** (2026-11-26)
+- **Targets:** `src/context/PesoLraContext.tsx`, `src/context/AppContext.tsx`, `src/types.ts`, `supabase_schema.sql`, `supabase/migrations/20261109000001_initial_ehanap_schema.sql`, `src/services/supabaseService.ts`, `scripts/verify-wp08.ts`, `scripts/verify-milestone05-peso-lra-analytics.ts`
+- **Deliverables:**
+  - [x] Ported `445cca2`'s `updateReferralSlipStatus(..., isHotsOrRemarks?: boolean | string)` fix (preventing string remarks from `AdminJobMatchingPage.tsx` from falsely flagging `[Hired On The Spot]`, while moving seeker `saveDocument` outside the `setJobSeekers` updater) and `createLraEvent` relaxed signature + `NOT NULL` defaults (`companyOrigin`, `industry`, `letterOfIntentStatus`, `mayorsApprovalVerified`) into `src/context/PesoLraContext.tsx` and `src/context/AppContext.tsx`.
+  - [x] Aligned `src/types.ts` compatibility fields (`DecisionTreeOutcome` underscore aliases, `PesoReferralSlip['status']`, `LocalRecruitmentActivity['status']` `'approved'`, `ResumeFile.isDefault`, `JobSeekerProfile`/`JobPost`/`Application`/`Interview` aliases), updated `lra_events.status` and `peso_referral_slips.status` `CHECK` constraints + idempotent `ALTER TABLE` statements identically across `supabase_schema.sql` and `supabase/migrations/20261109000001_initial_ehanap_schema.sql`, added `LRA_EVENTS` / `REFERRAL_SLIPS` validation allowlists to `sanitizeForTable` in `src/services/supabaseService.ts`, and kept `Continue with Google` on the Sign In tab only in `src/views/AuthModal.tsx`.
+  - [x] Merged `origin/main` (`445cca2`) into `faye-updates` preserving all `WP-08`–`WP-11` fixes, fast-forwarded `main`, and pushed to `origin/main`.
+  - [x] Added regression tests in `scripts/verify-wp08.ts` (and enum sync in `scripts/verify-milestone05-peso-lra-analytics.ts`) covering string remarks vs boolean HOTS in `updateReferralSlipStatus`, `createLraEvent` `NOT NULL` defaults, SQL `CHECK` parity, and `sanitizeForTable` allowlists; verified `npm run lint` (0 errors), `npm run build`, `npm test` (**14/14 suites, 676/676 assertions**), `verify-arch07-match-resolver.ts` (**93/93**), `verify-arch01-context-slicing.ts` (**57/57**), and `verify-arch05-code-splitting.ts` (**60/60**).

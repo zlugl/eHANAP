@@ -34,10 +34,14 @@ export type ApplicationStatus =
 
 export type DecisionTreeOutcome = 
   | 'HIGHLY QUALIFIED'
+  | 'HIGHLY_QUALIFIED'
   | 'QUALIFIED'
   | 'MODERATELY QUALIFIED'
+  | 'MODERATELY_QUALIFIED'
   | 'LOW MATCH'
-  | 'NOT QUALIFIED';
+  | 'LOW_MATCH'
+  | 'NOT QUALIFIED'
+  | 'NOT_QUALIFIED';
 
 export type RequirementImportance = 'required' | 'preferred' | 'optional';
 
@@ -196,6 +200,7 @@ export interface ResumeFile {
   parsedSkills?: string[];
   parsedAttainment?: string;
   isPrimary?: boolean;
+  isDefault?: boolean;
 }
 
 export interface AssessmentQuestion {
@@ -250,6 +255,14 @@ export interface JobSeekerProfile {
   sex?: string;
   age?: number;
   profilePicture?: string;
+  avatarUrl?: string;
+  jobTitle?: string;
+  preferredJobTitle?: string;
+  phone?: string;
+  cityMunicipality?: string;
+  province?: string;
+  bio?: string;
+  yearsOfExperience?: number;
   professionalSummary: string;
   summary?: string;
   educationalAttainment: string;
@@ -410,6 +423,7 @@ export interface JobPost {
   preferredTesdaQualifications?: string[];
   anyCourseAllowed?: boolean;
   degreeImportance?: RequirementImportance | number;
+  degreeWeight?: number;
   careerLevel?: 'Entry-Level' | 'Junior' | 'Mid-Level' | 'Senior' | 'Supervisory' | string;
   experienceLevel?: string;
   minExperienceYears: number;
@@ -467,7 +481,7 @@ export interface PesoReferralSlip {
   // PESO Officer Endorsement
   issuedByOfficerName: string;
   issuedByOfficerPosition: string;
-  status: 'issued' | 'interview_scheduled' | 'hired' | 'hired_on_the_spot' | 'not_hired' | 'expired';
+  status: 'issued' | 'presented_to_employer' | 'interview_scheduled' | 'interviewed' | 'under_review' | 'hired' | 'hired_on_the_spot' | 'not_hired' | 'declined' | 'expired';
   remarks?: string;
   createdAt: string;
 }
@@ -500,7 +514,7 @@ export interface LocalRecruitmentActivity {
   totalVacancies: number;
   targetApplicantTypes: ('College Graduate' | 'High School Graduate' | 'Out-of-School Youth' | 'Skilled/TESDA')[];
   willingnessToRelocateRequired: boolean;
-  status: 'pending_review' | 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
+  status: 'pending_review' | 'approved' | 'scheduled' | 'ongoing' | 'completed' | 'cancelled';
   announcementPublished: boolean;
   registeredApplicantsCount: number;
   hotsCount: number; // Hired-On-The-Spot count
@@ -565,6 +579,7 @@ export interface MatchResolverOptions {
 export interface Application {
   id: string;
   jobId: string;
+  jobTitle?: string;
   jobSeekerId: string;
   employerId: string;
   appliedDate: string;
@@ -607,6 +622,8 @@ export interface Interview {
   format?: InterviewType;
   date: string;
   time: string;
+  scheduledDate?: string;
+  scheduledTime?: string;
   locationOrLink: string;
   instructions?: string;
   notes?: string;

@@ -405,7 +405,7 @@ CREATE TABLE IF NOT EXISTS lra_events (
     total_vacancies INTEGER DEFAULT 0,
     target_applicant_types TEXT[] DEFAULT '{}',
     willingness_to_relocate_required BOOLEAN DEFAULT FALSE,
-    status TEXT NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review', 'scheduled', 'ongoing', 'completed', 'cancelled')),
+    status TEXT NOT NULL DEFAULT 'pending_review' CHECK (status IN ('pending_review', 'approved', 'scheduled', 'ongoing', 'completed', 'cancelled')),
     announcement_published BOOLEAN DEFAULT FALSE,
     registered_applicants_count INTEGER DEFAULT 0,
     hots_count INTEGER DEFAULT 0,
@@ -474,7 +474,7 @@ CREATE TABLE IF NOT EXISTS peso_referral_slips (
     interview_venue TEXT,
     issued_by_officer_name TEXT NOT NULL,
     issued_by_officer_position TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'issued' CHECK (status IN ('issued', 'interview_scheduled', 'hired', 'hired_on_the_spot', 'not_hired', 'expired')),
+    status TEXT NOT NULL DEFAULT 'issued' CHECK (status IN ('issued', 'presented_to_employer', 'interview_scheduled', 'interviewed', 'under_review', 'hired', 'hired_on_the_spot', 'not_hired', 'declined', 'expired')),
     remarks TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -588,6 +588,10 @@ ALTER TABLE job_posts DROP CONSTRAINT IF EXISTS job_posts_employment_type_check;
 ALTER TABLE job_posts ADD CONSTRAINT job_posts_employment_type_check CHECK (employment_type IN ('Full-time', 'Part-time', 'Contract', 'Contractual / Project-Based', 'Probationary', 'Seasonal', 'Seasonal / Temporary', 'Temporary', 'Internship', 'Internship / OJT', 'Freelance'));
 ALTER TABLE interviews DROP CONSTRAINT IF EXISTS interviews_status_check;
 ALTER TABLE interviews ADD CONSTRAINT interviews_status_check CHECK (status IN ('scheduled', 'rescheduled', 'accepted', 'reschedule_requested', 'declined', 'completed', 'cancelled'));
+ALTER TABLE lra_events DROP CONSTRAINT IF EXISTS lra_events_status_check;
+ALTER TABLE lra_events ADD CONSTRAINT lra_events_status_check CHECK (status IN ('pending_review', 'approved', 'scheduled', 'ongoing', 'completed', 'cancelled'));
+ALTER TABLE peso_referral_slips DROP CONSTRAINT IF EXISTS peso_referral_slips_status_check;
+ALTER TABLE peso_referral_slips ADD CONSTRAINT peso_referral_slips_status_check CHECK (status IN ('issued', 'presented_to_employer', 'interview_scheduled', 'interviewed', 'under_review', 'hired', 'hired_on_the_spot', 'not_hired', 'declined', 'expired'));
 
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) HELPERS & POLICIES

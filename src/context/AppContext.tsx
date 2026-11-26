@@ -102,10 +102,10 @@ export interface AppContextType {
 
   // PESO-LGU Walk-in, Referrals & LRA
   issueReferralSlip: (slipData: Omit<PesoReferralSlip, 'id' | 'createdAt' | 'referralNumber'> & { referralNumber?: string }) => PesoReferralSlip;
-  updateReferralSlipStatus: (slipId: string, status: PesoReferralSlip['status'], isHots?: boolean) => void;
+  updateReferralSlipStatus: (slipId: string, status: PesoReferralSlip['status'], isHotsOrRemarks?: boolean | string) => void;
   encodeWalkInJobSeeker: (seekerData: Partial<JobSeekerProfile> & { firstName: string; lastName: string; contactNumber: string }) => JobSeekerProfile;
   assessJobSeekerWalkIn: (seekerId: string, assessmentData: { practicalSkills?: string[]; tradeCertifications?: string[]; geographicMobility?: 'local_only' | 'provincial' | 'willing_to_relocate'; willingToRelocateForVisitingCompanies?: boolean; walkInAssessmentNotes?: string; assessedByOfficer?: string }) => void;
-  createLraEvent: (eventData: Omit<LocalRecruitmentActivity, 'id' | 'createdAt' | 'registeredApplicantsCount' | 'hotsCount' | 'interviewsConductedCount'> & Partial<LocalRecruitmentActivity>) => LocalRecruitmentActivity;
+  createLraEvent: (eventData: Partial<LocalRecruitmentActivity> & { companyName: string }) => LocalRecruitmentActivity;
   updateLraEvent: (eventId: string, updates: Partial<LocalRecruitmentActivity>) => void;
   logHotsApplicant: (lraId: string, applicantName: string, position: string, employerId?: string, notes?: string) => void;
   nominateCandidateToLra: (lraId: string, seekerId: string, targetPosition?: string, notes?: string) => void;

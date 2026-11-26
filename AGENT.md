@@ -13,14 +13,14 @@ The system serves three primary user roles:
 2. **Employers**: Roxas-based businesses posting vacancies, undergoing PESO compliance verification, and accessing the **Automated Candidate Ranking Engine** to discover and recruit top-matching candidates.
 3. **PESO / LGU Admin**: Municipal employment monitors approving job posts, managing Local Recruitment Activities (LRA), verifying business compliance, and monitoring municipal employment growth metrics.
 
-## Active Phase: Post-Merge Audit Remediation (`WP-08` through `WP-11`)
+## Active Phase: Upstream Reconciliation & Sync (`WP-12`)
 
-Initial milestones (`01`–`07`), `ARCH-01`–`ARCH-08`, and Phase 1 remediation packages `WP-01`–`WP-07` (`55d3e7d`) concluded before two upstream owner commits (`84070e6`, `d630aef`) and subsequent merge-conflict resolution left branch `faye-updates` with 18 uncommitted files over `d630aef`. The active phase resolves the **11 post-merge audit findings** (Supabase schema/RLS/payload mismatches, employer profile fallback & state-updater side effects, Supabase password recovery, admin verification notification routing, passwordless quick-switcher removal, landing page copy parity, dead UI removal, and clean-slate test repair) organized into Work Packages **`WP-08` through `WP-11`** in [SPEC.md](SPEC.md) and tracked in [PROGRESS.md](PROGRESS.md).
+Initial milestones (`01`–`07`), `ARCH-01`–`ARCH-08`, Phase 1 (`WP-01`–`WP-07` at `55d3e7d`), and post-merge remediation (`WP-08`–`WP-11` at `2d128a4`) are complete on local `faye-updates` and `main`. Meanwhile `origin/main` moved to `445cca2` (Faye Margarette's conflict resolution over `d630aef`, which omits `WP-08`–`WP-11` and fails 10/12 `npm test` suites, but includes two real `PesoLraContext.tsx` fixes and `types.ts` aliases). The active work package **`WP-12`** reconciles `faye-updates` with `origin/main` (`445cca2`) and lands the combined verified state into `main` / `origin/main` as tracked in [SPEC.md](SPEC.md) and [PROGRESS.md](PROGRESS.md).
 
 ## Hard Rules
 
 - **Work Package Scope**: Implement exactly one remediation work package per session (from [SPEC.md](SPEC.md) and [PROGRESS.md](PROGRESS.md)). Stop cleanly at its boundary.
-- **Git Baseline Awareness**: `faye-updates` currently holds uncommitted conflict-resolution edits on top of `d630aef` (while local `main` sits at `55d3e7d`). Check `git status` before and after edits; never discard or overwrite unrelated clean-slate/merge fixes unless required by the active work package.
+- **Git Baseline Awareness**: Local `faye-updates` and `main` sit at `2d128a4`, while `origin/main` sits at `445cca2` (both branched from `d630aef` across 15 overlapping files). Check `git status` and `git branch -vv` before and after edits; never overwrite `2d128a4`'s `WP-08`–`WP-11` fixes with `445cca2` when merging/rebasing `origin/main` — keep `2d128a4` as the authoritative base and port only the `WP-12` fixes from `445cca2`.
 - **Approved Tech Stack**:
   - **Frontend**: React 19, Vite, Tailwind CSS v4, Motion, Lucide React, Recharts.
   - **Backend**: Express + Node.js (`server.ts` with TypeScript execution via TSX).
@@ -40,15 +40,14 @@ Initial milestones (`01`–`07`), `ARCH-01`–`ARCH-08`, and Phase 1 remediation
   - Employers must be verified Roxas-based entities or accredited through PESO Local Recruitment Activity (LRA) channels.
   - Only PESO-verified employers with completed profiles and uploaded documents may publish job postings directly to `'active'` (enforced by both `createJobPost` and PostgreSQL `job_posts` RLS); unverified employers remain blocked until PESO verifies them.
 - **Verification Standards**:
-  - Pass `npm run lint` (`tsc --noEmit`) with 0 errors and `npm run build` before concluding any work package.
-  - Until `WP-11` repairs clean-slate test fixtures (`npm test` / `verify-milestone07.ts` currently reports 271/329), verify `WP-08`–`WP-10` using `npm run lint`, `npm run build`, the passing regression suites (`verify-wp05.ts`, `verify-ats-engine.ts`, `verify-arch08-modular-server.ts`), and targeted runtime/unit checks proving every deliverable without regressing other suites; starting with `WP-11`, require `npm test` (`verify-milestone07.ts`) and `verify-arch07-match-resolver.ts` to pass completely.
+  - Pass `npm run lint` (`tsc --noEmit`) with 0 errors, `npm run build`, `npm test` (`verify-milestone07.ts`, all suites passing), and `verify-arch07-match-resolver.ts` before concluding any work package.
   - Never claim a work package is complete without verifiable runtime evidence.
 
 ## Definition of Done for a Remediation Work Package
 
 1. `npm run lint` (`tsc --noEmit`) passes with 0 errors.
 2. `npm run build` bundles successfully without missing modules or circular dependencies.
-3. All applicable verification suites pass with 0 regressions, plus targeted tests proving the work package fixes (`npm test` 12/12 required from `WP-11` onward).
+3. All applicable verification suites (`npm test` and `WP-12` regression checks) pass with 0 regressions.
 4. Deliverables specified for the work package in [SPEC.md](SPEC.md) are fully implemented and verified.
 5. [PROGRESS.md](PROGRESS.md) is updated with deliverable summaries and checked-off checklists (`[x]`).
 6. Git changes are reviewed carefully before committing (do not commit automatically unless requested).
