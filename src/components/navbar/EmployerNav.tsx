@@ -1,5 +1,7 @@
 import React from 'react';
-import { Home, Briefcase, Users, Calendar, BarChart3, Building2, PlusCircle } from 'lucide-react';
+import { Home, Briefcase, Users, Calendar, BarChart3, Building2, PlusCircle, Lock } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import { isEmployerVerifiedToPostJobs } from '../../utils/routeGuards';
 
 export interface EmployerNavProps {
   currentView: string;
@@ -14,7 +16,17 @@ export const EmployerNav: React.FC<EmployerNavProps> = ({
   isEmployerIncomplete = false,
   onOpenPostJobModal
 }) => {
+  const { currentEmployerProfile, interviews } = useApp();
+
   if (isEmployerIncomplete) return null;
+
+  const upcomingCount = interviews.filter(
+    i =>
+      i.employerId === currentEmployerProfile?.id &&
+      (i.status === 'scheduled' || i.status === 'rescheduled' || i.status === 'accepted')
+  ).length;
+
+  const canPostJobs = isEmployerVerifiedToPostJobs(currentEmployerProfile);
 
   return (
     <>
@@ -84,22 +96,29 @@ export const EmployerNav: React.FC<EmployerNavProps> = ({
       <button
         type="button"
         onClick={() => onNavigate('employer-interviews')}
-        className={`h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
+        className={`relative h-full flex flex-col items-center justify-center px-3 sm:px-3.5 border-b-2 transition-colors cursor-pointer text-xs group focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] active:opacity-85 disabled:opacity-50 ${
           currentView === 'employer-interviews'
             ? 'border-[var(--color-accent)] font-semibold text-[var(--color-ink)]'
             : 'border-transparent text-[var(--color-muted)] hover:border-[var(--color-rule)] hover:text-[var(--color-ink)] font-medium'
         }`}
-        title="Interview Schedule"
+        title="Built-In Calendar & Interviews"
       >
-        <Calendar
-          className={`w-4 h-4 mb-0.5 ${
-            currentView === 'employer-interviews'
-              ? 'text-[var(--color-accent)]'
-              : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'
-          }`}
-          aria-hidden="true"
-        />
-        <span>Interviews</span>
+        <div className="relative flex items-center justify-center">
+          <Calendar
+            className={`w-4 h-4 mb-0.5 ${
+              currentView === 'employer-interviews'
+                ? 'text-[var(--color-accent)]'
+                : 'text-[var(--color-muted)] group-hover:text-[var(--color-ink)]'
+            }`}
+            aria-hidden="true"
+          />
+          {upcomingCount > 0 && (
+            <span className="bg-indigo-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight ml-1">
+              {upcomingCount}
+            </span>
+          )}
+        </div>
+        <span>Calendar</span>
       </button>
 
       <button
@@ -148,11 +167,21 @@ export const EmployerNav: React.FC<EmployerNavProps> = ({
         <div className="flex items-center pl-1.5">
           <button
             type="button"
+            disabled={!canPostJobs}
+            title={
+              !canPostJobs
+                ? 'PESO/LGU verification and uploaded business documents are required before posting job vacancies.'
+                : 'Post New Job Vacancy'
+            }
             onClick={onOpenPostJobModal}
-            className="btn btn--primary text-xs min-h-[36px] py-1.5 px-3"
+            className="btn btn--primary text-xs min-h-[36px] py-1.5 px-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <PlusCircle className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Post vacancy</span>
+            {canPostJobs ? (
+              <PlusCircle className="w-3.5 h-3.5" aria-hidden="true" />
+            ) : (
+              <Lock className="w-3.5 h-3.5" aria-hidden="true" />
+            )}
+            <span>{canPostJobs ? 'Post vacancy' : 'Post locked'}</span>
           </button>
         </div>
       )}

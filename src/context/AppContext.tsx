@@ -123,16 +123,19 @@ interface AppContextType {
   verifyOtp: (identifier: string, code: string) => { success: boolean; error?: string };
   recoverPassword: (identifier: string, code: string, newPassword: string) => { success: boolean; error?: string };
   verifyEmployer: (employerId: string, status: EmployerStatus, notes?: string) => void;
-  createJobPost: (jobData: Omit<JobPost, 'id' | 'postedDate' | 'status' | 'companyVerified'>) => JobPost;
+  createJobPost: (jobData: Omit<JobPost, 'id' | 'postedDate' | 'status' | 'companyVerified'>) => JobPost | null;
   reviewJobVacancy: (jobId: string, status: 'active' | 'for_compliance' | 'rejected' | 'closed', remarks?: string) => void;
   updateJobVacancyStatus: (jobId: string, status: JobStatus) => void;
   updateJobPost: (jobId: string, updates: Partial<JobPost>) => void;
   deleteJobPost: (jobId: string) => void;
   applyForJob: (jobId: string, seekerId: string, resumeId: string, coverNote?: string) => { success: boolean; message: string; application?: Application };
   updateApplicationStatus: (applicationId: string, status: ApplicationStatus, notes?: string) => void;
+  upsertCandidateApplicationStatus: (jobId: string, seekerId: string, status: ApplicationStatus, notes?: string) => Application | null;
   submitApplicationFeedback: (applicationId: string, feedback: { rating: number; comment: string; submittedBy: string }) => void;
   scheduleInterview: (interviewData: Omit<Interview, 'id' | 'createdAt' | 'status'>) => { success: boolean; message: string; interview?: Interview };
-  respondToInterview: (interviewId: string, status: 'accepted' | 'declined' | 'reschedule_requested', notes?: string) => void;
+  rescheduleInterview: (interviewId: string, updates: { date: string; time: string; interviewType?: Interview['interviewType']; locationOrLink?: string; instructions?: string }) => { success: boolean; message: string };
+  cancelInterview: (interviewId: string, reason?: string) => void;
+  respondToInterview: (interviewId: string, status: 'accepted' | 'declined' | 'reschedule_requested' | 'accept' | 'decline' | 'reschedule', notes?: string) => void;
   updateJobSeekerProfile: (seekerId: string, profileData: Partial<JobSeekerProfile>) => void;
   saveAssessmentResult: (seekerId: string, result: AssessmentResult) => void;
   updateEmployerProfile: (employerIdOrData: string | Partial<EmployerProfile>, profileData?: Partial<EmployerProfile>) => void;
@@ -191,8 +194,100 @@ interface AppContextType {
   // Automated Candidate Ranking & Proactive Invitation Engine
   invitations: CandidateInvitation[];
   inviteCandidateToApply: (jobId: string, seekerId: string, customMessage?: string) => { success: boolean; message: string; invitation?: CandidateInvitation };
+  respondToInvitation: (invitationId: string, status: 'accepted' | 'declined') => void;
   hasInvitedCandidate: (jobId: string, seekerId: string) => boolean;
 }
+
+const toUpperSafe = (val?: string): string | undefined => (typeof val === 'string' ? val.toUpperCase() : val);
+const toUpperArraySafe = (arr?: string[]): string[] | undefined => (Array.isArray(arr) ? arr.map(s => (typeof s === 'string' ? s.toUpperCase() : s)) : arr);
+
+export const normalizeSeekerProfileToUpperCase = (data: Partial<JobSeekerProfile>): Partial<JobSeekerProfile> => {
+  const next: Partial<JobSeekerProfile> = { ...data };
+  if (next.firstName !== undefined) next.firstName = toUpperSafe(next.firstName)!;
+  if (next.middleName !== undefined) next.middleName = toUpperSafe(next.middleName);
+  if (next.lastName !== undefined) next.lastName = toUpperSafe(next.lastName)!;
+  if (next.address !== undefined) next.address = toUpperSafe(next.address)!;
+  if (next.barangay !== undefined) next.barangay = toUpperSafe(next.barangay);
+  if (next.primaryDegree !== undefined) next.primaryDegree = toUpperSafe(next.primaryDegree);
+  if (next.professionalSummary !== undefined) next.professionalSummary = toUpperSafe(next.professionalSummary);
+  if (next.summary !== undefined) next.summary = toUpperSafe(next.summary);
+  if (next.bioDataDetails !== undefined) next.bioDataDetails = toUpperSafe(next.bioDataDetails);
+  if (next.walkInAssessmentNotes !== undefined) next.walkInAssessmentNotes = toUpperSafe(next.walkInAssessmentNotes);
+  if (next.technicalSkills !== undefined) next.technicalSkills = toUpperArraySafe(next.technicalSkills)!;
+  if (next.softSkills !== undefined) next.softSkills = toUpperArraySafe(next.softSkills)!;
+  if (next.tradeSkills !== undefined) next.tradeSkills = toUpperArraySafe(next.tradeSkills);
+  if (next.administrativeSkills !== undefined) next.administrativeSkills = toUpperArraySafe(next.administrativeSkills);
+  if (next.serviceHospitalitySkills !== undefined) next.serviceHospitalitySkills = toUpperArraySafe(next.serviceHospitalitySkills);
+  if (next.salesCustomerSkills !== undefined) next.salesCustomerSkills = toUpperArraySafe(next.salesCustomerSkills);
+  if (next.itCreativeSkills !== undefined) next.itCreativeSkills = toUpperArraySafe(next.itCreativeSkills);
+  if (next.practicalSkills !== undefined) next.practicalSkills = toUpperArraySafe(next.practicalSkills);
+  if (next.tradeCertifications !== undefined) next.tradeCertifications = toUpperArraySafe(next.tradeCertifications);
+
+  if (Array.isArray(next.education)) {
+    next.education = next.education.map(edu => ({
+      ...edu,
+      degreeCourse: toUpperSafe(edu.degreeCourse) || '',
+      school: toUpperSafe(edu.school) || '',
+      honors: toUpperSafe(edu.honors),
+    }));
+  }
+  if (Array.isArray(next.workExperience)) {
+    next.workExperience = next.workExperience.map(exp => ({
+      ...exp,
+      company: toUpperSafe(exp.company) || '',
+      position: toUpperSafe(exp.position) || '',
+      responsibilities: toUpperSafe(exp.responsibilities) || '',
+    }));
+  }
+  if (Array.isArray(next.certifications)) {
+    next.certifications = next.certifications.map(cert => ({
+      ...cert,
+      name: toUpperSafe(cert.name) || '',
+      issuingOrganization: toUpperSafe(cert.issuingOrganization) || '',
+    }));
+  }
+  if (Array.isArray(next.projects)) {
+    next.projects = next.projects.map(proj => ({
+      ...proj,
+      name: toUpperSafe(proj.name) || '',
+      client: toUpperSafe(proj.client),
+      description: toUpperSafe(proj.description) || '',
+      // Note: projectUrl is intentionally NOT uppercased
+    }));
+  }
+  if (Array.isArray(next.volunteerExperience)) {
+    next.volunteerExperience = next.volunteerExperience.map(vol => ({
+      ...vol,
+      role: toUpperSafe(vol.role) || '',
+      organization: toUpperSafe(vol.organization) || '',
+      description: toUpperSafe(vol.description) || '',
+    }));
+  }
+  if (Array.isArray(next.awards)) {
+    next.awards = next.awards.map(awd => ({
+      ...awd,
+      title: toUpperSafe(awd.title) || '',
+      organization: toUpperSafe(awd.organization) || '',
+      description: toUpperSafe(awd.description),
+    }));
+  }
+  return next;
+};
+
+export const normalizeEmployerProfileToUpperCase = (data: Partial<EmployerProfile>): Partial<EmployerProfile> => {
+  const next: Partial<EmployerProfile> = { ...data };
+  if (next.companyName !== undefined) next.companyName = toUpperSafe(next.companyName)!;
+  if (next.representativeName !== undefined) next.representativeName = toUpperSafe(next.representativeName)!;
+  if (next.address !== undefined) next.address = toUpperSafe(next.address)!;
+  if (next.barangay !== undefined) next.barangay = toUpperSafe(next.barangay);
+  if (next.companyDescription !== undefined) next.companyDescription = toUpperSafe(next.companyDescription)!;
+  if (next.description !== undefined) next.description = toUpperSafe(next.description);
+  if (next.businessPermitNo !== undefined) next.businessPermitNo = toUpperSafe(next.businessPermitNo)!;
+  if (next.dtiSecRegistration !== undefined) next.dtiSecRegistration = toUpperSafe(next.dtiSecRegistration)!;
+  if (next.bir2303No !== undefined) next.bir2303No = toUpperSafe(next.bir2303No);
+  // Note: email, website, logoUrl, userId, id are intentionally NOT uppercased
+  return next;
+};
 
 const AppCoreContext = createContext<AppContextType | undefined>(undefined);
 
@@ -209,9 +304,9 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     switchUserRole,
     switchDemoRole,
     loginAs,
-    continueWithGoogle, // Routes Google OAuth via signInWithSupabaseOAuth in AuthContext
+    continueWithGoogle,
     logout,
-    registerUser,
+    registerUser: authRegisterUser,
     sendOtp,
     verifyOtp,
     recoverPassword,
@@ -233,26 +328,37 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     dismissToast,
   } = toast;
 
-  const [employers, setEmployers] = useState<EmployerProfile[]>(INITIAL_EMPLOYERS);
-  const [jobSeekers, setJobSeekers] = useState<JobSeekerProfile[]>(() => {
-    const saved = storageAdapter.getStoredJobSeekers([]);
-    if (saved && Array.isArray(saved) && saved.length > 0) {
-      const map = new Map<string, JobSeekerProfile>();
-      INITIAL_JOB_SEEKERS.forEach(s => map.set(s.id, s));
-      saved.forEach((s: JobSeekerProfile) => map.set(s.id, s));
-      return Array.from(map.values());
-    }
-    return INITIAL_JOB_SEEKERS;
-  });
-  const [jobPosts, setJobPosts] = useState<JobPost[]>(INITIAL_JOB_POSTS);
-  const [applications, setApplications] = useState<Application[]>(INITIAL_APPLICATIONS);
-  const [interviews, setInterviews] = useState<Interview[]>(INITIAL_INTERVIEWS);
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(INITIAL_AUDIT_LOGS);
-  const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>(INITIAL_ANNOUNCEMENTS);
+  const [employers, setEmployers] = useState<EmployerProfile[]>(() =>
+    storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS)
+  );
+  const [jobSeekers, setJobSeekers] = useState<JobSeekerProfile[]>(() =>
+    storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS)
+  );
+  const [jobPosts, setJobPosts] = useState<JobPost[]>(() =>
+    storageAdapter.getStoredJobPosts(INITIAL_JOB_POSTS)
+  );
+  const [applications, setApplications] = useState<Application[]>(() =>
+    storageAdapter.getStoredApplications(INITIAL_APPLICATIONS)
+  );
+  const [interviews, setInterviews] = useState<Interview[]>(() =>
+    storageAdapter.getStoredInterviews(INITIAL_INTERVIEWS)
+  );
+  const [auditLogs, setAuditLogs] = useState<AuditLog[]>(() =>
+    storageAdapter.getStoredAuditLogs(INITIAL_AUDIT_LOGS)
+  );
+  const [announcements, setAnnouncements] = useState<SystemAnnouncement[]>(() =>
+    storageAdapter.getStoredAnnouncements(INITIAL_ANNOUNCEMENTS)
+  );
   const [jobSubscriptions, setJobSubscriptions] = useState<JobAlertSubscription[]>(INITIAL_JOB_SUBSCRIPTIONS);
-  const [referralSlips, setReferralSlips] = useState<PesoReferralSlip[]>(INITIAL_REFERRAL_SLIPS);
-  const [localRecruitmentActivities, setLocalRecruitmentActivities] = useState<LocalRecruitmentActivity[]>(INITIAL_LRA_EVENTS);
-  const [candidateMatches, setCandidateMatches] = useState<CandidateMatch[]>([]);
+  const [referralSlips, setReferralSlips] = useState<PesoReferralSlip[]>(() =>
+    storageAdapter.getStoredReferralSlips(INITIAL_REFERRAL_SLIPS)
+  );
+  const [localRecruitmentActivities, setLocalRecruitmentActivities] = useState<LocalRecruitmentActivity[]>(() =>
+    storageAdapter.getStoredLraEvents(INITIAL_LRA_EVENTS)
+  );
+  const [candidateMatches, setCandidateMatches] = useState<CandidateMatch[]>(() =>
+    storageAdapter.getStoredCandidateMatches([])
+  );
   const [isSupabaseConnected, setIsSupabaseConnected] = useState<boolean>(false);
   const [isSyncing, setIsSyncing] = useState<boolean>(true);
 
@@ -277,10 +383,79 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
   }, [bookmarkedJobIds]);
 
   useEffect(() => {
-    if (jobSeekers && jobSeekers.length > 0) {
-      storageAdapter.setStoredJobSeekers(jobSeekers);
-    }
+    storageAdapter.setStoredEmployers(employers);
+  }, [employers]);
+
+  useEffect(() => {
+    storageAdapter.setStoredJobSeekers(jobSeekers);
   }, [jobSeekers]);
+
+  useEffect(() => {
+    storageAdapter.setStoredJobPosts(jobPosts);
+  }, [jobPosts]);
+
+  useEffect(() => {
+    storageAdapter.setStoredApplications(applications);
+  }, [applications]);
+
+  useEffect(() => {
+    storageAdapter.setStoredInterviews(interviews);
+  }, [interviews]);
+
+  useEffect(() => {
+    storageAdapter.setStoredAuditLogs(auditLogs);
+  }, [auditLogs]);
+
+  useEffect(() => {
+    storageAdapter.setStoredAnnouncements(announcements);
+  }, [announcements]);
+
+  useEffect(() => {
+    storageAdapter.setStoredReferralSlips(referralSlips);
+  }, [referralSlips]);
+
+  useEffect(() => {
+    storageAdapter.setStoredLraEvents(localRecruitmentActivities);
+  }, [localRecruitmentActivities]);
+
+  useEffect(() => {
+    storageAdapter.setStoredCandidateMatches(candidateMatches);
+  }, [candidateMatches]);
+
+  // Wrap registerUser so newly registered seeker/employer profiles sync immediately into AppContext (normalized to ALL CAPS)
+  const registerUser = useCallback(
+    (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => {
+      const normalizedUserData = {
+        ...userData,
+        name: (userData.name || '').toUpperCase(),
+      };
+      const normalizedExtra = userData.role === 'job_seeker'
+        ? normalizeSeekerProfileToUpperCase(extraProfile || {})
+        : userData.role === 'employer'
+        ? normalizeEmployerProfileToUpperCase(extraProfile || {})
+        : extraProfile;
+
+      const res = authRegisterUser(normalizedUserData, normalizedExtra);
+      if (res.success) {
+        if (res.seekerProfile) {
+          const upperSeeker = { ...res.seekerProfile, ...normalizeSeekerProfileToUpperCase(res.seekerProfile) };
+          setJobSeekers((prev) => {
+            if (prev.some((s) => s.id === upperSeeker.id)) return prev;
+            return [...prev, upperSeeker];
+          });
+        }
+        if (res.employerProfile) {
+          const upperEmployer = { ...res.employerProfile, ...normalizeEmployerProfileToUpperCase(res.employerProfile) };
+          setEmployers((prev) => {
+            if (prev.some((e) => e.id === upperEmployer.id)) return prev;
+            return [...prev, upperEmployer];
+          });
+        }
+      }
+      return res;
+    },
+    [authRegisterUser]
+  );
 
   const isInitialMount = useRef(true);
 
@@ -491,15 +666,39 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     saveDocument(COLLECTIONS.AUDIT_LOGS, newLog);
   };
 
-  // Verify Employer (Admin Action)
+  // Verify Employer (Admin Action - Enforces Profile & Uploaded Document Completeness Gate)
   const verifyEmployer = (employerId: string, status: EmployerStatus, notes?: string) => {
     const emp = employers.find(e => e.id === employerId);
     if (emp) {
+      const hasProfileDetails = Boolean(
+        emp.isProfileCompleted &&
+        emp.companyName?.trim() &&
+        emp.representativeName?.trim() &&
+        emp.contactNumber?.trim() &&
+        emp.address?.trim()
+      );
+      const hasUploadedDocs = Boolean(
+        (emp.documents && emp.documents.length > 0) ||
+        emp.dtiSecFile?.trim() ||
+        emp.mayorsPermitFile?.trim() ||
+        emp.businessPermitFile?.trim() ||
+        emp.barangayClearanceFile?.trim()
+      );
+
+      if (status === 'verified' && (!hasProfileDetails || !hasUploadedDocs)) {
+        showToast({
+          title: 'Verification Blocked: Incomplete Requirements',
+          message: 'Cannot verify an employer whose profile is incomplete or who has zero uploaded verification documents.',
+          type: 'alert',
+        });
+        return;
+      }
+
       const updated: EmployerProfile = { 
         ...emp, 
         status, 
         verificationNotes: notes || emp.verificationNotes,
-        complianceRemarks: status === 'for_compliance' ? (notes || 'Additional requirements needed.') : emp.complianceRemarks,
+        complianceRemarks: (status === 'for_compliance' || status === 'rejected') ? (notes || 'Additional requirements needed.') : emp.complianceRemarks,
       };
       
       setEmployers(prev => prev.map(e => e.id === employerId ? updated : e));
@@ -514,16 +713,18 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
           ? 'Employer Verification Approved!' 
           : status === 'for_compliance' 
           ? 'Employer Verification: Additional Compliance Required' 
-          : `Employer Status Updated to ${status.toUpperCase()}`,
+          : status === 'rejected'
+          ? 'Employer Verification Not Approved — Action Required'
+          : `Employer Status Updated to ${status.replace(/_/g, ' ').toUpperCase()}`,
         message: status === 'verified' 
-          ? 'Your business requirements have been verified by PESO Oriental Mindoro. You may now create and submit job vacancies.'
-          : status === 'for_compliance'
-          ? `PESO Oriental Mindoro requested compliance updates: ${notes || 'Please provide required business permits and accreditation documents.'}`
+          ? 'Your business requirements have been verified by PESO Oriental Mindoro. You may now create and publish job vacancies.'
+          : status === 'for_compliance' || status === 'rejected'
+          ? `PESO Oriental Mindoro reviewed your documents: ${notes || 'Please re-upload clear copies of your business verification documents in the Profile tab.'}`
           : `Your employer account status was updated: ${notes || status}`,
         type: status === 'verified' ? 'success' : 'warning',
         read: false,
         createdAt: new Date().toISOString(),
-        link: '/employer/dashboard',
+        link: status === 'verified' ? 'employer-dashboard' : 'employer-profile',
       };
       setNotifications(n => [notif, ...n]);
       saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
@@ -544,41 +745,74 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     }
   };
 
-  // Create Job Post (Employer Action - Submits for PESO Review)
-  const createJobPost = (jobData: Omit<JobPost, 'id' | 'postedDate' | 'status' | 'companyVerified'>): JobPost => {
-    const emp = employers.find(e => e.id === jobData.employerId);
+  // Create Job Post (Verified Employer Action - Strictly Enforces 3-Point Verification Gate)
+  const createJobPost = (jobData: Omit<JobPost, 'id' | 'postedDate' | 'status' | 'companyVerified'>): JobPost | null => {
+    const emp = employers.find(e => e.id === jobData.employerId) || currentEmployerProfile;
+    const isProfileCompleteFlag = Boolean(
+      emp?.isProfileCompleted &&
+      emp?.companyName?.trim() &&
+      emp?.representativeName?.trim() &&
+      emp?.contactNumber?.trim() &&
+      emp?.address?.trim()
+    );
+    const hasUploadedDocs = Boolean(
+      (emp?.documents && emp.documents.length > 0) ||
+      emp?.dtiSecFile?.trim() ||
+      emp?.mayorsPermitFile?.trim() ||
+      emp?.businessPermitFile?.trim() ||
+      emp?.barangayClearanceFile?.trim()
+    );
     const isVerified = emp?.status === 'verified';
+
+    if (!isProfileCompleteFlag || !hasUploadedDocs || !isVerified) {
+      showToast({
+        title: 'Job Posting Locked — Verification Required',
+        message: 'You must complete your employer profile, upload your business verification documents, and be officially verified by PESO/LGU before posting a job vacancy.',
+        type: 'alert',
+      });
+      return null;
+    }
 
     const newJob: JobPost = {
       ...jobData,
       id: `job-${Date.now()}`,
       postedDate: new Date().toISOString().split('T')[0],
-      status: 'pending_approval', // Submitted for PESO-LGU Review
-      companyVerified: isVerified,
+      status: 'active',
+      companyVerified: true,
     };
 
     setJobPosts(prev => [newJob, ...prev]);
     saveDocument(COLLECTIONS.JOB_POSTS, newJob);
 
-    // Notify Admin of pending job vacancy
+    // Notify Admin of the new job vacancy
     const adminUser = users.find(u => u.role === 'admin');
     if (adminUser) {
       const notif: NotificationItem = {
         id: `notif-${Date.now()}`,
         recipientId: adminUser.id,
         recipientRole: 'admin',
-        title: 'New Job Vacancy Pending PESO Review',
-        message: `${newJob.companyName} submitted "${newJob.title}" (${newJob.municipality}) for vacancy review & publication approval.`,
+        title: isVerified
+          ? `New Verified Job Vacancy Published: ${newJob.title}`
+          : 'New Job Vacancy Pending PESO Review',
+        message: isVerified
+          ? `${newJob.companyName} published "${newJob.title}" (${newJob.municipality}). Automated matching engine has evaluated registered and walk-in applicants.`
+          : `${newJob.companyName} submitted "${newJob.title}" (${newJob.municipality}) for vacancy review & publication approval.`,
         type: 'info',
         read: false,
         createdAt: new Date().toISOString(),
-        link: '/admin/jobs',
+        link: isVerified ? '/admin/job-matching' : '/admin/jobs',
       };
       setNotifications(n => [notif, ...n]);
       saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
     }
 
-    logAudit('JOB_CREATED', 'JobPost', newJob.id, `Submitted job posting for PESO review: "${newJob.title}" in ${newJob.municipality}`);
+    // Automatically run matching engine when a verified employer posts a job
+    if (newJob.status === 'active') {
+      checkJobSubscriptionsAndNotify(newJob);
+      notifyAndCacheCandidateMatches(newJob);
+    }
+
+    logAudit('JOB_CREATED', 'JobPost', newJob.id, `Created job posting: "${newJob.title}" in ${newJob.municipality} (Status: ${newJob.status})`);
     return newJob;
   };
 
@@ -629,12 +863,14 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     }
   };
 
-  // Automatically evaluate and notify matching job seekers when a job vacancy is approved & published
-  const notifyAndCacheCandidateMatches = (job: JobPost) => {
+  // Automatically evaluate and notify matching job seekers AND LGU/PESO Admin (for walk-in applicants) when a job vacancy is published
+  const notifyAndCacheCandidateMatches = (job: JobPost, seekersToEvaluate: JobSeekerProfile[] = jobSeekers) => {
     const newMatches: CandidateMatch[] = [];
+    const adminUser = users.find(u => u.role === 'admin');
 
-    jobSeekers.forEach(seeker => {
+    seekersToEvaluate.forEach(seeker => {
       const matchResult = getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches });
+      const overallPct = Math.round(matchResult.overallMatch);
 
       const candidateMatchRecord: CandidateMatch = {
         id: `match-${job.id}-${seeker.id}`,
@@ -662,14 +898,41 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         });
       }
 
-      // If qualification threshold >= 70%, dispatch real-time Match Alert notification
-      if (matchResult.overallMatch >= 70) {
+      // 1. If Walk-In Applicant matches the job (overallMatch >= 50%), automatically notify LGU/PESO Admin with full contact & match breakdown
+      const isWalkInApplicant = Boolean(seeker.isWalkIn || seeker.registrationType === 'walk_in');
+      if (isWalkInApplicant && overallPct >= 50) {
+        const seekerFullName = `${seeker.firstName} ${seeker.lastName}`.trim();
+        const contactSummary = [
+          seeker.contactNumber ? `Phone: ${seeker.contactNumber}` : null,
+          seeker.email ? `Email: ${seeker.email}` : null,
+          seeker.barangay ? `Brgy. ${seeker.barangay}, ${seeker.municipality || 'Roxas'}` : seeker.address,
+        ].filter(Boolean).join(' • ');
+
+        const breakdownSummary = `Skills: ${Math.round(matchResult.skillsMatchScore)}% | Education: ${Math.round(matchResult.educationMatchScore)}% | Degree: ${Math.round(matchResult.degreeAlignmentScore)}% | Experience: ${Math.round(matchResult.experienceMatchScore)}% | Certs: ${Math.round(matchResult.certificationsMatchScore)}%`;
+
+        const walkInAdminNotif: NotificationItem = {
+          id: `notif-walkin-match-${Date.now()}-${job.id}-${seeker.id}`,
+          recipientId: adminUser?.id || 'admin',
+          recipientRole: 'admin',
+          title: `📞 Walk-In Match Outreach Required: ${seekerFullName} → ${job.title} (${overallPct}% Match)`,
+          message: `Walk-in applicant ${seekerFullName} (${contactSummary}) matched "${job.title}" at ${job.companyName} with ${overallPct}% compatibility (${matchResult.outcome}). Breakdown: [${breakdownSummary}]. Please contact the applicant to confirm if they want to proceed and update their hiring status.`,
+          type: 'action',
+          read: false,
+          createdAt: new Date().toISOString(),
+          link: 'admin-job-matching',
+        };
+        setNotifications(prev => [walkInAdminNotif, ...prev]);
+        saveDocument(COLLECTIONS.NOTIFICATIONS, walkInAdminNotif);
+      }
+
+      // 2. If qualification threshold >= 60%, dispatch real-time Match Alert notification to the Job Seeker
+      if (overallPct >= 60) {
         const matchNotif: NotificationItem = {
           id: `notif-match-${Date.now()}-${seeker.id}`,
           recipientId: seeker.userId,
           recipientRole: 'job_seeker',
-          title: `Job Match Found: ${job.title} (${Math.round(matchResult.overallMatch)}%)`,
-          message: `${job.companyName} has published "${job.title}" in ${job.municipality}, which aligns with your qualifications (${Math.round(matchResult.overallMatch)}% Decision Tree compatibility)!`,
+          title: `Job Match Found: ${job.title} (${overallPct}%)`,
+          message: `${job.companyName} has published "${job.title}" in ${job.municipality}, which aligns with your profile (${overallPct}% Decision Tree compatibility)!`,
           type: 'success',
           read: false,
           createdAt: new Date().toISOString(),
@@ -678,11 +941,10 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         setNotifications(prev => [matchNotif, ...prev]);
         saveDocument(COLLECTIONS.NOTIFICATIONS, matchNotif);
 
-        // If this seeker is the currently active user, show toast notification immediately
         if (currentUser?.id === seeker.userId) {
           showToast({
             title: `High Match Vacancy Available!`,
-            message: `${job.companyName} posted "${job.title}" (${Math.round(matchResult.overallMatch)}% Match). Apply now!`,
+            message: `${job.companyName} posted "${job.title}" (${overallPct}% Match). Apply now!`,
             jobId: job.id,
             companyName: job.companyName,
             municipality: job.municipality,
@@ -824,19 +1086,40 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     setApplications(prev => [newApp, ...prev]);
     saveDocument(COLLECTIONS.APPLICATIONS, newApp);
 
+    // Check if there was a pending Scout / Invitation for this job & seeker and mark it accepted
+    const pendingInvite = invitations.find(
+      inv => (inv.jobId === jobId || inv.vacancyId === jobId) && (inv.jobSeekerId === seekerId || inv.seekerId === seekerId) && inv.status === 'pending'
+    );
+    if (pendingInvite) {
+      const nowIso = new Date().toISOString();
+      setInvitations(prev =>
+        prev.map(inv =>
+          inv.id === pendingInvite.id
+            ? { ...inv, status: 'accepted', respondedAt: nowIso }
+            : inv
+        )
+      );
+    }
+
     // Notify Employer
     const employerUser = users.find(u => u.role === 'employer' && employers.some(e => e.id === job.employerId && e.userId === u.id));
-    if (employerUser) {
+    const employerRecipientId = employerUser?.id || employers.find(e => e.id === job.employerId)?.userId || job.employerId;
+    if (employerRecipientId) {
+      const seekerUpperName = `${seeker.firstName} ${seeker.lastName}`.trim().toUpperCase();
       const notif: NotificationItem = {
         id: `notif-${Date.now()}`,
-        recipientId: employerUser.id,
+        recipientId: employerRecipientId,
         recipientRole: 'employer',
-        title: 'New Job Application Received',
-        message: `${seeker.firstName} ${seeker.lastName} applied for "${job.title}" (${matchResult.overallMatch}% Decision Tree Match).`,
-        type: 'info',
+        title: pendingInvite
+          ? `Scouted Candidate Accepted & Applied: ${seekerUpperName}`
+          : 'New Job Application Received',
+        message: pendingInvite
+          ? `${seekerUpperName} accepted your scout invitation and submitted an official application for "${job.title}" (${Math.round(matchResult.overallMatch)}% AI Match).`
+          : `${seekerUpperName} applied for "${job.title}" (${Math.round(matchResult.overallMatch)}% Decision Tree Match).`,
+        type: pendingInvite ? 'success' : 'info',
         read: false,
         createdAt: new Date().toISOString(),
-        link: '/employer/applicants',
+        link: 'employer-applicants',
       };
       setNotifications(n => [notif, ...n]);
       saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
@@ -913,15 +1196,133 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     logAudit('APPLICATION_STATUS_UPDATED', 'Application', applicationId, `Status changed to ${status}`);
   };
 
-  // Schedule Interview (with Schedule Validation)
+  // Upsert Candidate Application Status (allows Employers & PESO Admin to update status directly from ranked match lists or walk-in outreach)
+  const upsertCandidateApplicationStatus = (
+    jobId: string,
+    seekerId: string,
+    status: ApplicationStatus,
+    notes?: string
+  ): Application | null => {
+    const existingApp = applications.find(a => a.jobId === jobId && a.jobSeekerId === seekerId);
+    if (existingApp) {
+      updateApplicationStatus(existingApp.id, status, notes);
+      return { ...existingApp, currentStatus: status };
+    }
+
+    const job = jobPosts.find(j => j.id === jobId);
+    const seeker = jobSeekers.find(s => s.id === seekerId);
+    if (!job || !seeker) return null;
+
+    const matchResult = getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches });
+    const selectedResume = seeker.resumes?.[0];
+    const atsResult = evaluateResumeForAts(
+      {
+        ...seeker,
+        fileName: selectedResume?.fileName,
+        extractedSkills: selectedResume?.extractedSkills || seeker.technicalSkills,
+        extractedDegree: selectedResume?.extractedDegree || seeker.primaryDegree,
+        extractedEducation: selectedResume?.extractedEducation || seeker.educationalAttainment,
+        extractedExperienceYears: selectedResume?.extractedExperienceYears,
+      },
+      job
+    );
+
+    const actorName = currentUser?.name || (currentUser?.role === 'admin' ? 'LGU/PESO Admin' : job.companyName);
+    const newApp: Application = {
+      id: `app-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      jobId,
+      jobSeekerId: seekerId,
+      employerId: job.employerId,
+      appliedDate: new Date().toISOString(),
+      resumeId: seeker.activeResumeId || selectedResume?.id || 'walk-in-biodata',
+      currentStatus: status,
+      matchResult,
+      matchScore: matchResult.overallMatch,
+      applicantName: `${seeker.firstName} ${seeker.lastName}`.trim(),
+      decisionTreeOutcome: matchResult.outcome,
+      atsScore: atsResult.score,
+      atsResult,
+      notes,
+      statusHistory: [
+        {
+          status,
+          updatedAt: new Date().toISOString(),
+          updatedBy: actorName,
+          notes: notes || (seeker.isWalkIn ? 'Walk-in applicant confirmed via PESO outreach.' : `Application status set to ${status.replace(/_/g, ' ')}.`),
+        },
+      ],
+    };
+
+    setApplications(prev => [newApp, ...prev]);
+    saveDocument(COLLECTIONS.APPLICATIONS, newApp);
+
+    // Notify Seeker
+    if (seeker.userId) {
+      const notifItem: NotificationItem = {
+        id: `notif-${Date.now()}-seeker`,
+        recipientId: seeker.userId,
+        recipientRole: 'job_seeker',
+        title: status === 'hired'
+          ? `🎉 Congratulations! You are HIRED by ${job.companyName}!`
+          : `Application Status Updated: ${status.replace(/_/g, ' ').toUpperCase()}`,
+        message: status === 'hired'
+          ? `Congratulations ${seeker.firstName}! ${job.companyName} has officially hired you for "${job.title}".`
+          : `Your application status for "${job.title}" at ${job.companyName} is now: ${status.replace(/_/g, ' ').toUpperCase()}.${notes ? ` Remarks: ${notes}` : ''}`,
+        type: status === 'hired' ? 'success' : 'info',
+        read: false,
+        createdAt: new Date().toISOString(),
+        link: '/seeker/applications',
+      };
+      setNotifications(n => [notifItem, ...n]);
+      saveDocument(COLLECTIONS.NOTIFICATIONS, notifItem);
+    }
+
+    // Notify Employer if updated by PESO Admin
+    if (currentUser?.role === 'admin') {
+      const emp = employers.find(e => e.id === job.employerId);
+      if (emp) {
+        const empNotif: NotificationItem = {
+          id: `notif-${Date.now()}-emp`,
+          recipientId: emp.userId,
+          recipientRole: 'employer',
+          title: `PESO Walk-In Applicant Confirmed: ${seeker.firstName} ${seeker.lastName}`,
+          message: `LGU/PESO confirmed walk-in applicant ${seeker.firstName} ${seeker.lastName} (${Math.round(matchResult.overallMatch)}% Match) for "${job.title}" with status: ${status.replace(/_/g, ' ').toUpperCase()}.`,
+          type: 'action',
+          read: false,
+          createdAt: new Date().toISOString(),
+          link: '/employer/applicants',
+        };
+        setNotifications(n => [empNotif, ...n]);
+        saveDocument(COLLECTIONS.NOTIFICATIONS, empNotif);
+      }
+    }
+
+    if (status === 'hired') {
+      const updatedSeeker: JobSeekerProfile = {
+        ...seeker,
+        employmentStatus: 'hired',
+        currentEmployer: job.companyName,
+        hiredPosition: job.title,
+        hiredAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      setJobSeekers(prev => prev.map(s => s.id === seeker.id ? updatedSeeker : s));
+      saveDocument(COLLECTIONS.JOB_SEEKERS, updatedSeeker);
+    }
+
+    logAudit('APPLICATION_UPSERTED', 'Application', newApp.id, `Set candidate ${seeker.firstName} ${seeker.lastName} status for "${job.title}" to ${status}`);
+    return newApp;
+  };
+
+  // Schedule Interview (with Schedule Validation & Direct Built-In Calendar Sync)
   const scheduleInterview = (interviewData: Omit<Interview, 'id' | 'createdAt' | 'status'>) => {
     // Validation checks:
     // 1. Check if applicant already has a confirmed/scheduled interview at the same date & time
     const seekerConflict = interviews.find(i => 
-      i.jobSeekerId === interviewData.jobSeekerId &&
+      (i.jobSeekerId === interviewData.jobSeekerId || i.seekerId === interviewData.jobSeekerId) &&
       i.date === interviewData.date &&
       i.time === interviewData.time &&
-      (i.status === 'scheduled' || i.status === 'accepted')
+      (i.status === 'scheduled' || i.status === 'rescheduled' || i.status === 'accepted')
     );
 
     if (seekerConflict) {
@@ -936,7 +1337,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       i.employerId === interviewData.employerId &&
       i.date === interviewData.date &&
       i.time === interviewData.time &&
-      (i.status === 'scheduled' || i.status === 'accepted')
+      (i.status === 'scheduled' || i.status === 'rescheduled' || i.status === 'accepted')
     );
 
     if (employerConflict) {
@@ -946,11 +1347,29 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       };
     }
 
+    const normalizedFormat = interviewData.interviewType || interviewData.format || 'video';
+    const normalizedLocation =
+      normalizedFormat === 'face_to_face'
+        ? (interviewData.locationOrLink || '').toUpperCase()
+        : interviewData.locationOrLink;
+    const normalizedNotes = (interviewData.instructions || interviewData.notes || '').toUpperCase();
+
     const newInterview: Interview = {
       ...interviewData,
       id: `int-${Date.now()}`,
+      vacancyId: interviewData.jobId || interviewData.vacancyId,
+      seekerId: interviewData.jobSeekerId || interviewData.seekerId,
+      applicantName: (interviewData.applicantName || '').toUpperCase(),
+      companyName: (interviewData.companyName || '').toUpperCase(),
+      interviewType: normalizedFormat,
+      format: normalizedFormat,
+      locationOrLink: normalizedLocation,
+      instructions: normalizedNotes,
+      notes: normalizedNotes,
       status: 'scheduled',
+      remindersSent: {},
       createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     };
 
     setInterviews(prev => [newInterview, ...prev]);
@@ -959,34 +1378,165 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     // Update application status to for_interview / interview_scheduled
     updateApplicationStatus(interviewData.applicationId, 'interview_scheduled', `Interview scheduled for ${interviewData.date} at ${interviewData.time}`);
 
-    // Notify Job Seeker
+    // Notify Job Seeker immediately in-app with link to Calendar tab
     const seeker = jobSeekers.find(s => s.id === interviewData.jobSeekerId);
     if (seeker) {
+      const formatLabel =
+        normalizedFormat === 'video'
+          ? 'Online / Video'
+          : normalizedFormat === 'face_to_face'
+          ? 'On-Site / Office'
+          : 'Phone';
       const notif: NotificationItem = {
-        id: `notif-${Date.now()}`,
-        recipientId: seeker.userId,
+        id: `notif-int-${Date.now()}`,
+        recipientId: seeker.userId || seeker.id,
         recipientRole: 'job_seeker',
-        title: 'Interview Invitation Received',
-        message: `${interviewData.companyName} invited you for a ${interviewData.interviewType} interview for "${interviewData.jobTitle}" on ${interviewData.date} at ${interviewData.time}.`,
+        title: `📅 Interview Scheduled: ${interviewData.jobTitle}`,
+        message: `${interviewData.companyName.toUpperCase()} scheduled a ${formatLabel} interview for "${interviewData.jobTitle}" on ${interviewData.date} at ${interviewData.time}. Open your Calendar tab to view full details.`,
         type: 'action',
         read: false,
         createdAt: new Date().toISOString(),
-        link: '/seeker/interviews',
+        link: 'seeker-interviews',
       };
       setNotifications(n => [notif, ...n]);
       saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
     }
 
-    logAudit('INTERVIEW_SCHEDULED', 'Interview', newInterview.id, `Scheduled interview with ${interviewData.applicantName} on ${interviewData.date}`);
+    logAudit('INTERVIEW_SCHEDULED', 'Interview', newInterview.id, `Scheduled interview with ${newInterview.applicantName} on ${interviewData.date} at ${interviewData.time}`);
 
-    return { success: true, message: 'Interview successfully scheduled!', interview: newInterview };
+    return { success: true, message: 'Interview successfully scheduled and synced to built-in calendars!', interview: newInterview };
+  };
+
+  // Reschedule Interview (Employer Action - Syncs Both Calendars & Notifies Job Seeker)
+  const rescheduleInterview = (
+    interviewId: string,
+    updates: {
+      date: string;
+      time: string;
+      interviewType?: Interview['interviewType'];
+      locationOrLink?: string;
+      instructions?: string;
+    }
+  ): { success: boolean; message: string } => {
+    const existing = interviews.find(i => i.id === interviewId);
+    if (!existing) {
+      return { success: false, message: 'Interview record not found.' };
+    }
+
+    const nextFormat = updates.interviewType || existing.interviewType || existing.format || 'video';
+    const nextLocation =
+      updates.locationOrLink !== undefined
+        ? nextFormat === 'face_to_face'
+          ? updates.locationOrLink.toUpperCase()
+          : updates.locationOrLink
+        : existing.locationOrLink;
+    const nextNotes =
+      updates.instructions !== undefined
+        ? updates.instructions.toUpperCase()
+        : (existing.instructions || existing.notes || '').toUpperCase();
+
+    const updatedInterview: Interview = {
+      ...existing,
+      date: updates.date,
+      time: updates.time,
+      interviewType: nextFormat,
+      format: nextFormat,
+      locationOrLink: nextLocation,
+      instructions: nextNotes,
+      notes: nextNotes,
+      status: 'rescheduled',
+      remindersSent: {},
+      updatedAt: new Date().toISOString(),
+    };
+
+    setInterviews(prev => prev.map(i => (i.id === interviewId ? updatedInterview : i)));
+    saveDocument(COLLECTIONS.INTERVIEWS, updatedInterview);
+
+    const seeker = jobSeekers.find(s => s.id === existing.jobSeekerId || s.id === existing.seekerId);
+    if (seeker) {
+      const notif: NotificationItem = {
+        id: `notif-resched-${Date.now()}`,
+        recipientId: seeker.userId || seeker.id,
+        recipientRole: 'job_seeker',
+        title: `🔄 Interview Rescheduled: ${existing.jobTitle}`,
+        message: `${existing.companyName.toUpperCase()} rescheduled your interview for "${existing.jobTitle}" to ${updates.date} at ${updates.time}. Check your Calendar tab for updated details.`,
+        type: 'warning',
+        read: false,
+        createdAt: new Date().toISOString(),
+        link: 'seeker-interviews',
+      };
+      setNotifications(n => [notif, ...n]);
+      saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
+    }
+
+    logAudit('INTERVIEW_RESCHEDULED', 'Interview', interviewId, `Rescheduled interview with ${existing.applicantName} to ${updates.date} at ${updates.time}`);
+    return { success: true, message: 'Interview rescheduled and synced to both calendars.' };
+  };
+
+  // Cancel Interview (Employer Action - Syncs Both Calendars & Notifies Job Seeker)
+  const cancelInterview = (interviewId: string, reason?: string) => {
+    const existing = interviews.find(i => i.id === interviewId);
+    if (!existing) return;
+
+    const updatedInterview: Interview = {
+      ...existing,
+      status: 'cancelled',
+      rescheduleNotes: reason ? reason.toUpperCase() : existing.rescheduleNotes,
+      updatedAt: new Date().toISOString(),
+    };
+
+    setInterviews(prev => prev.map(i => (i.id === interviewId ? updatedInterview : i)));
+    saveDocument(COLLECTIONS.INTERVIEWS, updatedInterview);
+
+    const seeker = jobSeekers.find(s => s.id === existing.jobSeekerId || s.id === existing.seekerId);
+    if (seeker) {
+      const notif: NotificationItem = {
+        id: `notif-cancel-${Date.now()}`,
+        recipientId: seeker.userId || seeker.id,
+        recipientRole: 'job_seeker',
+        title: `❌ Interview Cancelled: ${existing.jobTitle}`,
+        message: `${existing.companyName.toUpperCase()} cancelled the scheduled interview for "${existing.jobTitle}" (${existing.date} at ${existing.time}).${reason ? ` Note: ${reason.toUpperCase()}` : ''}`,
+        type: 'warning',
+        read: false,
+        createdAt: new Date().toISOString(),
+        link: 'seeker-interviews',
+      };
+      setNotifications(n => [notif, ...n]);
+      saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
+    }
+
+    showToast({
+      title: 'Interview Cancelled',
+      message: `Cancelled interview with ${existing.applicantName} and updated both calendars.`,
+      type: 'status',
+    });
+
+    logAudit('INTERVIEW_CANCELLED', 'Interview', interviewId, `Cancelled interview with ${existing.applicantName}`);
   };
 
   // Respond to Interview (Accept / Decline / Reschedule)
-  const respondToInterview = (interviewId: string, status: 'accepted' | 'declined' | 'reschedule_requested', notes?: string) => {
+  const respondToInterview = (
+    interviewId: string,
+    rawStatus: 'accepted' | 'declined' | 'reschedule_requested' | 'accept' | 'decline' | 'reschedule',
+    notes?: string
+  ) => {
+    const status: 'accepted' | 'declined' | 'reschedule_requested' =
+      rawStatus === 'accept'
+        ? 'accepted'
+        : rawStatus === 'decline'
+        ? 'declined'
+        : rawStatus === 'reschedule'
+        ? 'reschedule_requested'
+        : rawStatus;
+
     setInterviews(prev => prev.map(i => {
       if (i.id === interviewId) {
-        const updated = { ...i, status, rescheduleNotes: notes || i.rescheduleNotes };
+        const updated = {
+          ...i,
+          status,
+          rescheduleNotes: notes ? notes.toUpperCase() : i.rescheduleNotes,
+          updatedAt: new Date().toISOString(),
+        };
         saveDocument(COLLECTIONS.INTERVIEWS, updated);
 
         // Notify Employer
@@ -997,11 +1547,11 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
             recipientId: emp.userId,
             recipientRole: 'employer',
             title: `Interview ${(status || '').replace(/_/g, ' ').toUpperCase()}`,
-            message: `${i.applicantName} has ${(status || '').replace(/_/g, ' ')} the interview for "${i.jobTitle}". ${notes ? `Notes: ${notes}` : ''}`,
+            message: `${i.applicantName.toUpperCase()} has ${(status || '').replace(/_/g, ' ')} the interview for "${i.jobTitle}". ${notes ? `Notes: ${notes.toUpperCase()}` : ''}`,
             type: status === 'accepted' ? 'success' : 'warning',
             read: false,
             createdAt: new Date().toISOString(),
-            link: '/employer/applicants',
+            link: 'employer-interviews',
           };
           setNotifications(n => [notif, ...n]);
           saveDocument(COLLECTIONS.NOTIFICATIONS, notif);
@@ -1014,8 +1564,9 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     logAudit('INTERVIEW_RESPONSE', 'Interview', interviewId, `Applicant responded: ${status}`);
   };
 
-  // Update Seeker Profile
-  const updateJobSeekerProfile = (seekerId: string, profileData: Partial<JobSeekerProfile>) => {
+  // Update Seeker Profile (Normalized to ALL CAPS while keeping email, URLs, and IDs intact)
+  const updateJobSeekerProfile = (seekerId: string, rawProfileData: Partial<JobSeekerProfile>) => {
+    const profileData = normalizeSeekerProfileToUpperCase(rawProfileData);
     const emailToMatch = (profileData.email || currentUser?.email || '').toLowerCase().trim();
 
     setJobSeekers(prev => {
@@ -1191,10 +1742,11 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     logAudit('ASSESSMENT_COMPLETED', 'SkillAssessment', result.assessmentId, `Completed "${result.assessmentTitle}" with score ${result.score}% (${result.passed ? 'PASSED' : 'RETRY'})`);
   };
 
-  // Update Employer Profile
+  // Update Employer Profile (Normalized to ALL CAPS while keeping email, website URLs, and IDs intact)
   const updateEmployerProfile = (employerIdOrData: string | Partial<EmployerProfile>, maybeData?: Partial<EmployerProfile>) => {
     const targetId = typeof employerIdOrData === 'string' ? employerIdOrData : (currentEmployerProfile?.id || '');
-    const profileData = typeof employerIdOrData === 'string' ? (maybeData || {}) : employerIdOrData;
+    const rawProfileData = typeof employerIdOrData === 'string' ? (maybeData || {}) : employerIdOrData;
+    const profileData = normalizeEmployerProfileToUpperCase(rawProfileData);
 
     setEmployers(prev => prev.map(e => {
       if (e.id === targetId || (!targetId && e.userId === currentUser?.id)) {
@@ -1330,11 +1882,12 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     logAudit('UPDATE_REFERRAL_STATUS', 'PesoReferralSlip', slipId, `Updated referral slip status to ${status}${isHots ? ' (HOTS)' : ''}.`);
   };
 
-  // Encode Walk-In Job Seeker (Physical Bio-Data encoding by PESO staff)
-  const encodeWalkInJobSeeker = (seekerData: Partial<JobSeekerProfile> & { firstName: string; lastName: string; contactNumber: string }): JobSeekerProfile => {
+  // Encode Walk-In Job Seeker (Physical Bio-Data encoding by PESO staff - Normalized to ALL CAPS)
+  const encodeWalkInJobSeeker = (rawSeekerData: Partial<JobSeekerProfile> & { firstName: string; lastName: string; contactNumber: string }): JobSeekerProfile => {
+    const seekerData = { ...rawSeekerData, ...normalizeSeekerProfileToUpperCase(rawSeekerData) };
     const walkInUserId = `user-walkin-${Date.now()}`;
     const walkInSeekerId = `seeker-walkin-${Date.now()}`;
-    const fullName = `${seekerData.firstName} ${seekerData.lastName}`.trim();
+    const fullName = `${seekerData.firstName} ${seekerData.lastName}`.trim().toUpperCase();
     const generatedEmail = seekerData.email || `${seekerData.firstName.toLowerCase().replace(/\s+/g, '')}.${seekerData.lastName.toLowerCase().replace(/\s+/g, '')}.walkin@pesoroxas.gov.ph`;
 
     // Calculate initial profile completeness
@@ -1343,6 +1896,16 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     if (seekerData.practicalSkills && seekerData.practicalSkills.length > 0) completeness += 15;
     if (seekerData.tradeCertifications && seekerData.tradeCertifications.length > 0) completeness += 10;
     if (seekerData.geographicMobility) completeness += 10;
+
+    const allTechSkills = Array.from(new Set([
+      ...(seekerData.technicalSkills || []),
+      ...(seekerData.practicalSkills || []),
+      ...(seekerData.tradeSkills || []),
+      ...(seekerData.administrativeSkills || []),
+      ...(seekerData.serviceHospitalitySkills || []),
+      ...(seekerData.salesCustomerSkills || []),
+      ...(seekerData.itCreativeSkills || []),
+    ]));
 
     const newSeeker: JobSeekerProfile = {
       id: walkInSeekerId,
@@ -1355,17 +1918,21 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       contactNumber: seekerData.contactNumber,
       address: seekerData.address || 'Roxas, Oriental Mindoro',
       barangay: seekerData.barangay || 'Bagumbayan',
-      municipality: 'Roxas',
+      municipality: seekerData.municipality || 'Roxas',
       civilStatus: seekerData.civilStatus || 'Single',
       sex: seekerData.sex || 'Male',
       age: seekerData.age || 24,
       professionalSummary: seekerData.professionalSummary || `Walk-in job seeker registered at PESO-LGU Roxas. Registered education: ${seekerData.educationalAttainment || 'High School'}.`,
       educationalAttainment: seekerData.educationalAttainment || (seekerData.educationCategory || 'High School Graduate'),
       primaryDegree: seekerData.primaryDegree || '',
-      technicalSkills: seekerData.technicalSkills || [],
+      technicalSkills: allTechSkills,
       softSkills: seekerData.softSkills || ['Punctual', 'Hardworking', 'Team Player'],
-      tradeSkills: seekerData.practicalSkills || [],
-      education: seekerData.education || [{
+      tradeSkills: seekerData.tradeSkills || seekerData.practicalSkills || [],
+      administrativeSkills: seekerData.administrativeSkills || [],
+      serviceHospitalitySkills: seekerData.serviceHospitalitySkills || [],
+      salesCustomerSkills: seekerData.salesCustomerSkills || [],
+      itCreativeSkills: seekerData.itCreativeSkills || [],
+      education: seekerData.education && seekerData.education.length > 0 ? seekerData.education : [{
         id: `edu-${Date.now()}`,
         school: 'Roxas Local School / Institution',
         degreeCourse: seekerData.primaryDegree || seekerData.educationalAttainment || 'General Secondary Course',
@@ -1373,20 +1940,23 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         educationalAttainment: seekerData.educationalAttainment || (seekerData.educationCategory || 'High School')
       }],
       workExperience: seekerData.workExperience || [],
-      certifications: (seekerData.tradeCertifications || []).map((cert, idx) => ({
-        id: `cert-${Date.now()}-${idx}`,
-        name: cert,
-        issuingOrganization: 'TESDA',
-        dateObtained: '2024-01-15'
-      })),
-      resumes: [],
+      certifications: seekerData.certifications && seekerData.certifications.length > 0
+        ? seekerData.certifications
+        : (seekerData.tradeCertifications || []).map((cert, idx) => ({
+            id: `cert-${Date.now()}-${idx}`,
+            name: cert,
+            issuingOrganization: 'TESDA',
+            dateObtained: '2024-01-15'
+          })),
+      resumes: seekerData.resumes || [],
+      activeResumeId: seekerData.activeResumeId,
       isAccountVerified: true, // Walk-in is verified physically by PESO officer
       isProfileCompleted: true,
       employmentStatus: 'unemployed',
       isWalkIn: true,
       registrationType: 'walk_in',
       educationCategory: seekerData.educationCategory || 'High School Graduate',
-      practicalSkills: seekerData.practicalSkills || [],
+      practicalSkills: seekerData.practicalSkills || allTechSkills,
       tradeCertifications: seekerData.tradeCertifications || [],
       geographicMobility: seekerData.geographicMobility || 'local_only',
       willingToRelocateForVisitingCompanies: seekerData.willingToRelocateForVisitingCompanies ?? false,
@@ -1405,6 +1975,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       role: 'job_seeker',
       phone: seekerData.contactNumber,
       isAccountVerified: true,
+      isProfileCompleted: true,
       createdAt: new Date().toISOString()
     };
 
@@ -1413,6 +1984,12 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
     saveDocument(COLLECTIONS.USERS, newUser);
     saveDocument(COLLECTIONS.JOB_SEEKERS, newSeeker);
+
+    // Automatically run matching engine for this newly uploaded walk-in applicant against all active job posts
+    const activeVacancies = jobPosts.filter(j => j.status === 'active');
+    activeVacancies.forEach(activeJob => {
+      notifyAndCacheCandidateMatches(activeJob, [newSeeker]);
+    });
 
     logAudit('ENCODE_WALK_IN_SEEKER', 'JobSeekerProfile', newSeeker.id, `Encoded walk-in applicant ${fullName} (${newSeeker.educationCategory}) with physical bio-data.`);
 
@@ -1843,7 +2420,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       id: `job-sim-${Date.now()}`,
       employerId: 'emp-1',
       companyName: 'Mindoro Digital Solutions Inc.',
-      companyLogo: 'https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=150',
+      companyLogo: '',
       companyMunicipality: municipality,
       companyVerified: true,
       title: `Senior ${keyword} Specialist`,
@@ -1881,34 +2458,31 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
     logAudit('SIMULATED_JOB_MATCH', 'JobPost', simJob.id, `Simulated job match for "${targetSub?.title || 'Alert'}"`);
   };
 
-  // Reset database to complete demo state with active employers & PESO admin
+  // Reset database to clean zero-data state
   const resetToDemoData = async () => {
-    if (isSupabaseConfigured()) {
-      await seedDemoDataToSupabase().catch((err) => {
-        console.warn('[Supabase] Warning during demo reset:', err);
-      });
-    }
-    setUsers(INITIAL_USERS);
+    storageAdapter.clearAllStoredData();
+    setUsers([]);
     setCurrentUser(null);
-    setEmployers(INITIAL_EMPLOYERS);
-    setJobSeekers(INITIAL_JOB_SEEKERS);
-    setJobPosts(INITIAL_JOB_POSTS);
-    setApplications(INITIAL_APPLICATIONS);
-    setInterviews(INITIAL_INTERVIEWS);
-    setNotifications(INITIAL_NOTIFICATIONS);
-    setAuditLogs(INITIAL_AUDIT_LOGS);
-    setAnnouncements(INITIAL_ANNOUNCEMENTS);
+    setEmployers([]);
+    setJobSeekers([]);
+    setJobPosts([]);
+    setApplications([]);
+    setInterviews([]);
+    setNotifications([]);
+    setAuditLogs([]);
+    setAnnouncements([]);
     setJobSubscriptions([]);
     setReferralSlips([]);
     setLocalRecruitmentActivities([]);
-    setBookmarkedJobIds(['job-puregold-cashier', 'job-sales-lady']);
+    setCandidateMatches([]);
+    setBookmarkedJobIds([]);
     setConversations([]);
     setChatMessages([]);
     setCompanyReviews([]);
     setProfileViews([]);
     showToast({
-      title: 'Demo Accounts Loaded',
-      message: 'Active demo accounts for PESO Admin, Puregold, Tech, Agriculture, and Retail Saleslady ready.',
+      title: 'Clean Slate Reset Complete',
+      message: 'All data has been reset to a clean empty database state.',
       type: 'success',
     });
   };
@@ -2024,7 +2598,9 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       return { success: false, message: 'Candidate profile not found.' };
     }
 
-    const alreadyInvited = invitations.some(inv => inv.jobId === jobId && inv.jobSeekerId === seekerId);
+    const alreadyInvited = invitations.some(
+      inv => (inv.jobId === jobId || inv.vacancyId === jobId) && (inv.jobSeekerId === seekerId || inv.seekerId === seekerId)
+    );
     if (alreadyInvited) {
       return { 
         success: false, 
@@ -2034,33 +2610,42 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
     const match = getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches });
     const score = Math.round(match.overallMatch);
+    const nowIso = new Date().toISOString();
+    const seekerDisplayName = `${seeker.firstName} ${seeker.lastName}`.trim().toUpperCase();
+    const finalMessage =
+      customMessage?.trim() ||
+      `You have been scouted as a top-matching candidate (${score}% AI Match) for "${job.title}". We invite you to review the vacancy and submit your application!`;
 
     const newInvitation: CandidateInvitation = {
       id: `inv-${Date.now()}-${seeker.id}`,
       jobId: job.id,
+      vacancyId: job.id,
       employerId: job.employerId,
-      companyName: job.companyName,
+      companyName: job.companyName.toUpperCase(),
       jobTitle: job.title,
       jobSeekerId: seeker.id,
-      seekerName: `${seeker.firstName} ${seeker.lastName}`,
+      seekerId: seeker.id,
+      seekerName: seekerDisplayName,
       matchScore: score,
-      message: customMessage || `You have been selected as a top-matching candidate (${score}% compatibility) for "${job.title}". We invite you to apply!`,
+      message: finalMessage,
+      note: finalMessage,
       status: 'pending',
-      sentAt: new Date().toISOString(),
+      sentAt: nowIso,
+      createdAt: nowIso,
     };
 
     setInvitations(prev => [newInvitation, ...prev]);
 
     const inviteNotif: NotificationItem = {
       id: `notif-invite-${Date.now()}-${seeker.id}`,
-      recipientId: seeker.userId,
+      recipientId: seeker.userId || seeker.id,
       recipientRole: 'job_seeker',
-      title: `Job Opportunity Invitation: ${job.title} (${score}% Match)`,
-      message: `${job.companyName} reviewed your credentials and invites you to apply for "${job.title}" in ${job.municipality || 'Roxas'} (${score}% Decision Tree compatibility)!`,
+      title: `🎯 You Were Scouted: ${job.title} (${score}% Match)`,
+      message: `${job.companyName.toUpperCase()} scouted your profile and invited you to apply for "${job.title}" in ${job.municipality || 'Oriental Mindoro'} (${score}% AI Match)!`,
       type: 'action',
       read: false,
-      createdAt: new Date().toISOString(),
-      link: '/seeker/dashboard',
+      createdAt: nowIso,
+      link: 'seeker-dashboard',
     };
 
     setNotifications(prev => [inviteNotif, ...prev]);
@@ -2070,25 +2655,197 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
       'CANDIDATE_INVITED', 
       'JobPost', 
       job.id, 
-      `Employer ${job.companyName} invited ${seeker.firstName} ${seeker.lastName} (${seeker.id}) to apply for ${job.title} (Match: ${score}%)`
+      `Employer ${job.companyName} scouted ${seekerDisplayName} (${seeker.id}) to apply for ${job.title} (Match: ${score}%)`
     );
 
     showToast({
-      title: 'Candidate Invited',
-      message: `Direct job invitation dispatched to ${seeker.firstName} ${seeker.lastName} (${score}% Match).`,
+      title: 'Candidate Scouted & Invited',
+      message: `Scout invitation sent to ${seekerDisplayName} (${score}% Match).`,
       type: 'success',
     });
 
     return {
       success: true,
-      message: `Invitation successfully sent to ${seeker.firstName} ${seeker.lastName}.`,
+      message: `Invitation successfully sent to ${seekerDisplayName}.`,
       invitation: newInvitation,
     };
   };
 
-  const hasInvitedCandidate = (jobId: string, seekerId: string): boolean => {
-    return invitations.some(inv => inv.jobId === jobId && inv.jobSeekerId === seekerId);
+  const respondToInvitation = (invitationId: string, status: 'accepted' | 'declined') => {
+    const existing = invitations.find(inv => inv.id === invitationId);
+    if (!existing) return;
+
+    const nowIso = new Date().toISOString();
+    setInvitations(prev =>
+      prev.map(inv =>
+        inv.id === invitationId
+          ? { ...inv, status, respondedAt: nowIso }
+          : inv
+      )
+    );
+
+    if (status === 'declined') {
+      const emp = employers.find(e => e.id === existing.employerId);
+      const recipientId = emp?.userId || existing.employerId;
+      if (recipientId) {
+        const declineNotif: NotificationItem = {
+          id: `notif-inv-decline-${Date.now()}`,
+          recipientId,
+          recipientRole: 'employer',
+          title: `Scout Invitation Declined: ${existing.seekerName}`,
+          message: `${existing.seekerName} declined the scout invitation for "${existing.jobTitle}".`,
+          type: 'warning',
+          read: false,
+          createdAt: nowIso,
+          link: 'employer-applicants',
+        };
+        setNotifications(prev => [declineNotif, ...prev]);
+        saveDocument(COLLECTIONS.NOTIFICATIONS, declineNotif);
+      }
+      showToast({
+        title: 'Invitation Declined',
+        message: `You declined the invitation for "${existing.jobTitle}" at ${existing.companyName}.`,
+        type: 'status',
+      });
+    }
   };
+
+  const hasInvitedCandidate = (jobId: string, seekerId: string): boolean => {
+    return invitations.some(
+      inv => (inv.jobId === jobId || inv.vacancyId === jobId) && (inv.jobSeekerId === seekerId || inv.seekerId === seekerId)
+    );
+  };
+
+  // Automatic Upcoming Interview Reminders (24h, 1h, and 15m before start) for both Employer & Job Seeker
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const parseInterviewTimestamp = (dateStr?: string, timeStr?: string): number | null => {
+      if (!dateStr || !timeStr) return null;
+      const cleanDate = dateStr.trim();
+      const cleanTime = timeStr.trim();
+      const [year, month, day] = cleanDate.split('-').map(Number);
+      if (!year || !month || !day) return null;
+
+      let hours = 9;
+      let minutes = 0;
+      const amPmMatch = cleanTime.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+      if (amPmMatch) {
+        hours = parseInt(amPmMatch[1], 10);
+        minutes = parseInt(amPmMatch[2], 10);
+        const mod = amPmMatch[3].toUpperCase();
+        if (mod === 'PM' && hours < 12) hours += 12;
+        if (mod === 'AM' && hours === 12) hours = 0;
+      } else {
+        const parts24 = cleanTime.split(':').map(Number);
+        if (!isNaN(parts24[0])) {
+          hours = parts24[0];
+          minutes = !isNaN(parts24[1]) ? parts24[1] : 0;
+        }
+      }
+      const d = new Date(year, month - 1, day, hours, minutes, 0, 0);
+      return isNaN(d.getTime()) ? null : d.getTime();
+    };
+
+    const checkUpcomingReminders = () => {
+      const nowMs = Date.now();
+      let anyUpdated = false;
+      const newReminderNotifs: NotificationItem[] = [];
+
+      const nextInterviews = interviews.map(inv => {
+        if (inv.status !== 'scheduled' && inv.status !== 'rescheduled' && inv.status !== 'accepted') {
+          return inv;
+        }
+
+        const isMyEmployerInterview =
+          currentUser.role === 'employer' &&
+          (inv.employerId === currentEmployerProfile?.id || inv.employerId === currentUser.id);
+        const isMySeekerInterview =
+          currentUser.role === 'job_seeker' &&
+          (inv.jobSeekerId === currentSeekerProfile?.id ||
+            inv.seekerId === currentSeekerProfile?.id ||
+            inv.jobSeekerId === currentUser.id);
+
+        if (!isMyEmployerInterview && !isMySeekerInterview) {
+          return inv;
+        }
+
+        const targetMs = parseInterviewTimestamp(inv.date, inv.time);
+        if (!targetMs) return inv;
+
+        const diffMinutes = (targetMs - nowMs) / (1000 * 60);
+        // Only trigger for interviews starting within 24 hours and not more than 30 mins in the past
+        if (diffMinutes < -30 || diffMinutes > 24 * 60) {
+          return inv;
+        }
+
+        const sent = { ...(inv.remindersSent || {}) };
+        const roleKey = currentUser.role === 'employer' ? 'emp' : 'skr';
+        const m15Key = `${roleKey}_m15` as keyof typeof sent;
+        const h1Key = `${roleKey}_h1` as keyof typeof sent;
+        const h24Key = `${roleKey}_h24` as keyof typeof sent;
+
+        let thresholdTitle = '';
+        let thresholdMsg = '';
+
+        if (diffMinutes <= 15 && !sent.m15 && !(sent as any)[m15Key]) {
+          sent.m15 = true;
+          (sent as any)[m15Key] = true;
+          thresholdTitle = `⏰ Interview Starting Soon (In ${Math.max(1, Math.round(diffMinutes))} Mins)`;
+          thresholdMsg = isMyEmployerInterview
+            ? `Your interview with ${inv.applicantName.toUpperCase()} for "${inv.jobTitle}" starts at ${inv.time} today. Open your Calendar tab now.`
+            : `Your interview with ${inv.companyName.toUpperCase()} for "${inv.jobTitle}" starts at ${inv.time} today. Open your Calendar tab to join or review instructions.`;
+        } else if (diffMinutes <= 60 && diffMinutes > 15 && !sent.h1 && !(sent as any)[h1Key]) {
+          sent.h1 = true;
+          (sent as any)[h1Key] = true;
+          thresholdTitle = `🔔 Upcoming Interview Within 1 Hour`;
+          thresholdMsg = isMyEmployerInterview
+            ? `Reminder: Interview with ${inv.applicantName.toUpperCase()} for "${inv.jobTitle}" is today at ${inv.time}.`
+            : `Reminder: Your interview with ${inv.companyName.toUpperCase()} for "${inv.jobTitle}" is today at ${inv.time}.`;
+        } else if (diffMinutes <= 24 * 60 && diffMinutes > 60 && !sent.h24 && !(sent as any)[h24Key]) {
+          sent.h24 = true;
+          (sent as any)[h24Key] = true;
+          thresholdTitle = `📅 Upcoming Interview Reminder (Within 24 Hours)`;
+          thresholdMsg = isMyEmployerInterview
+            ? `You have an upcoming interview with ${inv.applicantName.toUpperCase()} for "${inv.jobTitle}" on ${inv.date} at ${inv.time}.`
+            : `You have an upcoming interview with ${inv.companyName.toUpperCase()} for "${inv.jobTitle}" on ${inv.date} at ${inv.time}.`;
+        }
+
+        if (thresholdTitle) {
+          anyUpdated = true;
+          const notifItem: NotificationItem = {
+            id: `notif-rem-${inv.id}-${roleKey}-${Date.now()}`,
+            recipientId: currentUser.id,
+            recipientRole: currentUser.role,
+            title: thresholdTitle,
+            message: thresholdMsg,
+            type: 'action',
+            read: false,
+            createdAt: new Date().toISOString(),
+            link: currentUser.role === 'employer' ? 'employer-interviews' : 'seeker-interviews',
+          };
+          newReminderNotifs.push(notifItem);
+          const updatedInv = { ...inv, remindersSent: sent };
+          saveDocument(COLLECTIONS.INTERVIEWS, updatedInv);
+          return updatedInv;
+        }
+
+        return inv;
+      });
+
+      if (anyUpdated) {
+        setInterviews(nextInterviews);
+        if (newReminderNotifs.length > 0) {
+          setNotifications(prev => [...newReminderNotifs, ...prev]);
+          newReminderNotifs.forEach(n => saveDocument(COLLECTIONS.NOTIFICATIONS, n));
+        }
+      }
+    };
+
+    checkUpcomingReminders();
+    const timer = setInterval(checkUpcomingReminders, 60000);
+    return () => clearInterval(timer);
+  }, [currentUser, currentEmployerProfile?.id, currentSeekerProfile?.id, interviews]);
 
   // Centralized Decision Tree match resolver bound to candidateMatches state
   const getMatch = useCallback((
@@ -2125,8 +2882,8 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         switchUserRole, switchDemoRole, loginAs, continueWithGoogle, logout,
         sendOtp, verifyOtp, recoverPassword, verifyEmployer, createJobPost,
         reviewJobVacancy, updateJobVacancyStatus, updateJobPost, deleteJobPost,
-        applyForJob, updateApplicationStatus, submitApplicationFeedback,
-        scheduleInterview, respondToInterview, updateJobSeekerProfile,
+        applyForJob, updateApplicationStatus, upsertCandidateApplicationStatus, submitApplicationFeedback,
+        scheduleInterview, rescheduleInterview, cancelInterview, respondToInterview, updateJobSeekerProfile,
         saveAssessmentResult, updateEmployerProfile, issueReferralSlip,
         updateReferralSlipStatus, encodeWalkInJobSeeker, assessJobSeekerWalkIn,
         createLraEvent, updateLraEvent, logHotsApplicant, nominateCandidateToLra,
@@ -2139,7 +2896,7 @@ const AppCoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) 
         conversations, chatMessages, sendChatMessage, markConversationRead,
         companyReviews, addCompanyReview, profileViews, withdrawApplication,
         updateJobSeekingStatus, updateNotificationPreferences,
-        invitations, inviteCandidateToApply, hasInvitedCandidate,
+        invitations, inviteCandidateToApply, respondToInvitation, hasInvitedCandidate,
       }}
     >
       {children}

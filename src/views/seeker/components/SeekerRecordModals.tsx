@@ -88,9 +88,9 @@ export const EducationModal: React.FC<EducationModalProps> = ({
               type="text"
               required
               value={degree}
-              onChange={e => setDegree(e.target.value)}
-              placeholder="e.g. BS Information Technology, TESDA Computer Systems Servicing"
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              onChange={e => setDegree(e.target.value.toUpperCase())}
+              placeholder="E.G. BS INFORMATION TECHNOLOGY, TESDA COMPUTER SYSTEMS SERVICING"
+              className="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -100,9 +100,9 @@ export const EducationModal: React.FC<EducationModalProps> = ({
               type="text"
               required
               value={school}
-              onChange={e => setSchool(e.target.value)}
-              placeholder="e.g. Mindoro State University (MinSU), Divine Word College of Calapan"
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              onChange={e => setSchool(e.target.value.toUpperCase())}
+              placeholder="E.G. MINDORO STATE UNIVERSITY (MINSU), DIVINE WORD COLLEGE OF CALAPAN"
+              className="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -141,9 +141,9 @@ export const EducationModal: React.FC<EducationModalProps> = ({
             <input
               type="text"
               value={honors}
-              onChange={e => setHonors(e.target.value)}
-              placeholder="e.g. Cum Laude, Dean's Lister, Best in Thesis"
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl"
+              onChange={e => setHonors(e.target.value.toUpperCase())}
+              placeholder="E.G. CUM LAUDE, DEAN'S LISTER, BEST IN THESIS"
+              className="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase"
             />
           </div>
 
@@ -253,9 +253,9 @@ export const ExperienceModal: React.FC<ExperienceModalProps> = ({
               type="text"
               required
               value={position}
-              onChange={e => setPosition(e.target.value)}
-              placeholder="e.g. Junior Bookkeeper, Farm Operations Assistant"
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              onChange={e => setPosition(e.target.value.toUpperCase())}
+              placeholder="E.G. JUNIOR BOOKKEEPER, FARM OPERATIONS ASSISTANT"
+              className="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -265,9 +265,9 @@ export const ExperienceModal: React.FC<ExperienceModalProps> = ({
               type="text"
               required
               value={company}
-              onChange={e => setCompany(e.target.value)}
-              placeholder="e.g. Mindoro Agri-Ventures, Roxas Commercial Center"
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              onChange={e => setCompany(e.target.value.toUpperCase())}
+              placeholder="E.G. MINDORO AGRI-VENTURES, ROXAS COMMERCIAL CENTER"
+              className="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -324,9 +324,9 @@ export const ExperienceModal: React.FC<ExperienceModalProps> = ({
             <textarea
               rows={3}
               value={responsibilities}
-              onChange={e => setResponsibilities(e.target.value)}
-              placeholder="Describe your day-to-day duties, accomplishments, tools used..."
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+              onChange={e => setResponsibilities(e.target.value.toUpperCase())}
+              placeholder="DESCRIBE YOUR DAY-TO-DAY DUTIES, ACCOMPLISHMENTS, TOOLS USED..."
+              className="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-emerald-500 focus:outline-none"
             />
           </div>
 
@@ -452,9 +452,9 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
               type="text"
               required
               value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="e.g. TESDA NC II Shielded Metal Arc Welding, PRC Civil Engineering License"
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none"
+              onChange={e => setName(e.target.value.toUpperCase())}
+              placeholder="E.G. TESDA NC II SHIELDED METAL ARC WELDING, PRC CIVIL ENGINEERING LICENSE"
+              className="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-amber-500 focus:outline-none"
             />
           </div>
 
@@ -465,9 +465,9 @@ export const CertificationModal: React.FC<CertificationModalProps> = ({
                 type="text"
                 required
                 value={issuer}
-                onChange={e => setIssuer(e.target.value)}
-                placeholder="e.g. TESDA, PRC, DOLE, Red Cross"
-                className="w-full px-3 py-2 border border-slate-300 rounded-xl"
+                onChange={e => setIssuer(e.target.value.toUpperCase())}
+                placeholder="E.G. TESDA, PRC, DOLE, RED CROSS"
+                className="w-full px-3 py-2 border border-slate-300 rounded-xl uppercase"
               />
             </div>
 

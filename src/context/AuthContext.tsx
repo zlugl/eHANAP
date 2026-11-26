@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { User, UserRole, JobSeekerProfile, EmployerProfile } from '../types';
 import { INITIAL_USERS, INITIAL_JOB_SEEKERS, INITIAL_EMPLOYERS } from '../data/mockData';
-import { DEMO_ACCOUNTS, getDemoAccountByEmail } from '../data/demoAccounts';
 import { storageAdapter } from '../lib/storageAdapter';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
@@ -12,7 +11,6 @@ import {
   onSupabaseAuthStateChange,
   subscribeToSupabaseTable,
   saveRecord,
-  updateRecord,
   SUPABASE_TABLES,
 } from '../services/supabaseService';
 import {
@@ -27,6 +25,7 @@ export interface AuthContextType {
   currentUser: User | null;
   currentRole: UserRole | null;
   isAuthenticated: boolean;
+  hasAdminAccount: boolean;
   users: User[];
   isSupabaseConnected: boolean;
   isSyncing: boolean;
@@ -68,6 +67,8 @@ export interface AuthContextType {
   ) => {
     success: boolean;
     user?: User;
+    seekerProfile?: JobSeekerProfile;
+    employerProfile?: EmployerProfile;
     error?: string;
   };
   sendOtp: (identifier: string, channel?: 'email' | 'mobile' | string) => { success: boolean; code?: string; error?: string };
@@ -86,23 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }
 
   const [users, setUsers] = useState<User[]>(() => {
-    const saved = storageAdapter.getStoredUsers([]);
-    if (saved && Array.isArray(saved) && saved.length > 0) {
-      const map = new Map<string, User>();
-      INITIAL_USERS.forEach((u) => map.set(u.id, u));
-      saved.forEach((u: User) => {
-        if (
-          u.role === 'admin' &&
-          u.id !== 'user-peso-admin-01' &&
-          u.email?.toLowerCase() !== 'peso.admin@roxas.gov.ph'
-        ) {
-          return;
-        }
-        map.set(u.id, u);
-      });
-      return Array.from(map.values());
-    }
-    return INITIAL_USERS;
+    return storageAdapter.getStoredUsers(INITIAL_USERS);
   });
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -111,9 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Sync users state to storageAdapter
   useEffect(() => {
-    if (users && users.length > 0) {
-      storageAdapter.setStoredUsers(users);
-    }
+    storageAdapter.setStoredUsers(users);
   }, [users]);
 
   // Realtime Supabase auth state listener & users table subscription
@@ -144,38 +127,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
           const usersUnsub = subscribeToSupabaseTable<User>(SUPABASE_TABLES.USERS, (data) => {
             if (data && data.length > 0) {
+              const filteredData = storageAdapter.filterOutLegacyDemoRecords(data);
               setUsers((prev) => {
                 const map = new Map<string, User>();
                 prev.forEach((u) => map.set(u.id, u));
-                data.forEach((u) => {
-                  if (
-                    u.role === 'admin' &&
-                    u.id !== 'user-peso-admin-01' &&
-                    u.email?.toLowerCase() !== 'peso.admin@roxas.gov.ph'
-                  ) {
-                    return;
-                  }
+                filteredData.forEach((u) => {
                   const existing = map.get(u.id);
                   const isCompleted =
                     u.isProfileCompleted ||
                     existing?.isProfileCompleted ||
                     storageAdapter.isProfileCompletedInStorage(u.id) ||
                     (u.email ? storageAdapter.isProfileCompletedInStorage(u.email) : false);
-                  map.set(u.id, { ...u, isProfileCompleted: Boolean(isCompleted) });
+                  map.set(u.id, { ...existing, ...u, isProfileCompleted: Boolean(isCompleted) });
                 });
                 return Array.from(map.values());
               });
 
               setCurrentUser((prev) => {
                 if (!prev) return null;
-                const match = data.find((u) => u.id === prev.id);
+                const match = filteredData.find((u) => u.id === prev.id);
                 if (!match) return prev;
                 const completed =
                   prev.isProfileCompleted ||
                   match.isProfileCompleted ||
                   storageAdapter.isProfileCompletedInStorage(prev.id) ||
                   (prev.email ? storageAdapter.isProfileCompletedInStorage(prev.email) : false);
-                return { ...match, isProfileCompleted: Boolean(completed) };
+                return { ...prev, ...match, isProfileCompleted: Boolean(completed) };
               });
             }
           });
@@ -200,11 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
       const targetUser = users.find((u) => u.id === userId);
-      if (targetUser) {
-        setCurrentUser(targetUser);
-      } else {
-        setCurrentUser(null);
-      }
+      setCurrentUser(targetUser || null);
     },
     [users]
   );
@@ -230,29 +203,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (!found) {
-        const demo = getDemoAccountByEmail(cleanEmail);
-        if (demo) {
-          found = {
-            id: demo.userId,
-            email: demo.email,
-            name: demo.name,
-            role: demo.role,
-            avatar: demo.avatar,
-            isAccountVerified: true,
-            createdAt: new Date().toISOString(),
-            password: demo.password,
-          } as any;
-          setUsers((prev) => [found!, ...prev]);
-          if (isSupabaseConfigured()) {
-            saveRecord(SUPABASE_TABLES.USERS, found!).catch(() => {});
-          }
-        }
-      }
-
-      if (!found) {
         return {
           success: false,
-          error: 'No account found with this email address. Please register for an account.',
+          error: 'No account found with this email address. Please create an account first.',
         };
       }
 
@@ -270,7 +223,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const isSeekerProfileCompleted = isSeekerProfileComplete(found, matchingSeeker);
 
-      const storedEmployers = INITIAL_EMPLOYERS;
+      const storedEmployers = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
       const matchingEmployer = storedEmployers.find(
         (e) =>
           e.userId === found!.id ||
@@ -290,6 +243,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (isEmployerProfileCompleted) {
           markProfileCompletedInStorage([found!.id, cleanEmail], 'employer');
         }
+      } else if (found.role === 'admin') {
+        (found as any).isProfileCompleted = true;
       }
 
       setCurrentUser(found);
@@ -316,50 +271,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const switchDemoRole = useCallback(
     (target: 'job_seeker' | 'employer' | 'admin' | string) => {
-      let email = '';
       const cleanTarget = (target || '').trim().toLowerCase();
+      const roleMatch = users.find((u) => {
+        if (cleanTarget === 'job_seeker' || cleanTarget === 'seeker') return u.role === 'job_seeker';
+        if (cleanTarget === 'employer') return u.role === 'employer';
+        if (cleanTarget === 'admin') return u.role === 'admin';
+        return u.email.toLowerCase() === cleanTarget || u.id.toLowerCase() === cleanTarget;
+      });
 
-      if (cleanTarget === 'job_seeker' || cleanTarget === 'seeker') {
-        email = 'juan.delacruz@jobseeker.ph';
-      } else if (cleanTarget === 'employer') {
-        email = 'puregold.roxas@employer.ph';
-      } else if (cleanTarget === 'admin') {
-        email = 'peso.admin@roxas.gov.ph';
-      } else {
-        const demo = DEMO_ACCOUNTS.find(
-          (a) =>
-            a.id.toLowerCase() === cleanTarget ||
-            a.email.toLowerCase() === cleanTarget ||
-            a.userId.toLowerCase() === cleanTarget
-        );
-        if (demo) {
-          email = demo.email;
-        } else {
-          email = target;
-        }
+      if (!roleMatch) {
+        return {
+          success: false,
+          error: `No registered ${cleanTarget.replace('_', ' ')} account exists yet. Please register an account first.`,
+        };
       }
 
-      const res = loginAs(email, 'password123');
-      if (res.success && res.user) {
-        if (toastContext) {
-          toastContext.showToast({
-            title: `Persona: ${
-              res.user.role === 'admin'
-                ? 'PESO Admin'
-                : res.user.role === 'employer'
-                ? 'Employer'
-                : 'Job Seeker'
-            }`,
-            message: `Switched to ${res.user.name} (${res.user.email}).`,
-            type: 'status',
-          });
-        }
-        return { success: true, user: res.user, role: res.user.role };
-      }
-
-      return { success: false, error: res.error || 'Failed to switch demo account.' };
+      setCurrentUser(roleMatch);
+      return { success: true, user: roleMatch, role: roleMatch.role };
     },
-    [loginAs, toastContext]
+    [users]
   );
 
   const continueWithGoogle = useCallback(
@@ -390,7 +320,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const matchingSeeker = storedSeekers.find(
             (s) => s.userId === existingUser.id || (s.email && s.email.toLowerCase() === email)
           );
-          const matchingEmployer = INITIAL_EMPLOYERS.find(
+          const storedEmployers = storageAdapter.getStoredEmployers(INITIAL_EMPLOYERS);
+          const matchingEmployer = storedEmployers.find(
             (e) => e.userId === existingUser.id || (e.email && e.email.toLowerCase() === email)
           );
 
@@ -433,24 +364,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const newEmp: EmployerProfile = {
               id: newEmpId,
               userId: newUserId,
-              companyName: name || 'Business Establishment',
-              representativeName: name || 'Authorized Representative',
+              companyName: name || '',
+              representativeName: '',
               contactNumber: '',
               email,
-              address: 'Roxas, Oriental Mindoro',
-              municipality: 'Roxas',
-              industry: 'Information Technology',
+              address: '',
+              municipality: '',
+              industry: '',
               companyDescription: '',
-              status: 'pending',
+              status: 'incomplete',
+              documents: [],
               isProfileCompleted: false,
-              logoUrl:
-                avatarUrl ||
-                'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
+              logoUrl: avatarUrl || '',
               createdAt: new Date().toISOString(),
             };
 
             setUsers((prev) => [...prev, newUser]);
             setCurrentUser(newUser);
+            const existingEmployers = storageAdapter.getStoredEmployers([]);
+            storageAdapter.setStoredEmployers([...existingEmployers, newEmp]);
 
             if (isSupabaseConfigured()) {
               saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
@@ -468,8 +400,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             clearProfileCompletedInStorage([newUserId, email], 'job_seeker');
 
             const nameParts = name.trim().split(/\s+/);
-            const firstName = nameParts[0] || 'Job';
-            const lastName = nameParts.slice(1).join(' ') || 'Seeker';
+            const firstName = nameParts[0] || '';
+            const lastName = nameParts.slice(1).join(' ') || '';
 
             const newUser: User = {
               id: newUserId,
@@ -487,17 +419,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               userId: newUserId,
               firstName,
               lastName,
-              dateOfBirth: '2000-01-01',
+              dateOfBirth: '',
               email,
               contactNumber: '',
-              address: 'Bagumbayan, Roxas',
-              municipality: 'Roxas',
-              profilePicture: avatarUrl,
-              professionalSummary: 'Job seeker registered via Google on eHANAP Roxas.',
-              educationalAttainment: "Bachelor's Degree",
+              address: '',
+              municipality: '',
+              profilePicture: avatarUrl || '',
+              professionalSummary: '',
+              educationalAttainment: '',
               primaryDegree: '',
               technicalSkills: [],
-              softSkills: ['Communication', 'Teamwork'],
+              softSkills: [],
               education: [],
               workExperience: [],
               certifications: [],
@@ -509,6 +441,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             setUsers((prev) => [...prev, newUser]);
             setCurrentUser(newUser);
+            const existingSeekers = storageAdapter.getStoredJobSeekers([]);
+            storageAdapter.setStoredJobSeekers([...existingSeekers, newSeeker]);
 
             if (isSupabaseConfigured()) {
               saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
@@ -542,7 +476,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const otpStore = useRef<Map<string, { code: string; expiresAt: number }>>(new Map());
 
   const sendOtp = useCallback(
-    (identifier: string, channel?: 'email' | 'mobile' | string) => {
+    (identifier: string, _channel?: 'email' | 'mobile' | string) => {
       const cleanId = (identifier || '').trim().toLowerCase();
       if (!cleanId) {
         return { success: false, error: 'Please enter a valid email or mobile number.' };
@@ -633,18 +567,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: 'No account found with this email or mobile number.' };
       }
 
+      const updatedUser = { ...user, password: newPassword } as any;
+      setUsers((prev) => prev.map((u) => (u.id === user.id ? updatedUser : u)));
+      if (isSupabaseConfigured()) {
+        saveRecord(SUPABASE_TABLES.USERS, updatedUser).catch(() => {});
+      }
+
       return { success: true };
     },
     [users, verifyOtp]
   );
 
+  const hasAdminAccount = useMemo(() => {
+    return users.some((u) => u.role === 'admin');
+  }, [users]);
+
   const registerUser = useCallback(
     (userData: Omit<User, 'id' | 'createdAt'>, extraProfile: any) => {
-      if (userData.role === 'admin') {
+      const existingAdmin = users.find((u) => u.role === 'admin');
+      if (userData.role === 'admin' && existingAdmin) {
         return {
           success: false,
           error:
-            'The LGU/PESO municipal oversight is restricted to a single authorized administrator account (peso.admin@roxas.gov.ph). Registering additional administrative accounts is disabled.',
+            `An official LGU/PESO Administrator account (${existingAdmin.email}) has already been set up. Please sign in with your administrator credentials.`,
         };
       }
 
@@ -663,7 +608,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         ...userData,
         id: newUserId,
         email: cleanRegEmail,
-        isProfileCompleted: false,
+        isAccountVerified: userData.role === 'admin' ? true : Boolean(userData.isAccountVerified),
+        isProfileCompleted: userData.role === 'admin' ? true : false,
         createdAt: new Date().toISOString(),
         ...(extraProfile?.password ? { password: extraProfile.password } : {}),
       };
@@ -673,57 +619,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         saveRecord(SUPABASE_TABLES.USERS, newUser).catch(() => {});
       }
 
+      let createdSeeker: JobSeekerProfile | undefined;
+      let createdEmployer: EmployerProfile | undefined;
+
       if (userData.role === 'job_seeker') {
         const newSeeker: JobSeekerProfile = {
           id: `seeker-${Date.now()}`,
           userId: newUserId,
-          firstName: extraProfile.firstName || 'New',
-          lastName: extraProfile.lastName || 'Seeker',
-          dateOfBirth: extraProfile.dateOfBirth || '2000-01-01',
-          email: userData.email,
+          firstName: extraProfile.firstName || '',
+          lastName: extraProfile.lastName || '',
+          dateOfBirth: extraProfile.dateOfBirth || '',
+          email: cleanRegEmail,
           contactNumber: extraProfile.contactNumber || '',
-          address:
-            extraProfile.address ||
-            (extraProfile.barangay ? `Brgy. ${extraProfile.barangay}, Roxas, Oriental Mindoro` : ''),
-          municipality: extraProfile.municipality || 'Roxas',
-          professionalSummary:
-            extraProfile.professionalSummary || 'Job seeker registered on eHANAP Oriental Mindoro.',
-          educationalAttainment: extraProfile.educationalAttainment || "Bachelor's Degree",
+          address: extraProfile.address || '',
+          municipality: extraProfile.municipality || '',
+          profilePicture: extraProfile.profilePicture || '',
+          professionalSummary: extraProfile.professionalSummary || '',
+          educationalAttainment: extraProfile.educationalAttainment || '',
           primaryDegree: extraProfile.primaryDegree || '',
           technicalSkills: extraProfile.technicalSkills || [],
-          softSkills: extraProfile.softSkills || ['Communication'],
-          education:
-            extraProfile.education ||
-            (extraProfile.school || extraProfile.primaryDegree
-              ? [
-                  {
-                    id: `edu-${Date.now()}`,
-                    degreeCourse: extraProfile.primaryDegree || '',
-                    school: extraProfile.school || 'Higher Education Institution',
-                    yearGraduated: new Date().getFullYear(),
-                    educationalAttainment: extraProfile.educationalAttainment || "Bachelor's Degree",
-                  },
-                ]
-              : []),
-          workExperience:
-            extraProfile.workExperience ||
-            (extraProfile.workExperienceYears > 0
-              ? [
-                  {
-                    id: `exp-${Date.now()}`,
-                    company: 'Previous Employer',
-                    position: 'Staff / Specialist',
-                    startDate: `${
-                      new Date().getFullYear() -
-                      Math.max(1, Math.round(extraProfile.workExperienceYears))
-                    }`,
-                    endDate: 'Present',
-                    isCurrent: true,
-                    responsibilities: 'Relevant vocational and professional experience.',
-                    yearsOfExperience: Number(extraProfile.workExperienceYears),
-                  },
-                ]
-              : []),
+          softSkills: extraProfile.softSkills || [],
+          education: extraProfile.education || [],
+          workExperience: extraProfile.workExperience || [],
           certifications: extraProfile.certifications || [],
           resumes: extraProfile.resumes || [],
           activeResumeId: extraProfile.activeResumeId || undefined,
@@ -731,7 +648,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           updatedAt: new Date().toISOString(),
         };
 
-        const existingSeekers = storageAdapter.getStoredJobSeekers(INITIAL_JOB_SEEKERS);
+        createdSeeker = newSeeker;
+        const existingSeekers = storageAdapter.getStoredJobSeekers([]);
         storageAdapter.setStoredJobSeekers([...existingSeekers, newSeeker]);
 
         if (isSupabaseConfigured()) {
@@ -741,21 +659,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const newEmp: EmployerProfile = {
           id: `emp-${Date.now()}`,
           userId: newUserId,
-          companyName: extraProfile.companyName || userData.name,
-          representativeName: extraProfile.representativeName || userData.name,
+          companyName: extraProfile.companyName || userData.name || '',
+          representativeName: extraProfile.representativeName || '',
           contactNumber: extraProfile.contactNumber || '',
-          email: userData.email,
+          email: cleanRegEmail,
           address: extraProfile.address || '',
-          municipality: extraProfile.municipality || 'Calapan City',
-          industry: extraProfile.industry || 'Business Services',
-          companyDescription:
-            extraProfile.companyDescription || 'Registered Employer in Oriental Mindoro.',
-          status: 'pending',
+          municipality: extraProfile.municipality || '',
+          industry: extraProfile.industry || '',
+          companyDescription: extraProfile.companyDescription || '',
+          logoUrl: extraProfile.logoUrl || '',
+          status: 'incomplete',
+          documents: [],
           isProfileCompleted: false,
           businessPermitNo: extraProfile.businessPermitNo || '',
           dtiSecRegistration: extraProfile.dtiSecRegistration || '',
           createdAt: new Date().toISOString(),
         };
+
+        createdEmployer = newEmp;
+        const existingEmployers = storageAdapter.getStoredEmployers([]);
+        storageAdapter.setStoredEmployers([...existingEmployers, newEmp]);
 
         if (isSupabaseConfigured()) {
           saveRecord(SUPABASE_TABLES.EMPLOYERS, newEmp).catch(() => {});
@@ -764,7 +687,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       setCurrentUser(newUser);
 
-      return { success: true, user: newUser };
+      return {
+        success: true,
+        user: newUser,
+        seekerProfile: createdSeeker,
+        employerProfile: createdEmployer,
+      };
     },
     [users]
   );
@@ -778,6 +706,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         currentUser,
         currentRole,
         isAuthenticated,
+        hasAdminAccount,
         users,
         isSupabaseConnected,
         isSyncing,

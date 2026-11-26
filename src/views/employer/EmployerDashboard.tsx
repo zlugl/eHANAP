@@ -4,6 +4,7 @@ import { ApplicantMatchReportModal } from './ApplicantMatchReportModal';
 import { ScheduleInterviewModal } from './ScheduleInterviewModal';
 import { EmployerStatusUpdateModal } from '../../components/EmployerStatusUpdateModal';
 import { ApplicationStatus, Application } from '../../types';
+import { isEmployerVerifiedToPostJobs } from '../../utils/routeGuards';
 import { 
   Building2, 
   Briefcase, 
@@ -24,7 +25,8 @@ import {
   TrendingUp, 
   MapPin, 
   Check,
-  BarChart3
+  BarChart3,
+  Lock
 } from 'lucide-react';
 
 interface EmployerDashboardProps {
@@ -60,7 +62,18 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
   const totalApplicantsCount = myApps.length;
   const qualifiedCandidatesCount = myApps.filter(a => (a.matchResult?.overallMatch || a.matchScore) >= 75).length;
   const shortlistedCandidates = myApps.filter(a => a.currentStatus === 'shortlisted');
-  const upcomingInterviews = myInterviews.filter(i => i.status === 'scheduled' || i.status === 'accepted');
+  const upcomingInterviews = myInterviews.filter(
+    i => i.status === 'scheduled' || i.status === 'rescheduled' || i.status === 'accepted'
+  );
+
+  // Upcoming interviews within the next 24 hours for reminder banner
+  const interviewsWithin24h = upcomingInterviews.filter(inv => {
+    const dStr = inv.date || (inv as any).scheduledDate;
+    if (!dStr) return false;
+    const todayIso = new Date().toISOString().split('T')[0];
+    const tomorrowIso = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    return dStr === todayIso || dStr === tomorrowIso;
+  });
 
   // Candidate pipeline status funnel counts: 1. Applied ↓ 2. Reviewed ↓ 3. Interview Scheduled ↓ 4a. Accepted/Hired / 4b. Rejected
   const appliedCount = myApps.filter(a => ['applied', 'submitted'].includes(a.currentStatus)).length;
@@ -87,59 +100,140 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
     });
   };
 
+  const canPostJobs = isEmployerVerifiedToPostJobs(currentEmployerProfile);
+  const hasUploadedDocs = Boolean(
+    (currentEmployerProfile.documents && currentEmployerProfile.documents.length > 0) ||
+    currentEmployerProfile.dtiSecFile?.trim() ||
+    currentEmployerProfile.mayorsPermitFile?.trim()
+  );
+
   return (
     <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-8 font-body">
       
-      {/* Verification Warning Alert Banner (if pending or for_compliance) */}
-      {currentEmployerProfile.status === 'for_compliance' && (
-        <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-950 shadow-sm motion-safe:animate-pulse">
+      {/* Upcoming Interview Reminder Banner */}
+      {interviewsWithin24h.length > 0 && (
+        <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-indigo-950 shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-200 rounded-xl shrink-0">
-              <ShieldAlert className="w-6 h-6 text-amber-800" />
+            <div className="p-2.5 bg-indigo-600 text-white rounded-xl shrink-0">
+              <Calendar className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-bold text-amber-950 text-sm">Action Required: Compliance Documents Requested</p>
-              <p className="text-amber-900 mt-0.5 font-medium">
-                PESO-LGU has requested compliance for your employer credentials: "{currentEmployerProfile.complianceRemarks || 'Please submit updated 2026 documents.'}"
+              <p className="font-black text-indigo-950 text-sm">
+                Upcoming Interview Reminder ({interviewsWithin24h.length} Scheduled Within 24 Hours)
+              </p>
+              <p className="text-indigo-800 mt-0.5 font-medium">
+                Next: <strong className="uppercase">{interviewsWithin24h[0].applicantName}</strong> for{' '}
+                <strong>{interviewsWithin24h[0].jobTitle}</strong> on{' '}
+                <strong>{interviewsWithin24h[0].date || (interviewsWithin24h[0] as any).scheduledDate}</strong> at{' '}
+                <strong>{interviewsWithin24h[0].time || (interviewsWithin24h[0] as any).scheduledTime}</strong>.
               </p>
             </div>
           </div>
           <button
-            onClick={() => onNavigate('employer-profile')}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shrink-0 transition-colors shadow-xs active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+            type="button"
+            onClick={() => onNavigate('employer-interviews')}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl shrink-0 transition-colors shadow-xs cursor-pointer"
           >
-            Update Compliance Documents
+            Open Calendar Tab
           </button>
         </div>
       )}
 
-      {currentEmployerProfile.status === 'pending' && (
-        <div className="p-4 bg-amber-50 border border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-950">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-amber-200/60 rounded-xl shrink-0">
-              <ShieldAlert className="w-5 h-5 text-amber-700" />
+      {/* Actionable Verification Status Banners on Employer Dashboard */}
+      {(currentEmployerProfile.status === 'incomplete' || !hasUploadedDocs) && (
+        <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-amber-950 shadow-2xs">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-amber-500 text-white rounded-xl shrink-0">
+              <ShieldAlert className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-bold text-amber-900">Account Pending PESO Administrator Verification</p>
-              <p className="text-amber-800 mt-0.5">
-                Your business documents (DTI/SEC & Business Permit) are being reviewed by PESO Oriental Mindoro. You can create job postings in the meantime.
+              <p className="font-black text-amber-950 text-sm">
+                Incomplete Profile / Missing Verification Documents — Job Posting Locked
+              </p>
+              <p className="text-amber-900 mt-0.5 font-medium leading-relaxed">
+                Complete your company profile and upload your business documents in the Profile tab to apply for PESO/LGU verification before posting jobs.
               </p>
             </div>
           </div>
-          <span className="px-3 py-1 bg-amber-200 text-amber-900 font-bold rounded-lg shrink-0">
-            Pending Review
-          </span>
+          <button
+            type="button"
+            onClick={() => onNavigate('employer-profile')}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shrink-0 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+          >
+            <span>Open Profile Tab</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {(currentEmployerProfile.status === 'pending_verification' || currentEmployerProfile.status === 'pending') &&
+        hasUploadedDocs && (
+          <div className="p-4 bg-blue-50 border border-blue-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-blue-950 shadow-2xs">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 bg-blue-600 text-white rounded-xl shrink-0">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="font-black text-blue-950 text-sm">
+                  Pending PESO/LGU Verification — Job Posting Locked
+                </p>
+                <p className="text-blue-900 mt-0.5 font-medium leading-relaxed">
+                  Your profile and documents are under review by PESO/LGU. Job posting will unlock once your account is verified.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => onNavigate('employer-profile')}
+              className="px-3.5 py-1.5 bg-blue-100 hover:bg-blue-200 text-blue-900 font-bold rounded-xl shrink-0 transition-colors cursor-pointer"
+            >
+              View Submitted Documents
+            </button>
+          </div>
+        )}
+
+      {(currentEmployerProfile.status === 'rejected' || currentEmployerProfile.status === 'for_compliance') && (
+        <div className="p-4 bg-rose-50 border-2 border-rose-300 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-rose-950 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="p-2.5 bg-rose-600 text-white rounded-xl shrink-0">
+              <ShieldAlert className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-black text-rose-950 text-sm">
+                Action Required: PESO/LGU Verification Returned / Rejected — Job Posting Locked
+              </p>
+              <p className="text-rose-900 mt-0.5 font-medium leading-relaxed">
+                PESO/LGU Reason: &ldquo;
+                {currentEmployerProfile.complianceRemarks ||
+                  currentEmployerProfile.verificationNotes ||
+                  'Please re-upload clear and valid copies of your business verification documents.'}
+                &rdquo;
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate('employer-profile')}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shrink-0 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+          >
+            <span>Re-Upload Documents in Profile</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
       {/* Hero Banner: "Find Qualified Candidates for Your Job Vacancies" */}
       <div className="bg-[var(--color-ink)] text-[var(--color-paper)] p-6 sm:p-8 rounded-3xl border border-[var(--color-rule)] flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative overflow-hidden">
         <div className="flex items-center gap-4 relative z-10">
-          <img
-            src={currentEmployerProfile.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
-            alt={currentEmployerProfile.companyName}
-            className="w-16 h-16 rounded-2xl object-cover ring-1 ring-white/20 shrink-0"
-          />
+          {currentEmployerProfile.logoUrl ? (
+            <img
+              src={currentEmployerProfile.logoUrl}
+              alt={currentEmployerProfile.companyName}
+              className="w-16 h-16 rounded-2xl object-cover ring-1 ring-white/20 shrink-0"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 shrink-0" />
+          )}
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-semibold bg-white/10 text-white/90 border border-white/20 px-2.5 py-0.5 rounded-full">
@@ -350,11 +444,15 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                           #{rank}
                         </div>
 
-                        <img
-                          src={seeker?.profilePicture || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
-                          alt={app.applicantName}
-                          className="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
-                        />
+                        {seeker?.profilePicture ? (
+                          <img
+                            src={seeker.profilePicture}
+                            alt={app.applicantName}
+                            className="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 shrink-0" />
+                        )}
 
                         <div>
                           <div className="flex items-center gap-2">
@@ -379,6 +477,24 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                         </span>
                       </div>
                     </div>
+
+                    {/* Category-Level Qualification Breakdown */}
+                    {app.matchResult && (
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-2 border-t border-slate-100 text-[10px]">
+                        {[
+                          { label: 'Skills', score: app.matchResult.skillsMatchScore ?? 80 },
+                          { label: 'Education', score: app.matchResult.educationMatchScore ?? 85 },
+                          { label: 'Degree', score: app.matchResult.degreeAlignmentScore ?? 80 },
+                          { label: 'Experience', score: app.matchResult.experienceMatchScore ?? 75 },
+                          { label: 'Certs', score: app.matchResult.certificationsMatchScore ?? 75 },
+                        ].map((cat) => (
+                          <div key={cat.label} className="p-1.5 rounded-lg bg-slate-50 border border-slate-200/80 flex items-center justify-between">
+                            <span className="text-slate-500 font-semibold">{cat.label}</span>
+                            <span className="font-black text-slate-900 tabular-nums">{Math.round(cat.score)}%</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
                     {/* Candidate Action Buttons */}
                     <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
@@ -485,11 +601,18 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
                 <button
+                  type="button"
+                  disabled={!canPostJobs}
+                  title={
+                    !canPostJobs
+                      ? 'PESO/LGU verification and uploaded business documents are required before posting job vacancies.'
+                      : 'Post New Job Vacancy'
+                  }
                   onClick={onOpenPostJobModal}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 cursor-pointer"
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 disabled:text-slate-400 disabled:cursor-not-allowed flex items-center gap-1 cursor-pointer"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Post Job</span>
+                  {canPostJobs ? <Plus className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                  <span>{canPostJobs ? 'Post Job' : 'Post Job (Locked)'}</span>
                 </button>
               </div>
             </div>
@@ -574,15 +697,15 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
                 {upcomingInterviews.slice(0, 3).map(interview => (
                   <div key={interview.id} className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 text-xs space-y-1">
                     <div className="flex items-center justify-between">
-                      <p className="font-bold text-slate-900">{interview.applicantName}</p>
-                      <span className="text-xs font-semibold bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
-                        {interview.type}
+                      <p className="font-bold text-slate-900 uppercase">{interview.applicantName}</p>
+                      <span className="text-xs font-semibold bg-amber-200 text-amber-900 px-2 py-0.5 rounded uppercase">
+                        {(interview.interviewType || interview.format || 'video').replace(/_/g, ' ')}
                       </span>
                     </div>
                     <p className="text-slate-600 text-[11px]">Position: {interview.jobTitle}</p>
                     <p className="text-slate-500 font-medium text-[11px] flex items-center gap-1">
                       <Clock className="w-3 h-3 text-amber-600" />
-                      {interview.scheduledDate} at {interview.scheduledTime}
+                      {interview.date || (interview as any).scheduledDate} at {interview.time || (interview as any).scheduledTime}
                     </p>
                   </div>
                 ))}
@@ -608,14 +731,6 @@ export const EmployerDashboard: React.FC<EmployerDashboardProps> = ({ onNavigate
         <ScheduleInterviewModal
           applicationId={selectedInterviewAppId}
           onClose={() => setSelectedInterviewAppId(null)}
-          onSuccess={() => {
-            setSelectedInterviewAppId(null);
-            showToast({
-              title: 'Interview Scheduled',
-              message: 'Candidate has been notified of the interview details.',
-              type: 'interview'
-            });
-          }}
         />
       )}
 

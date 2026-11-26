@@ -87,8 +87,10 @@ export const SeekerBookmarksModal: React.FC<SeekerBookmarksModalProps> = ({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 rounded-xl bg-blue-600 text-white font-black text-sm flex items-center justify-center shadow-xs shrink-0">
-                          {job.companyName.charAt(0)}
+                        <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 overflow-hidden shrink-0">
+                          {job.companyLogo ? (
+                            <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover" />
+                          ) : null}
                         </div>
                         <div>
                           <h4 
@@ -165,8 +167,10 @@ export const SeekerBookmarksModal: React.FC<SeekerBookmarksModalProps> = ({
 
               {/* Mini Card Preview */}
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-100 text-left flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-blue-600 text-white font-bold text-xs flex items-center justify-center shrink-0">
-                  {jobToRemove.companyName.charAt(0)}
+                <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 overflow-hidden shrink-0">
+                  {jobToRemove.companyLogo ? (
+                    <img src={jobToRemove.companyLogo} alt={jobToRemove.companyName} className="w-full h-full object-cover" />
+                  ) : null}
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-900 truncate">{jobToRemove.title}</p>

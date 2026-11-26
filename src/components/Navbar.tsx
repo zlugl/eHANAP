@@ -268,15 +268,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   type="button"
                   onClick={() => onOpenAuth('login')}
-                  className="hidden md:inline-flex btn btn--quiet text-xs min-h-[36px] py-1.5 px-3"
-                  title="Demo accounts for employers and PESO admin"
-                >
-                  <Key className="w-3.5 h-3.5 text-[var(--color-accent)]" aria-hidden="true" />
-                  <span className="hidden lg:inline">Demo logins</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onOpenAuth('login')}
                   className="btn btn--quiet text-xs min-h-[36px] py-1.5 px-3 sm:px-3.5"
                 >
                   <span>Log in</span>

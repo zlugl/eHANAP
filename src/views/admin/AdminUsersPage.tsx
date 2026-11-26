@@ -300,11 +300,15 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigate }) =>
                 <div key={seeker.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3.5 flex flex-col justify-between hover:border-amber-400 transition-all">
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
-                      <img
-                        src={seeker.profilePicture || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
-                        alt={seeker.firstName}
-                        className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
-                      />
+                      {seeker.profilePicture ? (
+                        <img
+                          src={seeker.profilePicture}
+                          alt={seeker.firstName}
+                          className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 shrink-0" />
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
                           <h3 className="text-sm font-bold text-slate-900 truncate">
@@ -440,11 +444,15 @@ export const AdminUsersPage: React.FC<AdminUsersPageProps> = ({ onNavigate }) =>
                 <div key={emp.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs space-y-3 flex flex-col justify-between hover:border-amber-400 transition-all">
                   <div className="space-y-3">
                     <div className="flex items-start gap-3">
-                      <img
-                        src={emp.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
-                        alt={emp.companyName}
-                        className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
-                      />
+                      {emp.logoUrl ? (
+                        <img
+                          src={emp.logoUrl}
+                          alt={emp.companyName}
+                          className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-200 shrink-0" />
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-1">
                           <h3 className="text-sm font-bold text-slate-900 truncate">

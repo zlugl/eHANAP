@@ -3,6 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { EmployerSalaryChart } from '../../components/EmployerSalaryChart';
 import { CreateJobModal } from './CreateJobModal';
 import { JobPost, JobStatus } from '../../types';
+import { isEmployerVerifiedToPostJobs } from '../../utils/routeGuards';
 import { 
   Briefcase, 
   Plus, 
@@ -26,7 +27,8 @@ import {
   XCircle,
   Building2,
   Sparkles,
-  Flame
+  Flame,
+  Lock
 } from 'lucide-react';
 
 interface EmployerJobsPageProps {
@@ -67,6 +69,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
   const activeJobs = myJobs.filter(j => j.status === 'active');
   const closedJobs = myJobs.filter(j => j.status === 'closed');
   const pendingJobs = myJobs.filter(j => j.status === 'pending_approval');
+  const canPostJobs = isEmployerVerifiedToPostJobs(currentEmployerProfile);
 
   // Filter jobs
   const filteredJobs = myJobs.filter(job => {
@@ -142,11 +145,18 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
           </button>
 
           <button
+            type="button"
+            disabled={!canPostJobs}
+            title={
+              !canPostJobs
+                ? 'PESO/LGU verification and uploaded business documents are required before posting job vacancies.'
+                : 'Post New Vacancy'
+            }
             onClick={onOpenPostJobModal}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
-            <Plus className="w-4 h-4" />
-            <span>Post New Vacancy</span>
+            {canPostJobs ? <Plus className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+            <span>{canPostJobs ? 'Post New Vacancy' : 'Post New Vacancy (Locked)'}</span>
           </button>
         </div>
       </div>
@@ -287,11 +297,18 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
               : "No vacancies match your current search or status filter."}
           </p>
           <button
+            type="button"
+            disabled={!canPostJobs}
+            title={
+              !canPostJobs
+                ? 'PESO/LGU verification and uploaded business documents are required before posting job vacancies.'
+                : 'Post a Vacancy'
+            }
             onClick={onOpenPostJobModal}
-            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-blue-700 transition-colors cursor-pointer active:scale-95 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold shadow-xs hover:bg-blue-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors cursor-pointer active:scale-95 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
           >
-            <Plus className="w-4 h-4" />
-            <span>Post a Vacancy</span>
+            {canPostJobs ? <Plus className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+            <span>{canPostJobs ? 'Post a Vacancy' : 'Verification Required to Post'}</span>
           </button>
         </div>
       ) : (
@@ -333,7 +350,7 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
                     </div>
 
                     <p className="text-xs text-slate-500 font-medium">
-                      {job.department || job.category} • {job.employmentType} • {job.experienceLevel || 'Entry to Mid'}
+                      {job.department || job.category}{job.subCategory ? ` (${job.subCategory})` : ''} • {job.employmentType}{job.workSetup ? ` • ${job.workSetup}` : ''}{job.workSchedule ? ` • ${job.workSchedule}` : ''} • {job.experienceLevel || 'Entry to Mid'}
                     </p>
                   </div>
 
@@ -371,14 +388,53 @@ export const EmployerJobsPage: React.FC<EmployerJobsPageProps> = ({ onNavigate, 
 
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <span>Posted: {job.postedDate || 'Recent'}</span>
+                    <span>
+                      Deadline: {job.deadline || job.applicationDeadline || 'Open'}
+                    </span>
                   </div>
 
-                  {job.positionsAvailable && (
+                  {(job.vacancies ?? job.positionsAvailable ?? job.vacanciesCount) && (
                     <div className="flex items-center gap-1.5">
                       <Users className="w-3.5 h-3.5 text-purple-600" />
-                      <span>{job.positionsAvailable} Slots</span>
+                      <span>
+                        {job.vacancies ?? job.positionsAvailable ?? job.vacanciesCount} Slot(s)
+                      </span>
                     </div>
+                  )}
+                </div>
+
+                {/* Education, Courses & Skills tags */}
+                <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+                  {job.acceptedEducationLevels && job.acceptedEducationLevels.length > 0 && (
+                    <>
+                      <span className="text-xs font-semibold text-slate-500 mr-0.5">Education:</span>
+                      {job.acceptedEducationLevels.map((lvl, lIdx) => (
+                        <span
+                          key={lIdx}
+                          className="font-semibold bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md text-amber-900"
+                        >
+                          {lvl}
+                        </span>
+                      ))}
+                    </>
+                  )}
+                  {job.preferredCourses && job.preferredCourses.length > 0 && (
+                    <>
+                      <span className="text-xs font-semibold text-slate-500 ml-1 mr-0.5">Courses:</span>
+                      {job.preferredCourses.slice(0, 3).map((crs, cIdx) => (
+                        <span
+                          key={cIdx}
+                          className="font-semibold bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-md text-blue-800"
+                        >
+                          {crs}
+                        </span>
+                      ))}
+                      {job.preferredCourses.length > 3 && (
+                        <span className="text-slate-400 font-bold">
+                          +{job.preferredCourses.length - 3} more
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
 

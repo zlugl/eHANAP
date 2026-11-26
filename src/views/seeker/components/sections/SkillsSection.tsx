@@ -19,7 +19,7 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
 
   const handleAdd = () => {
     if (!newSkill.trim()) return;
-    onAddTechnicalSkill(newSkill.trim());
+    onAddTechnicalSkill(newSkill.trim().toUpperCase());
     setNewSkill('');
   };
 
@@ -35,15 +35,15 @@ export const SkillsSection: React.FC<SkillsSectionProps> = ({
         <input
           type="text"
           value={newSkill}
-          onChange={e => setNewSkill(e.target.value)}
+          onChange={e => setNewSkill(e.target.value.toUpperCase())}
           onKeyDown={e => {
             if (e.key === 'Enter') {
               e.preventDefault();
               handleAdd();
             }
           }}
-          placeholder="Add technical or practical skill (e.g. QuickBooks, Welding)..."
-          className="flex-1 px-3 py-2 border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          placeholder="ADD TECHNICAL OR PRACTICAL SKILL (E.G. QUICKBOOKS, WELDING)..."
+          className="flex-1 px-3 py-2 border border-slate-300 rounded-xl uppercase focus:ring-2 focus:ring-indigo-500 focus:outline-none"
         />
         <button
           type="button"

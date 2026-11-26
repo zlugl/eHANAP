@@ -18,6 +18,8 @@ import {
   User,
   LogOut
 } from 'lucide-react';
+import { useApp } from '../../context/AppContext';
+import { isEmployerVerifiedToPostJobs } from '../../utils/routeGuards';
 
 export interface MobileNavDrawerProps {
   isOpen: boolean;
@@ -52,7 +54,10 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
   onOpenSubscriptions,
   onOpenPostJobModal
 }) => {
+  const { currentEmployerProfile } = useApp();
   if (!isOpen) return null;
+
+  const canPostJobs = isEmployerVerifiedToPostJobs(currentEmployerProfile);
 
   const handleNav = (view: string) => {
     onClose();
@@ -78,48 +83,6 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
         className="bg-[var(--color-paper-2)] border-b border-[var(--color-rule)] px-4 pt-3 pb-6 space-y-3 shadow-2xl max-h-[calc(100vh-5rem)] overflow-y-auto animate-in slide-in-from-top-2 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Mobile 1-Click Demo Persona Switcher */}
-      <div className="bg-[var(--color-paper-3)] border border-[var(--color-rule)] rounded-md p-2.5 mb-2">
-        <p className="text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-wider mb-1.5">
-          Thesis 1-Click Persona Switcher:
-        </p>
-        <div className="grid grid-cols-3 gap-1.5">
-          <button
-            type="button"
-            onClick={() => handleRoleSwitch('job_seeker')}
-            className={`py-1.5 px-2 rounded text-[11px] font-semibold text-center transition-all cursor-pointer ${
-              currentUser?.role === 'job_seeker'
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'bg-[var(--color-paper-1)] text-[var(--color-ink)] hover:bg-[var(--color-paper-2)] border border-[var(--color-rule)]'
-            }`}
-          >
-            Seeker
-          </button>
-          <button
-            type="button"
-            onClick={() => handleRoleSwitch('employer')}
-            className={`py-1.5 px-2 rounded text-[11px] font-semibold text-center transition-all cursor-pointer ${
-              currentUser?.role === 'employer'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'bg-[var(--color-paper-1)] text-[var(--color-ink)] hover:bg-[var(--color-paper-2)] border border-[var(--color-rule)]'
-            }`}
-          >
-            Employer
-          </button>
-          <button
-            type="button"
-            onClick={() => handleRoleSwitch('admin')}
-            className={`py-1.5 px-2 rounded text-[11px] font-semibold text-center transition-all cursor-pointer ${
-              currentUser?.role === 'admin'
-                ? 'bg-amber-600 text-white shadow-xs'
-                : 'bg-[var(--color-paper-1)] text-[var(--color-ink)] hover:bg-[var(--color-paper-2)] border border-[var(--color-rule)]'
-            }`}
-          >
-            PESO
-          </button>
-        </div>
-      </div>
-
       {/* Detailed Navigation Item Rows with Icons */}
       <div className="space-y-1">
         {!currentUser ? (
@@ -345,7 +308,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
                   }`}
                 >
                   <Calendar className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
-                  <span>Interview schedule</span>
+                  <span>Calendar &amp; interviews</span>
                 </button>
                 <button
                   type="button"
@@ -374,14 +337,20 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
                 {onOpenPostJobModal && (
                   <button
                     type="button"
+                    disabled={!canPostJobs}
                     onClick={() => {
+                      if (!canPostJobs) return;
                       onClose();
                       onOpenPostJobModal();
                     }}
-                    className="btn btn--primary text-xs min-h-[40px] w-full mt-1"
+                    className="btn btn--primary text-xs min-h-[40px] w-full mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <PlusCircle className="w-4 h-4" aria-hidden="true" />
-                    <span>Post vacancy</span>
+                    {canPostJobs ? (
+                      <PlusCircle className="w-4 h-4" aria-hidden="true" />
+                    ) : (
+                      <Lock className="w-4 h-4" aria-hidden="true" />
+                    )}
+                    <span>{canPostJobs ? 'Post vacancy' : 'Post vacancy (Verification Required)'}</span>
                   </button>
                 )}
               </>
@@ -455,7 +424,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
                       }`}
                     >
                       <Calendar className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
-                      <span>Interviews</span>
+                      <span>Calendar &amp; interviews</span>
                     </button>
                     <button
                       type="button"

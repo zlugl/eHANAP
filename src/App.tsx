@@ -44,7 +44,8 @@ import {
   getRequiredRoleForRoute, 
   getRoleDefaultView,
   isSeekerProfileComplete,
-  isEmployerProfileComplete
+  isEmployerProfileComplete,
+  isEmployerVerifiedToPostJobs
 } from './utils/routeGuards';
 
 import { ShieldAlert, LogIn, ArrowLeft } from 'lucide-react';
@@ -223,6 +224,26 @@ function AppContent() {
     setAuthModalOpen(true);
   };
 
+  const handleOpenPostJobModalGuarded = () => {
+    if (!isEmployerVerifiedToPostJobs(currentEmployerProfile)) {
+      const hasDocs = Boolean(
+        (currentEmployerProfile?.documents && currentEmployerProfile.documents.length > 0) ||
+        currentEmployerProfile?.dtiSecFile?.trim() ||
+        currentEmployerProfile?.mayorsPermitFile?.trim()
+      );
+      showToast({
+        type: 'alert',
+        title: 'PESO/LGU Verification Required to Post Jobs',
+        message: !hasDocs
+          ? 'Complete your company profile and upload your business documents in the Profile tab to apply for PESO/LGU verification before posting jobs.'
+          : 'Your profile and documents are awaiting PESO/LGU verification. Job posting will unlock once your account is verified.'
+      });
+      handleNavigate('employer-profile');
+      return;
+    }
+    setIsPostJobModalOpen(true);
+  };
+
   // Route Guards for Protected Views
   const isSeekerView = currentView.startsWith('seeker-');
   const isEmployerView = currentView.startsWith('employer-');
@@ -249,7 +270,7 @@ function AppContent() {
           onNavigate={handleNavigate}
           onOpenAuth={handleOpenAuth}
           onOpenSubscriptions={() => setIsSubscriptionModalOpen(true)}
-          onOpenPostJobModal={() => setIsPostJobModalOpen(true)}
+          onOpenPostJobModal={handleOpenPostJobModalGuarded}
         />
 
       {/* Main View Container */}
@@ -356,14 +377,14 @@ function AppContent() {
               {currentView === 'employer-dashboard' && (
                 <EmployerDashboard
                   onNavigate={handleNavigate}
-                  onOpenPostJobModal={() => setIsPostJobModalOpen(true)}
+                  onOpenPostJobModal={handleOpenPostJobModalGuarded}
                 />
               )}
 
               {currentView === 'employer-jobs' && (
                 <EmployerJobsPage
                   onNavigate={handleNavigate}
-                  onOpenPostJobModal={() => setIsPostJobModalOpen(true)}
+                  onOpenPostJobModal={handleOpenPostJobModalGuarded}
                 />
               )}
 

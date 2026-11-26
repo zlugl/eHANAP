@@ -177,11 +177,15 @@ export const ApplicantMatchReportModal: React.FC<ApplicantMatchReportModalProps>
           {/* Seeker Summary Card */}
           <div className="p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200/90 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3.5">
-              <img
-                src={seeker.profilePicture || seeker.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                alt={`${seeker.firstName} ${seeker.lastName}`}
-                className="w-14 h-14 rounded-2xl object-cover ring-2 ring-indigo-500/20 shrink-0"
-              />
+              {(seeker.profilePicture || seeker.avatarUrl) ? (
+                <img
+                  src={seeker.profilePicture || seeker.avatarUrl}
+                  alt={`${seeker.firstName} ${seeker.lastName}`}
+                  className="w-14 h-14 rounded-2xl object-cover ring-2 ring-indigo-500/20 shrink-0"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-2xl bg-white border border-slate-200 shrink-0" />
+              )}
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h4 className="font-black text-base text-slate-900">{seeker.firstName} {seeker.lastName}</h4>

@@ -12,7 +12,9 @@ import {
 import { useApp } from '../../context/AppContext';
 import { ROXAS_MUNICIPALITY, ROXAS_BARANGAYS } from '../../constants';
 import { PesoReferralSlipModal } from '../../components/admin/PesoReferralSlipModal';
-import { PesoReferralSlip } from '../../types';
+import { EncodeWalkInModal } from '../../components/admin/EncodeWalkInModal';
+import { getOrCalculateMatch } from '../../utils/matchResolver';
+import { PesoReferralSlip, ApplicationStatus } from '../../types';
 import { 
   ShieldCheck, 
   ShieldAlert, 
@@ -58,7 +60,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
     notifications,
     referralSlips,
     localRecruitmentActivities,
+    candidateMatches,
     verifyEmployer, 
+    upsertCandidateApplicationStatus,
     showToast 
   } = useApp();
 
@@ -66,10 +70,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const [announcementAudience, setAnnouncementAudience] = useState<'all' | 'job_seeker' | 'employer'>('all');
   const [announcementSuccess, setAnnouncementSuccess] = useState(false);
 
-  // Referral Modal & Barangay View States
+  // Referral & Walk-In Modal States
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
+  const [isEncodeWalkInOpen, setIsEncodeWalkInOpen] = useState(false);
   const [selectedSlipForModal, setSelectedSlipForModal] = useState<PesoReferralSlip | null>(null);
   const [barangayViewMode, setBarangayViewMode] = useState<'top' | 'all'>('top');
+
+  // Walk-In Applicants Matching Active Job Vacancies (Outreach Queue)
+  const walkInMatchOutreachList = useMemo(() => {
+    const walkIns = jobSeekers.filter(s => s.isWalkIn || s.registrationType === 'walk_in');
+    const activeVacancies = jobPosts.filter(j => j.status === 'active');
+    const items: Array<{
+      seeker: typeof jobSeekers[number];
+      job: typeof jobPosts[number];
+      matchResult: ReturnType<typeof getOrCalculateMatch>;
+      existingApp?: typeof applications[number];
+    }> = [];
+
+    walkIns.forEach(seeker => {
+      activeVacancies.forEach(job => {
+        const matchResult = getOrCalculateMatch(seeker, job, { cachedMatches: candidateMatches });
+        if (matchResult.overallMatch >= 50) {
+          const existingApp = applications.find(a => a.jobId === job.id && a.jobSeekerId === seeker.id);
+          items.push({ seeker, job, matchResult, existingApp });
+        }
+      });
+    });
+
+    return items.sort((a, b) => b.matchResult.overallMatch - a.matchResult.overallMatch);
+  }, [jobSeekers, jobPosts, candidateMatches, applications]);
 
   // The Exact PESO Roxas Metrics as mandated by specification:
   // 1. Registered Job Seekers (College, High School, OSY)
@@ -93,7 +122,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
   const newOrExternalEmployers = totalEmployers - establishedLocalEmployers;
 
   // 3. Verifications & Vacancies
-  const pendingEmployerVerifications = employers.filter(e => e.status === 'pending');
+  const pendingEmployerVerifications = employers.filter(e => e.status === 'pending_verification' || e.status === 'pending');
   const pendingJobVacancies = jobPosts.filter(j => j.status === 'pending_approval' || (j as any).status === 'pending' || (j as any).approvalStatus === 'pending');
   const activeJobVacancies = jobPosts.filter(j => j.status === 'active');
 
@@ -303,11 +332,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </button>
 
           <button
-            onClick={() => onNavigate('admin-users')}
+            onClick={() => setIsEncodeWalkInOpen(true)}
             className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-slate-700 transition-colors flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 cursor-pointer"
           >
             <UserPlus className="w-4 h-4 text-amber-400" />
-            <span>Encode Walk-In</span>
+            <span>Upload Walk-In Bio-Data</span>
           </button>
         </div>
       </div>
@@ -807,11 +836,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                   <div key={emp.id} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-start gap-3">
-                        <img
-                          src={emp.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
-                          alt={emp.companyName}
-                          className="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
-                        />
+                        {emp.logoUrl ? (
+                          <img
+                            src={emp.logoUrl}
+                            alt={emp.companyName}
+                            className="w-10 h-10 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 shrink-0" />
+                        )}
                         <div>
                           <h3 className="text-xs font-bold text-slate-900">{emp.companyName}</h3>
                           <p className="text-[11px] text-slate-500 font-medium">
@@ -832,11 +865,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-[11px] text-slate-600 grid grid-cols-2 gap-2">
                       <div>
                         <span className="text-[9px] font-bold text-slate-400 uppercase block">Mayor's Permit / Business No.</span>
-                        <span className="font-mono font-bold text-slate-800">{emp.businessPermitNo || 'BP-2026-RXS-9102'}</span>
+                        <span className="font-mono font-bold text-slate-800">{emp.businessPermitNo || 'Not provided'}</span>
                       </div>
                       <div>
                         <span className="text-[9px] font-bold text-slate-400 uppercase block">DTI / SEC Registration</span>
-                        <span className="font-mono font-bold text-slate-800">{emp.dtiSecRegistration || 'DTI-RXS-5519'}</span>
+                        <span className="font-mono font-bold text-slate-800">{emp.dtiSecRegistration || 'Not provided'}</span>
                       </div>
                     </div>
 
@@ -845,7 +878,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                         onClick={() => onNavigate('admin-verifications', { employerId: emp.id })}
                         className="text-amber-800 font-bold hover:underline text-[11px]"
                       >
-                        Inspect 11 Submitted Files →
+                        Inspect Submitted Files ({emp.documents?.length || 0}) →
                       </button>
 
                       <div className="flex items-center gap-2">
@@ -856,8 +889,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                           Reject
                         </button>
                         <button
+                          disabled={!emp.documents || emp.documents.length === 0 || !emp.isProfileCompleted}
+                          title={!emp.documents || emp.documents.length === 0 ? 'Cannot approve: Zero documents uploaded' : 'Approve Accreditation'}
                           onClick={() => handleVerify(emp.id, 'verified')}
-                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow-xs transition-colors text-xs"
+                          className="px-3 py-1 bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold rounded-lg shadow-xs transition-colors text-xs"
                         >
                           Approve Accreditation
                         </button>
@@ -865,6 +900,178 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section 1B: Walk-In Applicant Match Notifications & Outreach Queue */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-amber-600" />
+                  Walk-In Applicant Match Notifications & Outreach Queue ({walkInMatchOutreachList.length})
+                </h2>
+                <p className="text-xs text-slate-500">
+                  Contact matched walk-in applicants to confirm if they want to proceed with the application/hiring process and update their status.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsEncodeWalkInOpen(true)}
+                className="text-xs font-bold text-amber-800 hover:text-amber-950 flex items-center gap-1 shrink-0 cursor-pointer"
+              >
+                <span>+ Upload Walk-In Bio-Data</span>
+              </button>
+            </div>
+
+            {walkInMatchOutreachList.length === 0 ? (
+              <div className="bg-white p-6 text-center rounded-2xl border border-slate-200 space-y-2">
+                <UserPlus className="w-8 h-8 text-amber-500 mx-auto" />
+                <p className="text-xs font-bold text-slate-800">No Pending Walk-In Job Matches Yet</p>
+                <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+                  Upload walk-in applicant bio-data/resumes. Whenever a walk-in applicant matches an employer's job vacancy, their contact details and match breakdown will appear here for outreach confirmation.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {walkInMatchOutreachList.map(({ seeker, job, matchResult, existingApp }) => {
+                  const overallPct = Math.round(matchResult.overallMatch);
+                  return (
+                    <div key={`${job.id}-${seeker.id}`} className="bg-white p-4 rounded-2xl border border-amber-300 shadow-2xs space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-black bg-amber-100 text-amber-950 border border-amber-300 px-2 py-0.5 rounded uppercase">
+                              Walk-In Bio-Data Match • {overallPct}%
+                            </span>
+                            <span className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded">
+                              {matchResult.outcome}
+                            </span>
+                            {existingApp && (
+                              <span className="text-[10px] font-bold bg-blue-50 text-blue-800 border border-blue-200 px-2 py-0.5 rounded uppercase">
+                                Status: {existingApp.currentStatus.replace(/_/g, ' ')}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-sm font-black text-slate-900 mt-1">
+                            {seeker.firstName} {seeker.lastName} → <span className="text-indigo-700">{job.title}</span> ({job.companyName})
+                          </h3>
+                        </div>
+                      </div>
+
+                      {/* Walk-In Contact Details & Matched Job Info */}
+                      <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200/80 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <span className="text-[10px] font-bold text-amber-900 uppercase block">Walk-In Applicant Contact Details</span>
+                          <p className="font-bold text-slate-900 mt-0.5">📞 Mobile: <span className="font-mono">{seeker.contactNumber}</span></p>
+                          <p className="text-[11px] text-slate-600">✉️ {seeker.email}</p>
+                          <p className="text-[11px] text-slate-600">📍 Brgy. {seeker.barangay || 'Bagumbayan'}, {seeker.municipality}</p>
+                        </div>
+                        <div>
+                          <span className="text-[10px] font-bold text-amber-900 uppercase block">Matched Job Vacancy & Category Breakdown</span>
+                          <p className="font-bold text-slate-900 mt-0.5">{job.title} • {job.companyName}</p>
+                          <p className="text-[11px] text-slate-600">
+                            Skills: <strong>{Math.round(matchResult.skillsMatchScore)}%</strong> • Edu: <strong>{Math.round(matchResult.educationMatchScore)}%</strong> • Degree: <strong>{Math.round(matchResult.degreeAlignmentScore)}%</strong> • Exp: <strong>{Math.round(matchResult.experienceMatchScore)}%</strong>
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* PESO Staff Outreach Confirmation & Status Controls */}
+                      <div className="pt-2 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              upsertCandidateApplicationStatus(
+                                job.id,
+                                seeker.id,
+                                'under_review',
+                                `Walk-in applicant ${seeker.firstName} ${seeker.lastName} contacted by LGU/PESO at ${seeker.contactNumber} and confirmed to proceed.`
+                              );
+                              showToast({
+                                title: 'Walk-In Applicant Confirmed to Proceed',
+                                message: `${seeker.firstName} ${seeker.lastName} confirmed and submitted to ${job.companyName} for "${job.title}".`,
+                                type: 'success',
+                              });
+                            }}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors cursor-pointer"
+                          >
+                            Confirm & Proceed Application
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              upsertCandidateApplicationStatus(
+                                job.id,
+                                seeker.id,
+                                'shortlisted',
+                                `Walk-in applicant confirmed by PESO outreach and shortlisted for interview.`
+                              );
+                              showToast({
+                                title: 'Walk-In Shortlisted',
+                                message: `${seeker.firstName} ${seeker.lastName} marked as Shortlisted for "${job.title}".`,
+                                type: 'success',
+                              });
+                            }}
+                            className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 font-bold rounded-lg transition-colors cursor-pointer"
+                          >
+                            Shortlist
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              upsertCandidateApplicationStatus(
+                                job.id,
+                                seeker.id,
+                                'withdrawn',
+                                `Walk-in applicant contacted by PESO and declined to proceed with this vacancy.`
+                              );
+                              showToast({
+                                title: 'Outreach Recorded: Applicant Declined',
+                                message: `Recorded that ${seeker.firstName} ${seeker.lastName} declined to proceed.`,
+                                type: 'info',
+                              });
+                            }}
+                            className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold rounded-lg transition-colors cursor-pointer"
+                          >
+                            Declined to Proceed
+                          </button>
+                        </div>
+
+                        <select
+                          value={existingApp?.currentStatus || ''}
+                          onChange={(e) => {
+                            const nextStatus = e.target.value as ApplicationStatus;
+                            if (!nextStatus) return;
+                            upsertCandidateApplicationStatus(
+                              job.id,
+                              seeker.id,
+                              nextStatus,
+                              `Status updated by LGU/PESO Admin following walk-in outreach.`
+                            );
+                            showToast({
+                              title: 'Walk-In Status Updated',
+                              message: `${seeker.firstName} ${seeker.lastName} status set to ${nextStatus.replace(/_/g, ' ')}.`,
+                              type: 'success',
+                            });
+                          }}
+                          className="px-2.5 py-1.5 border border-slate-300 rounded-lg font-bold text-xs bg-white text-slate-800 cursor-pointer"
+                        >
+                          <option value="">Update Status...</option>
+                          <option value="submitted">Pending / Submitted</option>
+                          <option value="under_review">Confirmed / Under Review</option>
+                          <option value="shortlisted">Shortlisted</option>
+                          <option value="interview_scheduled">Interview Scheduled</option>
+                          <option value="hired">Hired</option>
+                          <option value="rejected">Rejected</option>
+                          <option value="withdrawn">Declined by Applicant</option>
+                        </select>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1107,6 +1314,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           setSelectedSlipForModal(null);
         }}
         existingSlip={selectedSlipForModal}
+      />
+
+      {/* Walk-In Applicant Bio-Data Upload & Encoding Modal */}
+      <EncodeWalkInModal
+        isOpen={isEncodeWalkInOpen}
+        onClose={() => setIsEncodeWalkInOpen(false)}
       />
 
     </div>

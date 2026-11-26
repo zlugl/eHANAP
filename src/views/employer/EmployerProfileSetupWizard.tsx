@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
 import { markProfileCompletedInStorage } from '../../utils/routeGuards';
 import { ORIENTAL_MINDORO_MUNICIPALITIES, JOB_CATEGORIES, ROXAS_BARANGAYS } from '../../constants';
-import { PESO_EMPLOYER_REQUIREMENTS, PesoRequirementDefinition } from '../../data/pesoEmployerRequirements';
+import { PESO_EMPLOYER_REQUIREMENTS } from '../../data/pesoEmployerRequirements';
+import { EmployerVerificationDocument } from '../../types';
 import { 
   Building2, 
   MapPin, 
@@ -17,14 +18,13 @@ import {
   ShieldAlert, 
   ArrowRight, 
   ArrowLeft, 
-  Sparkles,
   Info,
   Check,
-  Paperclip,
   FileCheck,
   Eye,
   Trash2,
-  Camera
+  X,
+  Download
 } from 'lucide-react';
 
 interface EmployerProfileSetupWizardProps {
@@ -32,20 +32,29 @@ interface EmployerProfileSetupWizardProps {
   onNavigate: (view: string, params?: any) => void;
 }
 
+const formatBytes = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
+
 export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProps> = ({ onComplete, onNavigate }) => {
   const { currentEmployerProfile, updateEmployerProfile, addNotification, showToast, currentUser } = useApp();
 
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [isSubmitted, setIsSubmitted] = useState<boolean>(false);
+  const [wasSkippedDocs, setWasSkippedDocs] = useState<boolean>(false);
 
-  // Step 1: Company Information
-  const [companyName, setCompanyName] = useState(currentEmployerProfile?.companyName || currentUser?.name || '');
-  const [industry, setIndustry] = useState(currentEmployerProfile?.industry || JOB_CATEGORIES[0]);
+  // Step 1: Company Information (starts completely blank without pre-filled templates or stock images)
+  const [companyName, setCompanyName] = useState(currentEmployerProfile?.companyName || '');
+  const [industry, setIndustry] = useState(currentEmployerProfile?.industry || '');
   const [companyDescription, setCompanyDescription] = useState(currentEmployerProfile?.companyDescription || currentEmployerProfile?.description || '');
   const [website, setWebsite] = useState(currentEmployerProfile?.website || '');
-  const [logoUrl, setLogoUrl] = useState(currentEmployerProfile?.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80');
+  const [logoUrl, setLogoUrl] = useState(currentEmployerProfile?.logoUrl || '');
+  const [logoSkippedForNow, setLogoSkippedForNow] = useState(false);
 
-  const logoFileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const logoFileInputRef = useRef<HTMLInputElement | null>(null);
+  const docFileInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
   const handleLogoFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -62,85 +71,86 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
     reader.onload = () => {
       const dataUrl = reader.result as string;
       setLogoUrl(dataUrl);
+      setLogoSkippedForNow(false);
       showToast({
         type: 'success',
-        title: 'Brand Logo Uploaded! 🏢',
-        message: 'Company logo preview updated.'
+        title: 'Company Logo Uploaded',
+        message: 'Your custom company logo preview has been updated.'
       });
     };
     reader.readAsDataURL(file);
   };
 
   // Step 2: Contact Details & Location
-  const [representativeName, setRepresentativeName] = useState(currentEmployerProfile?.representativeName || currentUser?.name || '');
+  const [representativeName, setRepresentativeName] = useState(currentEmployerProfile?.representativeName || '');
   const [contactNumber, setContactNumber] = useState(currentEmployerProfile?.contactNumber || '');
   const [email, setEmail] = useState(currentEmployerProfile?.email || currentUser?.email || '');
-  const [municipality, setMunicipality] = useState(currentEmployerProfile?.municipality || 'Roxas');
-  const [barangay, setBarangay] = useState(currentEmployerProfile?.barangay || ROXAS_BARANGAYS[0]);
+  const [municipality, setMunicipality] = useState(currentEmployerProfile?.municipality || '');
+  const [barangay, setBarangay] = useState(currentEmployerProfile?.barangay || '');
   const [address, setAddress] = useState(currentEmployerProfile?.address || '');
 
-  // Step 3: PESO Establishment Requirements
-  // Map of requirement id -> file name or status
-  const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({
-    dti_sec: currentEmployerProfile?.dtiSecFile || 'DTI_SEC_Certificate_Registered.pdf',
-    sedula: currentEmployerProfile?.sedulaFile || 'Sedula_CommunityTaxCert_2026.pdf',
-    brgy_clearance: currentEmployerProfile?.barangayClearanceFile || 'Barangay_Business_Clearance.pdf',
-    fire_safety: currentEmployerProfile?.fireSafetyFile || 'BFP_Fire_Safety_Inspection.pdf',
-    aitr: currentEmployerProfile?.aitrFile || '',
-    sanitary_permit: currentEmployerProfile?.sanitaryPermitFile || '',
-    environment_cert: currentEmployerProfile?.environmentCertFile || '',
-    zoning_clearance: currentEmployerProfile?.zoningClearanceFile || '',
-    building_permit: currentEmployerProfile?.buildingPermitFile || '',
-    tourism_clearance: currentEmployerProfile?.tourismClearanceFile || '',
-    payment_receipt: currentEmployerProfile?.paymentReceiptFile || 'MTO_Official_Receipt_Taxes.pdf',
-  });
-
-  const [documentApplicability, setDocumentApplicability] = useState<Record<string, boolean>>({
-    aitr: true,
-    dti_sec: true,
-    sedula: true,
-    brgy_clearance: true,
-    sanitary_permit: industry === 'Tourism & Hospitality' || industry === 'Healthcare',
-    environment_cert: false,
-    zoning_clearance: false,
-    building_permit: false,
-    tourism_clearance: industry === 'Tourism & Hospitality',
-    payment_receipt: true,
-    fire_safety: true,
-  });
-
-  const [activeReqModal, setActiveReqModal] = useState<PesoRequirementDefinition | null>(null);
-  const [previewDocTitle, setPreviewDocTitle] = useState<string | null>(null);
+  // Step 3: Real Employer Verification Documents (Strictly empty by default — zero mock/simulated files)
+  const [uploadedDocs, setUploadedDocs] = useState<EmployerVerificationDocument[]>(
+    currentEmployerProfile?.documents || []
+  );
+  const [previewDoc, setPreviewDoc] = useState<EmployerVerificationDocument | null>(null);
   const [declarationAgreed, setDeclarationAgreed] = useState<boolean>(true);
   const [stepError, setStepError] = useState<string>('');
 
   if (!currentEmployerProfile) return null;
 
-  const handleSimulateFileUpload = (reqId: string, reqTitle: string) => {
-    const fileName = `${companyName.replace(/\s+/g, '_') || 'Business'}_${reqId.toUpperCase()}_Doc.pdf`;
-    setUploadedFiles(prev => ({
-      ...prev,
-      [reqId]: fileName
-    }));
-    setDocumentApplicability(prev => ({
-      ...prev,
-      [reqId]: true
-    }));
-    if (showToast) {
+  const handleRealDocumentUpload = (reqId: string, reqTitle: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
       showToast({
-        title: 'Document Attached',
-        message: `${reqTitle} document attached successfully.`,
-        type: 'match'
+        type: 'alert',
+        title: 'Document File Too Large',
+        message: 'Please upload a verification file smaller than 10MB.'
       });
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const newDoc: EmployerVerificationDocument = {
+        id: `doc-${reqId}-${Date.now()}`,
+        requirementId: reqId,
+        requirementTitle: reqTitle,
+        fileName: file.name,
+        fileSize: formatBytes(file.size),
+        mimeType: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'application/octet-stream'),
+        fileUrl: dataUrl,
+        uploadedAt: new Date().toISOString(),
+      };
+
+      setUploadedDocs(prev => {
+        const filtered = prev.filter(d => d.requirementId !== reqId);
+        return [...filtered, newDoc];
+      });
+      setStepError('');
+
+      showToast({
+        title: 'Verification Document Uploaded',
+        message: `"${file.name}" attached for ${reqTitle}.`,
+        type: 'success'
+      });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const handleRemoveFile = (reqId: string) => {
-    setUploadedFiles(prev => ({
-      ...prev,
-      [reqId]: ''
-    }));
+    setUploadedDocs(prev => prev.filter(d => d.requirementId !== reqId));
   };
+
+  const getDocForRequirement = (reqId: string): EmployerVerificationDocument | undefined => {
+    return uploadedDocs.find(d => d.requirementId === reqId);
+  };
+
+  const hasRequiredDocumentsUploaded = uploadedDocs.length > 0;
 
   const handleNextStep = () => {
     setStepError('');
@@ -172,6 +182,10 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
         setStepError('Please enter a valid business email address.');
         return;
       }
+      if (!municipality) {
+        setStepError('Please select your municipality in Oriental Mindoro.');
+        return;
+      }
       if (!address.trim()) {
         setStepError('Please provide the physical street / building address of your business establishment.');
         return;
@@ -179,14 +193,51 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
       setCurrentStep(3);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (currentStep === 3) {
-      // Must have at least primary registration attached
-      if (!uploadedFiles.dti_sec && !uploadedFiles.brgy_clearance) {
-        setStepError('Please attach at least your DTI / SEC registration or Barangay Clearance to continue.');
+      if (!hasRequiredDocumentsUploaded) {
+        setStepError('Please upload at least one official business verification document (e.g., Mayor\'s Permit, DTI/SEC Registration, or Barangay Clearance), or click "Skip for now / Continue later" to upload them later in your Profile tab.');
         return;
       }
+      setWasSkippedDocs(false);
       setCurrentStep(4);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  };
+
+  const handleSkipDocumentUploadForNow = () => {
+    setStepError('');
+    setWasSkippedDocs(true);
+
+    const updatedProfile = {
+      companyName: companyName.trim().toUpperCase(),
+      representativeName: representativeName.trim().toUpperCase(),
+      industry,
+      companyDescription: companyDescription.trim().toUpperCase(),
+      description: companyDescription.trim().toUpperCase(),
+      website: website.trim(),
+      logoUrl,
+      contactNumber: contactNumber.trim(),
+      email: email.trim(),
+      municipality,
+      barangay: municipality === 'Roxas' ? barangay : undefined,
+      address: address.trim().toUpperCase(),
+      documents: [],
+      submittedRequirements: [],
+      requirementsSubmitted: false,
+      status: 'incomplete' as const,
+      isProfileCompleted: true,
+      profileSetupCompletedAt: new Date().toISOString(),
+    };
+
+    updateEmployerProfile(updatedProfile);
+    markProfileCompletedInStorage([currentUser?.id, currentUser?.email, email, currentEmployerProfile?.id], 'employer');
+
+    showToast({
+      type: 'info',
+      title: 'Document Upload Skipped for Now',
+      message: 'Your account status is set to Incomplete. Upload your business verification documents anytime in your Profile tab to apply for PESO/LGU verification.',
+    });
+
+    onComplete();
   };
 
   const handlePreviousStep = () => {
@@ -203,42 +254,46 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
       return;
     }
 
-    const submittedList = Object.entries(uploadedFiles)
-      .filter(([_, val]) => Boolean(val))
-      .map(([key]) => key);
+    if (uploadedDocs.length === 0) {
+      setStepError('Please upload at least one required business verification document before submitting for PESO/LGU verification.');
+      return;
+    }
+
+    const submittedList = uploadedDocs.map(d => d.requirementId || d.id);
+    const findFileName = (reqId: string) => uploadedDocs.find(d => d.requirementId === reqId)?.fileName;
 
     const updatedProfile = {
-      companyName: companyName.trim(),
-      representativeName: representativeName.trim(),
+      companyName: companyName.trim().toUpperCase(),
+      representativeName: representativeName.trim().toUpperCase(),
       industry,
-      companyDescription: companyDescription.trim(),
-      description: companyDescription.trim(),
+      companyDescription: companyDescription.trim().toUpperCase(),
+      description: companyDescription.trim().toUpperCase(),
       website: website.trim(),
       logoUrl,
       contactNumber: contactNumber.trim(),
       email: email.trim(),
       municipality,
       barangay: municipality === 'Roxas' ? barangay : undefined,
-      address: address.trim(),
-      
-      // PESO Requirements Files
-      aitrFile: uploadedFiles.aitr || undefined,
-      dtiSecFile: uploadedFiles.dti_sec || undefined,
-      dtiSecRegistration: uploadedFiles.dti_sec ? 'DTI-REG-2026-OM' : undefined,
-      sedulaFile: uploadedFiles.sedula || undefined,
-      barangayClearanceFile: uploadedFiles.brgy_clearance || undefined,
-      sanitaryPermitFile: uploadedFiles.sanitary_permit || undefined,
-      environmentCertFile: uploadedFiles.environment_cert || undefined,
-      zoningClearanceFile: uploadedFiles.zoning_clearance || undefined,
-      buildingPermitFile: uploadedFiles.building_permit || undefined,
-      tourismClearanceFile: uploadedFiles.tourism_clearance || undefined,
-      paymentReceiptFile: uploadedFiles.payment_receipt || undefined,
-      fireSafetyFile: uploadedFiles.fire_safety || undefined,
-      
+      address: address.trim().toUpperCase(),
+      documents: uploadedDocs,
+      mayorsPermitFile: findFileName('mayors_permit'),
+      businessPermitFile: findFileName('mayors_permit'),
+      dtiSecFile: findFileName('dti_sec'),
+      sanitaryPermitFile: findFileName('sanitary_permit'),
+      letterOfIntentFile: findFileName('letter_of_intent'),
+      aitrFile: findFileName('aitr'),
+      sedulaFile: findFileName('sedula'),
+      barangayClearanceFile: findFileName('brgy_clearance'),
+      environmentCertFile: findFileName('environment_cert'),
+      zoningClearanceFile: findFileName('zoning_clearance'),
+      buildingPermitFile: findFileName('building_permit'),
+      tourismClearanceFile: findFileName('tourism_clearance'),
+      paymentReceiptFile: findFileName('payment_receipt'),
+      fireSafetyFile: findFileName('fire_safety'),
       submittedRequirements: submittedList,
       requirementsSubmitted: true,
       accreditationSubmittedAt: new Date().toISOString(),
-      status: 'pending' as const, // Pending PESO verification
+      status: 'pending_verification' as const,
       isProfileCompleted: true,
       profileSetupCompletedAt: new Date().toISOString(),
       dataPrivacyConsent: {
@@ -248,34 +303,40 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
     };
 
     updateEmployerProfile(updatedProfile);
-
-    // Persist employer profile completion in storage
     markProfileCompletedInStorage([currentUser?.id, currentUser?.email, email, currentEmployerProfile?.id], 'employer');
 
-    // Notify Employer in real-time
     if (typeof addNotification === 'function') {
       addNotification({
         recipientId: currentUser?.id || currentEmployerProfile.userId || currentEmployerProfile.id,
         recipientRole: 'employer',
-        title: 'Profile Setup Completed & Documents Submitted! 📋',
-        message: 'Your company profile and establishment documents are now under review by PESO-LGU Oriental Mindoro. You will be notified once accredited so you can publish job postings.',
+        title: 'Profile & Documents Submitted for PESO/LGU Verification! 📋',
+        message: 'Your company profile and uploaded verification documents are now under review by PESO-LGU Oriental Mindoro. Job posting will unlock once your account is verified.',
         type: 'info',
         actionUrl: 'employer-dashboard',
+      });
+
+      addNotification({
+        recipientId: 'admin',
+        recipientRole: 'admin',
+        title: `New Employer Verification Pending: ${companyName.trim().toUpperCase()}`,
+        message: `${companyName.trim().toUpperCase()} (${representativeName.trim().toUpperCase()}) uploaded ${uploadedDocs.length} verification document(s) for LGU/PESO accreditation review.`,
+        type: 'action',
+        actionUrl: 'admin-verifications',
       });
     }
 
     if (showToast) {
       showToast({
         type: 'success',
-        title: 'Profile Setup Completed',
-        message: 'Your employer profile and accreditation requirements have been submitted to PESO-LGU!',
+        title: 'Submitted for PESO/LGU Verification',
+        message: 'Your employer profile and verification documents have been submitted to PESO-LGU!',
       });
     }
 
     setIsSubmitted(true);
   };
 
-  const countAttached = Object.values(uploadedFiles).filter(Boolean).length;
+  const countAttached = uploadedDocs.length;
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] py-8 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto space-y-8 font-body">
@@ -382,9 +443,9 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                 <input
                   type="text"
                   value={companyName}
-                  onChange={e => setCompanyName(e.target.value)}
-                  placeholder="e.g. Roxas Tech Solutions & Trading Inc."
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-slate-900 text-sm bg-white"
+                  onChange={e => setCompanyName(e.target.value.toUpperCase())}
+                  placeholder="E.G. ROXAS TECH SOLUTIONS & TRADING INC."
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-slate-900 uppercase text-sm bg-white"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   Must match your official DTI, SEC, or Mayor's Business Permit.
@@ -400,6 +461,7 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                   onChange={e => setIndustry(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-slate-800 text-xs bg-white"
                 >
+                  <option value="">-- Select Business Industry --</option>
                   {JOB_CATEGORIES.map(cat => (
                     <option key={cat} value={cat}>{cat}</option>
                   ))}
@@ -436,9 +498,9 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                 <textarea
                   rows={4}
                   value={companyDescription}
-                  onChange={e => setCompanyDescription(e.target.value)}
-                  placeholder="Provide an overview of your establishment, core products/services, company culture, and workplace environment in Oriental Mindoro..."
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-normal text-slate-800 text-xs bg-white leading-relaxed"
+                  onChange={e => setCompanyDescription(e.target.value.toUpperCase())}
+                  placeholder="PROVIDE AN OVERVIEW OF YOUR ESTABLISHMENT, CORE PRODUCTS/SERVICES, COMPANY CULTURE, AND WORKPLACE ENVIRONMENT IN ORIENTAL MINDORO..."
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-normal text-slate-800 uppercase text-xs bg-white leading-relaxed"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   Job seekers will view this summary when reviewing your job postings.
@@ -447,23 +509,21 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
 
               <div className="sm:col-span-2 bg-slate-50 p-4 rounded-2xl border border-slate-200">
                 <label className="block font-bold text-slate-700 mb-2">
-                  Company Brand Logo & Profile Picture
+                  Upload Your Company Brand Logo / Photo (Optional)
                 </label>
                 <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
                   <div 
                     onClick={() => logoFileInputRef.current?.click()}
-                    className="relative w-16 h-16 rounded-2xl overflow-hidden ring-2 ring-blue-500/20 hover:ring-blue-500 transition-colors shadow-xs shrink-0 cursor-pointer group/logo"
-                    title="Click to upload logo"
+                    className="relative w-16 h-16 rounded-2xl overflow-hidden bg-white border-2 border-dashed border-slate-300 hover:border-blue-500 transition-colors shrink-0 cursor-pointer"
+                    title="Click to upload your company logo"
                   >
-                    <img
-                      src={logoUrl}
-                      alt="Company Logo Preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-black/40 rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover/logo:opacity-100 transition-opacity">
-                      <Camera className="w-5 h-5 text-white" />
-                      <span className="text-[10px] font-semibold text-white mt-0.5">Upload</span>
-                    </div>
+                    {logoUrl ? (
+                      <img
+                        src={logoUrl}
+                        alt="Company Logo Preview"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : null}
                   </div>
 
                   <input
@@ -475,7 +535,9 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                   />
 
                   <div className="space-y-2 flex-1 w-full text-center sm:text-left">
-                    <p className="text-xs font-semibold text-slate-700">Upload an image file or choose a business template:</p>
+                    <p className="text-xs text-slate-600">
+                      Upload your own company logo or establishment photo. If you don't have one ready, click <strong>"Skip for now / Continue later"</strong> — your logo area will remain completely blank until you upload one in Profile Settings.
+                    </p>
                     
                     <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start">
                       <button
@@ -484,41 +546,46 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                         className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
                       >
                         <Upload className="w-3.5 h-3.5" />
-                        <span>Upload Logo File</span>
+                        <span>{logoUrl ? 'Change Company Logo' : 'Upload Company Logo'}</span>
                       </button>
 
-                      <button
-                        type="button"
-                        onClick={() => setLogoUrl('https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80')}
-                        className="px-2.5 py-1 text-[11px] font-bold bg-white border border-slate-200 hover:border-blue-300 rounded-lg text-slate-600"
-                      >
-                        Modern Office
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setLogoUrl('https://images.unsplash.com/photo-1577495508048-b635879837f1?w=150&auto=format&fit=crop&q=80')}
-                        className="px-2.5 py-1 text-[11px] font-bold bg-white border border-slate-200 hover:border-blue-300 rounded-lg text-slate-600"
-                      >
-                        Hospitality & Resort
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setLogoUrl('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=150&auto=format&fit=crop&q=80')}
-                        className="px-2.5 py-1 text-[11px] font-bold bg-white border border-slate-200 hover:border-blue-300 rounded-lg text-slate-600"
-                      >
-                        Technical & Trade
-                      </button>
+                      {!logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLogoUrl('');
+                            setLogoSkippedForNow(true);
+                            showToast({
+                              type: 'info',
+                              title: 'Company Logo Skipped for Now',
+                              message: 'Your company logo area will remain blank. You can upload one anytime in Profile Settings.'
+                            });
+                          }}
+                          className="px-3 py-1.5 text-xs font-bold bg-white border border-slate-300 hover:border-slate-400 rounded-xl text-slate-700 cursor-pointer"
+                        >
+                          Skip for now / Continue later
+                        </button>
+                      )}
+
+                      {logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLogoUrl('');
+                            setLogoSkippedForNow(false);
+                          }}
+                          className="px-3 py-1.5 text-xs font-bold bg-white border border-rose-200 hover:bg-rose-50 rounded-xl text-rose-600 cursor-pointer"
+                        >
+                          Remove Logo
+                        </button>
+                      )}
                     </div>
 
-                    <div className="pt-1">
-                      <input
-                        type="text"
-                        value={logoUrl}
-                        onChange={e => setLogoUrl(e.target.value)}
-                        placeholder="Or enter image URL: https://..."
-                        className="w-full px-3 py-1.5 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-blue-500 bg-white"
-                      />
-                    </div>
+                    {logoSkippedForNow && !logoUrl && (
+                      <p className="text-[11px] font-semibold text-emerald-700 pt-1">
+                        ✓ Skipped for now — company logo space left blank. You can upload a logo anytime in Profile Settings.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -547,9 +614,9 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                 <input
                   type="text"
                   value={representativeName}
-                  onChange={e => setRepresentativeName(e.target.value)}
-                  placeholder="e.g. Engr. Juan Dela Cruz (HR Manager)"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-slate-900 text-xs bg-white"
+                  onChange={e => setRepresentativeName(e.target.value.toUpperCase())}
+                  placeholder="E.G. ENGR. JUAN DELA CRUZ (HR MANAGER)"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-slate-900 uppercase text-xs bg-white"
                 />
                 <p className="text-[11px] text-slate-400 mt-1">
                   Point person coordinating with PESO Roxas and applicants.
@@ -600,6 +667,7 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                   onChange={e => setMunicipality(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-slate-800 text-xs bg-white"
                 >
+                  <option value="">-- Select Municipality --</option>
                   {ORIENTAL_MINDORO_MUNICIPALITIES.map(m => (
                     <option key={m} value={m}>{m}</option>
                   ))}
@@ -616,6 +684,7 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                     onChange={e => setBarangay(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-slate-800 text-xs bg-white"
                   >
+                    <option value="">-- Select Barangay --</option>
                     {ROXAS_BARANGAYS.map(b => (
                       <option key={b} value={b}>{b}</option>
                     ))}
@@ -630,67 +699,72 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                 <input
                   type="text"
                   value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  placeholder="e.g. Unit 2B, Rizal Street corner Bonifacio Avenue"
-                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-slate-900 text-xs bg-white"
+                  onChange={e => setAddress(e.target.value.toUpperCase())}
+                  placeholder="E.G. UNIT 2B, RIZAL STREET CORNER BONIFACIO AVENUE"
+                  className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-semibold text-slate-900 uppercase text-xs bg-white"
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* STEP 3: PESO Establishment Requirements */}
+        {/* STEP 3: PESO Establishment Requirements (Real File Uploads + Optional Skip for Now) */}
         {currentStep === 3 && (
           <div className="space-y-6 animate-in fade-in">
             <div className="border-b border-slate-100 pb-4">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                     <ShieldCheck className="w-5 h-5 text-blue-600" />
-                    Step 3: PESO Establishment Accreditation Requirements
+                    Step 3: Upload Business Verification Documents
                   </h2>
                   <p className="text-xs text-slate-500 mt-1">
-                    Mga Requirements ng Employer/Establishment alinsunod sa pamantayan ng PESO Oriental Mindoro.
+                    Upload your real business verification files (`.png`, `.jpg`, `.jpeg`, `.pdf`, `.doc`, `.docx`) for PESO/LGU Oriental Mindoro verification.
                   </p>
                 </div>
-                <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 shrink-0">
-                  {countAttached} of 11 Attached
+                <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 shrink-0 self-start sm:self-auto">
+                  {countAttached} Document(s) Uploaded
                 </span>
               </div>
             </div>
 
-            {/* Prominent PESO Verification Policy Warning */}
+            {/* Prominent PESO Verification Policy Warning & Optional Skip Explanation */}
             <div className="p-4 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3.5 text-xs text-amber-950 shadow-xs">
               <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div className="space-y-1">
                 <p className="font-bold text-amber-900 text-sm">
-                  Paalala: Kailangan munang ma-verify ng PESO bago makapag-post ng trabaho
+                  Verification Required Before Posting Job Vacancies
                 </p>
                 <p className="text-amber-800 leading-relaxed">
-                  Bago makapaglathala ng mga bakanteng posisyon at mag-match sa mga aplikante, susuriin muna ng <strong>PESO-LGU Oriental Mindoro</strong> ang mga nakalakip na legal na dokumento. <em>Tanging ang mga naaangkop na dokumento (applicable documents) ang kailangang isumite batay sa uri ng inyong establisyimento.</em>
+                  <strong>PESO-LGU Oriental Mindoro</strong> reviews your uploaded business documents before unlocking job vacancy posting. If you do not have your files ready right now, you may click <strong>&ldquo;Skip for now / Continue later&rdquo;</strong> to access your Employer Dashboard with an <strong>Incomplete</strong> status and upload your documents later in the <strong>Profile</strong> tab.
                 </p>
               </div>
             </div>
 
-            {/* List of 11 Requirements */}
+            {/* List of Requirements with Real Native File Inputs */}
             <div className="space-y-3">
               {PESO_EMPLOYER_REQUIREMENTS.map((req, idx) => {
-                const attachedFile = uploadedFiles[req.id];
-                const isApplicable = documentApplicability[req.id];
+                const attachedDoc = getDocForRequirement(req.id);
 
                 return (
                   <div
                     key={req.id}
                     className={`p-4 rounded-2xl border transition-colors ${
-                      attachedFile 
-                        ? 'border-emerald-200 bg-emerald-50/40' 
-                        : isApplicable 
-                        ? 'border-slate-200 bg-white hover:border-slate-300' 
-                        : 'border-slate-200 bg-slate-50/50 opacity-75'
+                      attachedDoc 
+                        ? 'border-emerald-300 bg-emerald-50/40' 
+                        : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                   >
+                    <input
+                      ref={el => { docFileInputRefs.current[req.id] = el; }}
+                      type="file"
+                      accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+                      className="hidden"
+                      onChange={e => handleRealDocumentUpload(req.id, req.title, e)}
+                    />
+
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                      <div className="space-y-1 flex-1">
+                      <div className="space-y-1 flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">
                             #{idx + 1}
@@ -701,26 +775,21 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                           <span className="text-[10px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
                             {req.issuingAgency}
                           </span>
-                          {req.isGeneralRequirement && (
-                            <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
-                              General Requirement
-                            </span>
-                          )}
                         </div>
 
                         <p className="text-[11px] text-slate-600 leading-relaxed">
                           {req.description}
                         </p>
-                        <p className="text-[10px] text-slate-400">
-                          <span className="font-semibold text-slate-500">Applicability:</span> {req.applicableEstablishments}
-                        </p>
 
-                        {attachedFile && (
-                          <div className="flex items-center gap-2 pt-1 text-emerald-800 font-bold text-xs">
-                            <FileCheck className="w-4 h-4 text-emerald-600" />
-                            <span className="truncate max-w-xs">{attachedFile}</span>
-                            <span className="text-[10px] text-emerald-600 bg-emerald-100 px-2 py-0.5 rounded-full">
-                              Attached
+                        {attachedDoc && (
+                          <div className="flex flex-wrap items-center gap-2 pt-1.5 text-emerald-800 font-bold text-xs">
+                            <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="truncate max-w-xs">{attachedDoc.fileName}</span>
+                            <span className="text-[10px] font-semibold text-slate-500">
+                              ({attachedDoc.fileSize})
+                            </span>
+                            <span className="text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                              Uploaded
                             </span>
                           </div>
                         )}
@@ -728,23 +797,40 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
 
                       {/* Action Buttons */}
                       <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-                        {attachedFile ? (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveFile(req.id)}
-                            className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-200"
-                            title="Remove file"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                        {attachedDoc ? (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setPreviewDoc(attachedDoc)}
+                              className="px-2.5 py-1.5 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl text-xs font-bold border border-indigo-200 flex items-center gap-1 cursor-pointer"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              <span>Preview</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => docFileInputRefs.current[req.id]?.click()}
+                              className="px-2.5 py-1.5 text-slate-700 bg-white hover:bg-slate-100 rounded-xl text-xs font-bold border border-slate-200 cursor-pointer"
+                            >
+                              Replace
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveFile(req.id)}
+                              className="p-2 text-rose-600 hover:bg-rose-50 rounded-xl transition-colors border border-rose-200 cursor-pointer"
+                              title="Remove file"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
                         ) : (
                           <button
                             type="button"
-                            onClick={() => handleSimulateFileUpload(req.id, req.title)}
-                            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5"
+                            onClick={() => docFileInputRefs.current[req.id]?.click()}
+                            className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer"
                           >
                             <Upload className="w-3.5 h-3.5" />
-                            <span>Attach Document</span>
+                            <span>Upload File</span>
                           </button>
                         )}
                       </div>
@@ -762,10 +848,10 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
             <div className="border-b border-slate-100 pb-4">
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <FileText className="w-5 h-5 text-blue-600" />
-                Step 4: Review Summary & Submit for PESO Accreditation
+                Step 4: Review Summary &amp; Submit for PESO/LGU Verification
               </h2>
               <p className="text-xs text-slate-500 mt-1">
-                Pakiusap suriin ang lahat ng impormasyon at nakalakip na dokumento bago isumite sa PESO.
+                Review your company details and uploaded verification documents before submitting for PESO/LGU accreditation.
               </p>
             </div>
 
@@ -773,44 +859,53 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs">
               <div className="p-5 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
                 <div className="flex items-center gap-3">
-                  <img
-                    src={logoUrl}
-                    alt={companyName}
-                    className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
-                  />
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={companyName}
+                      className="w-12 h-12 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-white border-2 border-dashed border-slate-300 shrink-0" />
+                  )}
                   <div>
-                    <h3 className="font-bold text-slate-900 text-sm">{companyName}</h3>
+                    <h3 className="font-bold text-slate-900 text-sm uppercase">{companyName}</h3>
                     <p className="text-slate-500">{industry}</p>
                   </div>
                 </div>
 
                 <div className="space-y-1.5 pt-2 border-t border-slate-200">
-                  <p><strong className="text-slate-700">Representative:</strong> {representativeName}</p>
+                  <p><strong className="text-slate-700">Representative:</strong> <span className="uppercase">{representativeName}</span></p>
                   <p><strong className="text-slate-700">Email:</strong> {email}</p>
                   <p><strong className="text-slate-700">Phone:</strong> {contactNumber}</p>
-                  <p><strong className="text-slate-700">Location:</strong> {address}, {municipality === 'Roxas' ? `Brgy. ${barangay}, ` : ''}{municipality}, Oriental Mindoro</p>
+                  <p><strong className="text-slate-700">Location:</strong> <span className="uppercase">{address}, {municipality === 'Roxas' && barangay ? `BRGY. ${barangay}, ` : ''}{municipality}, ORIENTAL MINDORO</span></p>
                 </div>
               </div>
 
               <div className="p-5 bg-blue-50/60 rounded-2xl border border-blue-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-blue-950 text-sm">Attached PESO Credentials</h3>
+                  <h3 className="font-bold text-blue-950 text-sm">Uploaded Verification Documents</h3>
                   <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-600 text-white">
-                    {countAttached} Documents
+                    {countAttached} Document(s)
                   </span>
                 </div>
 
                 <ul className="space-y-1.5 text-[11px] text-blue-900">
-                  {PESO_EMPLOYER_REQUIREMENTS.map(req => {
-                    const isAttached = Boolean(uploadedFiles[req.id]);
-                    if (!isAttached) return null;
-                    return (
-                      <li key={req.id} className="flex items-center gap-1.5">
+                  {uploadedDocs.map(doc => (
+                    <li key={doc.id} className="flex items-center justify-between gap-2 bg-white/80 px-2.5 py-1.5 rounded-lg border border-blue-100">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span className="font-semibold truncate">{req.title}</span>
-                      </li>
-                    );
-                  })}
+                        <span className="font-semibold truncate">{doc.requirementTitle || doc.fileName}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc(doc)}
+                        className="text-[10px] font-bold text-blue-700 hover:underline shrink-0"
+                      >
+                        View ({doc.fileSize})
+                      </button>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -825,7 +920,7 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
                   className="mt-1 w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                 />
                 <span className="leading-relaxed font-medium">
-                  Pinatutunayan ko na ang lahat ng impormasyon at dokumentong aking ibinigay ay totoo, lehitimo, at naaayon sa batas ng Pilipinas at alituntunin ng <strong>Public Employment Service Office (PESO) - Oriental Mindoro</strong>. Nauunawaan ko na susuriin muna ito bago magkaroon ng pahintulot na makapag-post ng mga bakanteng trabaho sa eHANAP portal.
+                  I hereby certify that all company information and business verification documents uploaded are authentic, valid, and compliant with the standards of the <strong>Public Employment Service Office (PESO) - Oriental Mindoro</strong>. I understand that job vacancy posting will unlock once my employer account is officially verified.
                 </span>
               </label>
             </div>
@@ -833,13 +928,13 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
         )}
 
         {/* Wizard Navigation Footer */}
-        <div className="flex items-center justify-between pt-6 border-t border-slate-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-6 border-t border-slate-100">
           <div>
             {currentStep > 1 && (
               <button
                 type="button"
                 onClick={handlePreviousStep}
-                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5"
+                className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors flex items-center gap-1.5 cursor-pointer"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Back</span>
@@ -847,29 +942,110 @@ export const EmployerProfileSetupWizard: React.FC<EmployerProfileSetupWizardProp
             )}
           </div>
 
-          <div>
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Step 3 Optional "Skip for now / Continue later" button — shown ONLY when no documents have been uploaded yet */}
+            {currentStep === 3 && !hasRequiredDocumentsUploaded && (
+              <button
+                type="button"
+                onClick={handleSkipDocumentUploadForNow}
+                className="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+              >
+                Skip for now / Continue later
+              </button>
+            )}
+
             {currentStep < 4 ? (
               <button
                 type="button"
                 onClick={handleNextStep}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer"
               >
-                <span>Save & Continue</span>
+                <span>Save &amp; Continue</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             ) : (
               <button
                 type="button"
                 onClick={handleFinalSubmit}
-                className="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-colors flex items-center gap-2"
+                className="px-7 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl shadow-md transition-colors flex items-center gap-2 cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
-                <span>Submit Profile for PESO Accreditation</span>
+                <span>Submit for PESO/LGU Verification</span>
               </button>
             )}
           </div>
         </div>
       </div>
+
+      {/* In-App Document Preview Modal */}
+      {previewDoc && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs"
+          onClick={() => setPreviewDoc(null)}
+        >
+          <div
+            className="bg-white rounded-3xl max-w-3xl w-full overflow-hidden shadow-2xl border border-slate-200 flex flex-col max-h-[90vh]"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="p-4 bg-slate-900 text-white flex items-center justify-between">
+              <div className="min-w-0">
+                <h4 className="text-sm font-bold truncate">{previewDoc.requirementTitle || previewDoc.fileName}</h4>
+                <p className="text-[11px] text-slate-400 truncate">
+                  {previewDoc.fileName} • {previewDoc.fileSize}
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href={previewDoc.fileUrl}
+                  download={previewDoc.fileName}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-1"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewDoc(null)}
+                  className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 bg-slate-100 flex-1 overflow-auto flex items-center justify-center min-h-[360px]">
+              {previewDoc.mimeType.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(previewDoc.fileName) ? (
+                <img
+                  src={previewDoc.fileUrl}
+                  alt={previewDoc.fileName}
+                  className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-md"
+                />
+              ) : previewDoc.mimeType === 'application/pdf' || /\.pdf$/i.test(previewDoc.fileName) ? (
+                <iframe
+                  src={previewDoc.fileUrl}
+                  title={previewDoc.fileName}
+                  className="w-full h-[70vh] rounded-xl bg-white border border-slate-200"
+                />
+              ) : (
+                <div className="text-center p-8 bg-white rounded-2xl border border-slate-200 space-y-3 max-w-md">
+                  <FileText className="w-12 h-12 text-blue-600 mx-auto" />
+                  <h5 className="text-sm font-bold text-slate-900">{previewDoc.fileName}</h5>
+                  <p className="text-xs text-slate-500">
+                    Office document ({previewDoc.fileSize}). Click the button below to download and inspect this file.
+                  </p>
+                  <a
+                    href={previewDoc.fileUrl}
+                    download={previewDoc.fileName}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download File</span>
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Celebration & Confirmation Modal */}
       {isSubmitted && (

@@ -35,14 +35,14 @@ export const ApplyForJobWindow: React.FC<ApplyForJobWindowProps> = ({
   const { currentSeekerProfile, applyForJob, updateJobSeekerProfile, showToast } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Pre-filled from profile
+  // Pre-filled from profile (Normalized to ALL CAPS, except email)
   const [fullName, setFullName] = useState(
     currentSeekerProfile 
-      ? `${currentSeekerProfile.firstName} ${currentSeekerProfile.lastName}`.trim() 
-      : 'John Doe'
+      ? `${currentSeekerProfile.firstName} ${currentSeekerProfile.lastName}`.trim().toUpperCase()
+      : ''
   );
-  const [email, setEmail] = useState(currentSeekerProfile?.email || 'example@gmail.com');
-  const [phone, setPhone] = useState(currentSeekerProfile?.contactNumber || '0917-123-4567');
+  const [email, setEmail] = useState(currentSeekerProfile?.email || '');
+  const [phone, setPhone] = useState(currentSeekerProfile?.contactNumber || '');
   
   // Auto-attached resume from profile
   const profileResume = currentSeekerProfile?.resumes?.find(r => r.id === currentSeekerProfile?.activeResumeId) ||
@@ -73,17 +73,18 @@ export const ApplyForJobWindow: React.FC<ApplyForJobWindowProps> = ({
   const [showCongratulations, setShowCongratulations] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Quick chip templates to insert into cover note
+  // Quick chip templates to insert into cover note (ALL CAPS)
   const quickChips = [
-    'Available immediately in Roxas',
-    'Resident of Oriental Mindoro',
-    'With relevant experience',
-    'Ready for on-site / technical interview'
+    'AVAILABLE IMMEDIATELY IN ROXAS',
+    'RESIDENT OF ORIENTAL MINDORO',
+    'WITH RELEVANT EXPERIENCE',
+    'READY FOR ON-SITE / TECHNICAL INTERVIEW'
   ];
 
   const handleAddChip = (chip: string) => {
-    if (coverNote.includes(chip)) return;
-    setCoverNote(prev => prev ? `${prev}. ${chip}` : chip);
+    const upper = chip.toUpperCase();
+    if (coverNote.includes(upper)) return;
+    setCoverNote(prev => (prev ? `${prev}. ${upper}` : upper));
   };
 
   const handleCustomFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -255,18 +256,18 @@ export const ApplyForJobWindow: React.FC<ApplyForJobWindowProps> = ({
         {/* FORM FIELDS (Matches image.png structure) */}
         <form onSubmit={handleSubmit} className="space-y-4">
           
-          {/* Field 1: Full Name */}
+          {/* Field 1: Full Name (ALL CAPS) */}
           <div className="space-y-1.5">
             <label className="text-xs sm:text-sm font-semibold text-slate-800 block">
-              Full Name
+              Full Name (ALL CAPS)
             </label>
             <input
               type="text"
-              placeholder="John Doe"
+              placeholder="ENTER FULL NAME"
               value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              onChange={(e) => setFullName(e.target.value.toUpperCase())}
               required
-              className="w-full bg-[#f8f9fa] border border-slate-200/80 rounded-2xl px-4 py-3.5 text-xs sm:text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2331ea] focus:bg-white transition-all"
+              className="w-full bg-[#f8f9fa] border border-slate-200/80 rounded-2xl px-4 py-3.5 text-xs sm:text-sm font-medium text-slate-800 uppercase placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2331ea] focus:bg-white transition-all"
             />
           </div>
 
@@ -410,13 +411,13 @@ export const ApplyForJobWindow: React.FC<ApplyForJobWindowProps> = ({
               ))}
             </div>
 
-            {/* Textarea (Matches image.png placeholder) */}
+            {/* Textarea (ALL CAPS) */}
             <textarea
               rows={4}
-              placeholder="Write Something here.. (e.g. Brief introduction, key skills, why you are interested in this position)"
+              placeholder="WRITE COVER NOTE OR APPLICATION MESSAGE HERE (AUTO-FORMATTED IN ALL CAPS)..."
               value={coverNote}
-              onChange={(e) => setCoverNote(e.target.value)}
-              className="w-full bg-[#f8f9fa] border border-slate-200/80 rounded-2xl p-4 text-xs sm:text-sm font-normal text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2331ea] focus:bg-white transition-all resize-none min-h-[130px]"
+              onChange={(e) => setCoverNote(e.target.value.toUpperCase())}
+              className="w-full bg-[#f8f9fa] border border-slate-200/80 rounded-2xl p-4 text-xs sm:text-sm font-normal text-slate-800 uppercase placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#2331ea] focus:bg-white transition-all resize-none min-h-[130px]"
             />
           </div>
 

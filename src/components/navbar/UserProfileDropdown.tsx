@@ -81,9 +81,7 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
             className="w-7 h-7 rounded-sm object-cover"
           />
         ) : (
-          <div className="w-7 h-7 rounded-sm bg-[var(--color-paper-3)] border border-[var(--color-rule)] flex items-center justify-center text-[var(--color-muted)] font-medium text-xs">
-            <User className="w-4 h-4" aria-hidden="true" />
-          </div>
+          <div className="w-7 h-7 rounded-sm bg-[var(--color-paper-3)] border border-[var(--color-rule)] shrink-0" />
         )}
         <div className="hidden sm:block text-left pr-1">
           <p className="text-xs font-medium text-[var(--color-ink)] line-clamp-1">{userDisplayName}</p>
@@ -211,58 +209,6 @@ export const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
               </button>
             </>
           )}
-
-          <div className="border-t border-[var(--color-rule)] my-1"></div>
-
-          {/* Instant 1-Click Demo Persona Switcher */}
-          <div className="px-4 py-1 text-[10px] uppercase font-bold tracking-wider text-[var(--color-muted)]">
-            1-Click Demo Switcher
-          </div>
-          <button
-            type="button"
-            onClick={() => handleRoleSwitch('job_seeker')}
-            className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between hover:bg-[var(--color-paper-3)] transition-colors ${
-              currentUser.role === 'job_seeker' ? 'text-blue-700 font-semibold bg-blue-50/50' : 'text-[var(--color-ink)]'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <User className="w-3.5 h-3.5 text-blue-600" aria-hidden="true" />
-              <span>Job Seeker (Juan)</span>
-            </span>
-            {currentUser.role === 'job_seeker' && (
-              <span className="text-[10px] bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded-sm font-semibold">Active</span>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleRoleSwitch('employer')}
-            className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between hover:bg-[var(--color-paper-3)] transition-colors ${
-              currentUser.role === 'employer' ? 'text-emerald-700 font-semibold bg-emerald-50/50' : 'text-[var(--color-ink)]'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Building2 className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
-              <span>Employer (Puregold)</span>
-            </span>
-            {currentUser.role === 'employer' && (
-              <span className="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-sm font-semibold">Active</span>
-            )}
-          </button>
-          <button
-            type="button"
-            onClick={() => handleRoleSwitch('admin')}
-            className={`w-full text-left px-4 py-1.5 text-xs flex items-center justify-between hover:bg-[var(--color-paper-3)] transition-colors ${
-              currentUser.role === 'admin' ? 'text-amber-700 font-semibold bg-amber-50/50' : 'text-[var(--color-ink)]'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
-              <span>PESO Admin (LGU)</span>
-            </span>
-            {currentUser.role === 'admin' && (
-              <span className="text-[10px] bg-amber-100 text-amber-800 px-1.5 py-0.5 rounded-sm font-semibold">Active</span>
-            )}
-          </button>
 
           <div className="border-t border-[var(--color-rule)] my-1"></div>
 

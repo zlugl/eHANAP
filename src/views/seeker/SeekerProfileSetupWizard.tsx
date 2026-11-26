@@ -160,8 +160,9 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   const dateInputRef = useRef<HTMLInputElement>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
 
-  // Form state initialized from current seeker profile
+  // Form state initialized from current seeker profile (completely blank until user enters or auto-fills via resume)
   const [profilePicture, setProfilePicture] = useState(currentSeekerProfile?.profilePicture || currentUser?.avatar || '');
+  const [photoSkippedForNow, setPhotoSkippedForNow] = useState(false);
 
   const handleAvatarFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -178,10 +179,11 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
     reader.onload = () => {
       const dataUrl = reader.result as string;
       setProfilePicture(dataUrl);
+      setPhotoSkippedForNow(false);
       showToast({
         type: 'success',
-        title: 'Profile Photo Uploaded! 📸',
-        message: 'Photo preview updated.'
+        title: 'Profile Photo Uploaded',
+        message: 'Your custom profile picture preview has been updated.'
       });
     };
     reader.readAsDataURL(file);
@@ -191,21 +193,30 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   const [lastName, setLastName] = useState(currentSeekerProfile?.lastName || '');
   const [dateOfBirth, setDateOfBirth] = useState(currentSeekerProfile?.dateOfBirth || '');
   const [age, setAge] = useState<string>(currentSeekerProfile?.age ? String(currentSeekerProfile.age) : '');
-  const [civilStatus, setCivilStatus] = useState<string>(currentSeekerProfile?.civilStatus || 'Single');
+  const [civilStatus, setCivilStatus] = useState<string>(currentSeekerProfile?.civilStatus || '');
   const [sex, setSex] = useState<string>(currentSeekerProfile?.sex || '');
   const [contactNumber, setContactNumber] = useState(currentSeekerProfile?.contactNumber || '');
   const [email, setEmail] = useState(currentSeekerProfile?.email || '');
   const [address, setAddress] = useState(currentSeekerProfile?.address || '');
   const [barangay, setBarangay] = useState(currentSeekerProfile?.barangay || '');
-  const [municipality, setMunicipality] = useState(currentSeekerProfile?.municipality || 'Roxas');
+  const [municipality, setMunicipality] = useState(currentSeekerProfile?.municipality || '');
 
   // Education state
-  const [educationalAttainment, setEducationalAttainment] = useState(currentSeekerProfile?.educationalAttainment || "College Graduate");
+  const [educationalAttainment, setEducationalAttainment] = useState(currentSeekerProfile?.educationalAttainment || '');
   const [primaryDegree, setPrimaryDegree] = useState(currentSeekerProfile?.primaryDegree || '');
   const [school, setSchool] = useState(currentSeekerProfile?.education?.[0]?.school || '');
   const [yearGraduated, setYearGraduated] = useState<string>(
-    currentSeekerProfile?.education?.[0]?.yearGraduated ? String(currentSeekerProfile.education[0].yearGraduated) : '2024'
+    currentSeekerProfile?.education?.[0]?.yearGraduated ? String(currentSeekerProfile.education[0].yearGraduated) : ''
   );
+
+  // Work Experience & Summary state (auto-filled from resume)
+  const [professionalSummary, setProfessionalSummary] = useState(currentSeekerProfile?.professionalSummary || '');
+  const [workExperience, setWorkExperience] = useState<any[]>(currentSeekerProfile?.workExperience || []);
+  const [extractedCertifications, setExtractedCertifications] = useState<any[]>(currentSeekerProfile?.certifications || []);
+  const [newExpCompany, setNewExpCompany] = useState('');
+  const [newExpPosition, setNewExpPosition] = useState('');
+  const [newExpYears, setNewExpYears] = useState('1');
+  const [newExpResponsibilities, setNewExpResponsibilities] = useState('');
 
   // 6 Skill categories state
   const [tradeSkills, setTradeSkills] = useState<string[]>(currentSeekerProfile?.tradeSkills || []);
@@ -213,7 +224,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   const [serviceSkills, setServiceSkills] = useState<string[]>(currentSeekerProfile?.serviceHospitalitySkills || []);
   const [salesSkills, setSalesSkills] = useState<string[]>(currentSeekerProfile?.salesCustomerSkills || []);
   const [itSkills, setItSkills] = useState<string[]>(currentSeekerProfile?.itCreativeSkills || currentSeekerProfile?.technicalSkills || []);
-  const [softSkills, setSoftSkills] = useState<string[]>(currentSeekerProfile?.softSkills || ['Clear Communication', 'Teamwork']);
+  const [softSkills, setSoftSkills] = useState<string[]>(currentSeekerProfile?.softSkills || []);
 
   // Temporary skill inputs for adding new ones
   const [inputSkillTrade, setInputSkillTrade] = useState('');
@@ -223,18 +234,18 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
   const [inputSkillIt, setInputSkillIt] = useState('');
   const [inputSkillSoft, setInputSkillSoft] = useState('');
 
-  // Step 3: Job Preferences state
+  // Step 3: Job Preferences state (starts blank until user selects)
   const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    currentSeekerProfile?.jobPreferences?.categories || ['Information Technology & Software']
+    currentSeekerProfile?.jobPreferences?.categories || []
   );
   const [selectedLocations, setSelectedLocations] = useState<string[]>(
-    currentSeekerProfile?.jobPreferences?.locations || ['Roxas, Oriental Mindoro']
+    currentSeekerProfile?.jobPreferences?.locations || []
   );
   const [selectedEmpTypes, setSelectedEmpTypes] = useState<string[]>(
-    currentSeekerProfile?.jobPreferences?.employmentTypes || ['Full-Time', 'Permanent / Regular']
+    currentSeekerProfile?.jobPreferences?.employmentTypes || []
   );
   const [selectedSalary, setSelectedSalary] = useState<string>(
-    currentSeekerProfile?.jobPreferences?.minSalary || '₱18,000 - ₱25,000 (Mid Level)'
+    currentSeekerProfile?.jobPreferences?.minSalary || ''
   );
 
   // Resume File details for active document storage
@@ -289,11 +300,39 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       if (normalizedBrgy) setBarangay(normalizedBrgy);
       if (extractedData.municipality) setMunicipality(extractedData.municipality);
 
-      // 4. Auto-populate Education details
+      // 4. Auto-populate Education & Work Experience details
       setEducationalAttainment(normalizedAttainment);
       if (extractedData.primaryDegree) setPrimaryDegree(extractedData.primaryDegree);
       if (extractedData.school) setSchool(extractedData.school);
       if (extractedData.yearGraduated) setYearGraduated(String(extractedData.yearGraduated));
+      if (extractedData.professionalSummary) setProfessionalSummary(extractedData.professionalSummary);
+
+      if (extractedData.workExperience && Array.isArray(extractedData.workExperience) && extractedData.workExperience.length > 0) {
+        setWorkExperience(extractedData.workExperience);
+      } else if (typeof extractedData.extractedExperienceYears === 'number' && extractedData.extractedExperienceYears > 0) {
+        setWorkExperience([
+          {
+            id: `exp-${Date.now()}`,
+            company: 'Previous Employer (Extracted from Resume)',
+            position: extractedData.primaryDegree ? `${extractedData.primaryDegree} Specialist` : 'Experienced Professional',
+            startDate: String(new Date().getFullYear() - Math.max(1, Math.round(extractedData.extractedExperienceYears))),
+            endDate: 'Present',
+            isCurrent: false,
+            responsibilities: extractedData.professionalSummary || 'Work experience extracted from uploaded resume.',
+            yearsOfExperience: extractedData.extractedExperienceYears,
+          },
+        ]);
+      }
+
+      if (extractedData.certifications && Array.isArray(extractedData.certifications) && extractedData.certifications.length > 0) {
+        setExtractedCertifications(
+          extractedData.certifications.map((c: any, idx: number) =>
+            typeof c === 'string'
+              ? { id: `cert-${Date.now()}-${idx}`, name: c, issuingOrganization: 'Verified Certification', dateObtained: new Date().toISOString().split('T')[0] }
+              : c
+          )
+        );
+      }
 
       // 5. Deep Skill Categorization across all 6 distinct buckets
       const newTrade = new Set<string>(extractedData.tradeSkills || []);
@@ -327,14 +366,6 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
         } else if (IT_CREATIVE_SKILLS.some(item => lower.includes(item.toLowerCase()))) {
           newIt.add(s);
         }
-      }
-
-      // Ensure foundational soft skills exist for Step 4 validation & PESO readiness
-      if (newSoft.size === 0) {
-        newSoft.add('Clear Communication');
-        newSoft.add('Teamwork');
-        newSoft.add('Punctuality');
-        newSoft.add('Adaptability');
       }
 
       setTradeSkills(Array.from(newTrade));
@@ -371,7 +402,11 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       setUploadedResumeObj(newResumeRecord);
 
       setExtractionSuccess(true);
-      showToast('Resume data extracted into your profile fields! Reviewing details...', 'success');
+      showToast({
+        title: 'Resume Extracted Successfully',
+        message: 'Personal details, education, skills, and work experience have been auto-filled into your profile.',
+        type: 'success',
+      });
       
       // Advance smoothly to Step 2: Information Review & Confirmation
       setTimeout(() => {
@@ -379,20 +414,24 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       }, 700);
     } catch (err: any) {
       console.error('Error processing resume:', err);
-      showToast('Resume uploaded. Please verify and complete details in the review step.', 'info');
+      showToast({
+        title: 'Resume Uploaded',
+        message: 'Please verify and complete your details in the review step.',
+        type: 'info',
+      });
       setCurrentStep(2);
     } finally {
       setIsProcessingFile(false);
     }
   };
 
-  // Skill Add / Delete helpers
+  // Skill Add / Delete helpers (Enforces ALL CAPS)
   const handleAddSkill = (
     skill: string, 
     setList: React.Dispatch<React.SetStateAction<string[]>>, 
     clearInput: React.Dispatch<React.SetStateAction<string>>
   ) => {
-    const trimmed = skill.trim();
+    const trimmed = skill.trim().toUpperCase();
     if (!trimmed) return;
     setList(prev => Array.from(new Set([...prev, trimmed])));
     clearInput('');
@@ -451,13 +490,13 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       ...itSkills
     ]));
 
-    const eduRecord = {
+    const eduRecord = (primaryDegree.trim() || school.trim() || educationalAttainment.trim()) ? [{
       id: `edu-${Date.now()}`,
-      degreeCourse: primaryDegree.trim() || 'College Degree',
-      school: school.trim() || 'Educational Institution',
-      yearGraduated: parseInt(yearGraduated, 10) || new Date().getFullYear(),
+      degreeCourse: primaryDegree.trim(),
+      school: school.trim(),
+      yearGraduated: yearGraduated ? (parseInt(yearGraduated, 10) || undefined) : undefined,
       educationalAttainment,
-    };
+    }] : [];
 
     const userFullName = [firstName, middleName, lastName].filter(Boolean).map(s => s.trim()).filter(Boolean).join(' ');
     const activeResumeRecord = uploadedResumeObj ? {
@@ -475,22 +514,25 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
 
     const updatedProfile: Partial<JobSeekerProfile> = {
       userId,
-      profilePicture: profilePicture || undefined,
-      firstName: firstName.trim() || (currentUser?.name?.split(' ')[0] || 'Candidate'),
+      profilePicture: profilePicture || '',
+      firstName: firstName.trim(),
       middleName: middleName.trim() || undefined,
-      lastName: lastName.trim() || (currentUser?.name?.split(' ').slice(1).join(' ') || 'Applicant'),
+      lastName: lastName.trim(),
       dateOfBirth: dateOfBirth ? dateOfBirth.trim() : undefined,
       age: age ? parseInt(age, 10) : undefined,
-      civilStatus,
+      civilStatus: civilStatus || undefined,
       sex: sex || undefined,
-      contactNumber: contactNumber.trim() || (currentUser?.phone || ''),
-      email: email.trim() || (currentUser?.email || ''),
-      address: address.trim() || (barangay ? `Brgy. ${barangay}, ${municipality}, Oriental Mindoro` : `${municipality}, Oriental Mindoro`),
+      contactNumber: contactNumber.trim(),
+      email: email.trim(),
+      address: address.trim(),
       barangay: barangay.trim() || undefined,
       municipality: municipality.trim() || 'Roxas',
       educationalAttainment,
       primaryDegree: primaryDegree.trim(),
-      education: [eduRecord],
+      professionalSummary: professionalSummary.trim(),
+      education: eduRecord as any,
+      workExperience,
+      certifications: extractedCertifications,
       tradeSkills,
       administrativeSkills: adminSkills,
       serviceHospitalitySkills: serviceSkills,
@@ -502,7 +544,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
       activeResumeId: updatedResumes[0]?.id,
       jobPreferences: {
         categories: selectedCategories,
-        municipalities: [municipality],
+        municipalities: municipality.trim() ? [municipality.trim()] : [],
         locations: selectedLocations,
         employmentTypes: selectedEmpTypes,
         minSalary: selectedSalary,
@@ -762,25 +804,29 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
               <span>Personal & Contact Information</span>
             </div>
 
-            {/* Profile Picture Uploader */}
+            {/* Profile Picture Uploader (Custom Photo Only + Skip for now / Continue later + Blank Fallback) */}
             <div className="bg-[var(--color-paper-warm)] p-4 rounded-2xl border border-[var(--color-rule)]">
               <div className="flex flex-col sm:flex-row items-center gap-4">
                 <div className="relative group shrink-0">
-                  <div className="w-16 h-16 rounded-full bg-[var(--color-paper)] text-[var(--color-ink)] flex items-center justify-center overflow-hidden border-2 border-[var(--color-rule)] shadow-inner">
+                  <div
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="w-16 h-16 rounded-full bg-[var(--color-paper)] flex items-center justify-center overflow-hidden border-2 border-dashed border-[var(--color-rule)] cursor-pointer"
+                    title="Click to upload your profile picture"
+                  >
                     {profilePicture ? (
-                      <img src={profilePicture} alt="Avatar Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <User className="w-8 h-8 text-[var(--color-ink-muted)]" aria-hidden="true" />
-                    )}
+                      <img src={profilePicture} alt="Profile Preview" className="w-full h-full object-cover" />
+                    ) : null}
                   </div>
                 </div>
 
                 <div className="flex-1 text-center sm:text-left space-y-1.5">
                   <h4 className="text-xs font-bold text-[var(--color-ink)] flex items-center justify-center sm:justify-start gap-1.5">
                     <Camera className="w-3.5 h-3.5 text-[var(--color-accent)]" aria-hidden="true" />
-                    <span>Profile Photo / 2x2 ID Picture</span>
+                    <span>Upload Your Profile Picture (Optional)</span>
                   </h4>
-                  <p className="text-[11px] text-[var(--color-ink-muted)]">Upload your professional photo or pick an avatar to personalize your profile</p>
+                  <p className="text-[11px] text-[var(--color-ink-muted)]">
+                    Upload your own profile picture or 2x2 ID photo. If you don't have a photo ready, click "Skip for now / Continue later" — your profile picture space will remain completely blank until you upload one in Profile Settings.
+                  </p>
 
                   <div className="flex flex-wrap items-center gap-2 justify-center sm:justify-start pt-1">
                     <input
@@ -796,45 +842,46 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                       className="btn btn--primary px-3 py-1.5 rounded-xl font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
                     >
                       <Upload className="w-3.5 h-3.5" aria-hidden="true" />
-                      <span>Upload Photo</span>
+                      <span>{profilePicture ? 'Change Profile Picture' : 'Upload Profile Picture'}</span>
                     </button>
+
+                    {!profilePicture && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfilePicture('');
+                          setPhotoSkippedForNow(true);
+                          showToast({
+                            type: 'info',
+                            title: 'Profile Picture Skipped for Now',
+                            message: 'Your profile picture area will remain blank. You can upload one anytime in Profile Settings.'
+                          });
+                        }}
+                        className="btn btn--quiet px-3 py-1.5 rounded-xl font-medium text-xs border border-[var(--color-rule)] transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
+                      >
+                        Skip for now / Continue later
+                      </button>
+                    )}
+
                     {profilePicture && (
                       <button
                         type="button"
-                        onClick={() => setProfilePicture('')}
-                        className="btn btn--quiet px-3 py-1.5 rounded-xl font-medium text-xs border border-[var(--color-rule)] transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50"
+                        onClick={() => {
+                          setProfilePicture('');
+                          setPhotoSkippedForNow(false);
+                        }}
+                        className="btn btn--quiet px-3 py-1.5 rounded-xl font-medium text-xs border border-[var(--color-rule)] text-rose-600 transition-colors cursor-pointer active:opacity-85 focus-visible:outline-2 focus-visible:outline-[var(--color-focus)]"
                       >
-                        Remove
+                        Remove Photo
                       </button>
                     )}
                   </div>
-                </div>
-              </div>
 
-              {/* Quick Avatar Presets */}
-              <div className="mt-3 pt-3 border-t border-[var(--color-rule)]">
-                <p className="text-[11px] font-medium text-[var(--color-ink-muted)] mb-2">Or choose an avatar preset:</p>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { label: 'Corporate A', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80' },
-                    { label: 'Corporate B', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80' },
-                    { label: 'Professional C', url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80' },
-                    { label: 'Professional D', url: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80' }
-                  ].map((preset) => (
-                    <button
-                      key={preset.label}
-                      type="button"
-                      onClick={() => setProfilePicture(preset.url)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border text-[11px] font-medium transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] disabled:opacity-50 ${
-                        profilePicture === preset.url 
-                          ? 'bg-[var(--color-paper-warm)] border-[var(--color-accent)] text-[var(--color-ink)] font-bold ring-1 ring-[var(--color-accent)]' 
-                          : 'bg-[var(--color-paper)] border-[var(--color-rule)] hover:border-[var(--color-ink-muted)] text-[var(--color-ink-muted)]'
-                      }`}
-                    >
-                      <img src={preset.url} alt={preset.label} className="w-4 h-4 rounded-full object-cover" />
-                      <span>{preset.label}</span>
-                    </button>
-                  ))}
+                  {photoSkippedForNow && !profilePicture && (
+                    <p className="text-[11px] font-medium text-emerald-700 pt-1">
+                      ✓ Skipped for now — profile picture space left blank. You can upload a photo anytime in Profile Settings.
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -847,11 +894,11 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={firstName}
-                  onChange={e => setFirstName(e.target.value)}
-                  placeholder="e.g. Maria Jade"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
+                  onChange={e => setFirstName(e.target.value.toUpperCase())}
+                  placeholder="E.G. MARIA JADE"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] uppercase focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 />
-                <span className="text-[10px] text-[var(--color-ink-muted)]">Supports 2 or more names (e.g. Maria Jade)</span>
+                <span className="text-[10px] text-[var(--color-ink-muted)]">Auto-formatted in ALL CAPS</span>
               </div>
 
               <div>
@@ -861,9 +908,9 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={middleName}
-                  onChange={e => setMiddleName(e.target.value)}
-                  placeholder="e.g. Ramos or R."
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
+                  onChange={e => setMiddleName(e.target.value.toUpperCase())}
+                  placeholder="E.G. RAMOS OR R."
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] uppercase focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 />
               </div>
 
@@ -874,9 +921,9 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={lastName}
-                  onChange={e => setLastName(e.target.value)}
-                  placeholder="e.g. Santos"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
+                  onChange={e => setLastName(e.target.value.toUpperCase())}
+                  placeholder="E.G. SANTOS"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] uppercase focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 />
               </div>
             </div>
@@ -932,10 +979,11 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                   Civil Status
                 </label>
                 <select
-                  value={normalizeCivilStatus(civilStatus)}
+                  value={civilStatus ? normalizeCivilStatus(civilStatus) : ''}
                   onChange={e => setCivilStatus(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 >
+                  <option value="">-- Select Civil Status --</option>
                   <option value="Single">Single</option>
                   <option value="Married">Married</option>
                   <option value="Widowed">Widowed</option>
@@ -1001,9 +1049,9 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={address}
-                  onChange={e => setAddress(e.target.value)}
-                  placeholder="House/Lot No., Street, Barangay, Municipality, Province"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
+                  onChange={e => setAddress(e.target.value.toUpperCase())}
+                  placeholder="HOUSE/LOT NO., STREET, BARANGAY, MUNICIPALITY, PROVINCE"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] uppercase focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 />
               </div>
 
@@ -1038,10 +1086,11 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                   Highest Educational Attainment <span className="text-rose-500">*</span>
                 </label>
                 <select
-                  value={normalizeEducationalAttainment(educationalAttainment, primaryDegree)}
+                  value={educationalAttainment ? normalizeEducationalAttainment(educationalAttainment, primaryDegree) : ''}
                   onChange={e => setEducationalAttainment(e.target.value)}
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 >
+                  <option value="">-- Select Educational Attainment --</option>
                   <option value="College Graduate">College Graduate (Bachelor’s Degree)</option>
                   <option value="College Undergraduate">College Undergraduate</option>
                   <option value="High School Graduate">High School Graduate</option>
@@ -1059,11 +1108,11 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={primaryDegree}
-                  onChange={e => setPrimaryDegree(e.target.value)}
-                  placeholder="e.g. Bachelor of Science in Computer Science, BSIT, BSBA"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
+                  onChange={e => setPrimaryDegree(e.target.value.toUpperCase())}
+                  placeholder="E.G. BACHELOR OF SCIENCE IN COMPUTER SCIENCE, BSIT, BSBA"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] uppercase focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 />
-                <span className="text-[10px] text-[var(--color-ink-muted)]">Accurately preserved without defaulting to general IT</span>
+                <span className="text-[10px] text-[var(--color-ink-muted)]">Accurately preserved in ALL CAPS</span>
               </div>
             </div>
 
@@ -1075,9 +1124,9 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={school}
-                  onChange={e => setSchool(e.target.value)}
-                  placeholder="e.g. John Paul College, Mindoro State University, EMC"
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
+                  onChange={e => setSchool(e.target.value.toUpperCase())}
+                  placeholder="E.G. JOHN PAUL COLLEGE, MINDORO STATE UNIVERSITY, EMC"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] uppercase focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 />
               </div>
 
@@ -1092,6 +1141,156 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                   placeholder="2024, 2020-2024, or Expected 2025"
                   className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
                 />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Work Experience & Professional Summary (Auto-Filled from Resume) */}
+          <div className="space-y-4 pt-4 border-t border-[var(--color-rule)]">
+            <div className="flex items-center justify-between border-b border-[var(--color-rule)] pb-2">
+              <div className="flex items-center gap-2 text-sm font-bold text-[var(--color-ink)] font-display">
+                <Briefcase className="w-4 h-4 text-[var(--color-accent)]" aria-hidden="true" />
+                <span>Work Experience & Professional Summary</span>
+              </div>
+              <span className="text-[11px] font-medium text-[var(--color-ink-muted)]">
+                Auto-extracted from resume • Review or edit below
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--color-ink)] mb-1">
+                Professional Summary / Bio
+              </label>
+              <textarea
+                rows={2}
+                value={professionalSummary}
+                onChange={e => setProfessionalSummary(e.target.value.toUpperCase())}
+                placeholder="BRIEF SUMMARY OF YOUR BACKGROUND, STRENGTHS, AND CAREER GOALS..."
+                className="w-full px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] uppercase focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
+              />
+            </div>
+
+            {/* Existing / Extracted Work Experience List */}
+            {workExperience.length > 0 && (
+              <div className="space-y-2.5">
+                {workExperience.map((exp, idx) => (
+                  <div
+                    key={exp.id || idx}
+                    className="p-3.5 rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper-warm)] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="text"
+                          value={exp.position || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            setWorkExperience(prev => prev.map((item, i) => i === idx ? { ...item, position: val } : item));
+                          }}
+                          placeholder="POSITION / JOB TITLE"
+                          className="font-bold text-[var(--color-ink)] uppercase bg-[var(--color-paper)] px-2.5 py-1 rounded-lg border border-[var(--color-rule)]"
+                        />
+                        <span className="text-[var(--color-ink-muted)]">at</span>
+                        <input
+                          type="text"
+                          value={exp.company || ''}
+                          onChange={(e) => {
+                            const val = e.target.value.toUpperCase();
+                            setWorkExperience(prev => prev.map((item, i) => i === idx ? { ...item, company: val } : item));
+                          }}
+                          placeholder="COMPANY / ESTABLISHMENT"
+                          className="font-semibold text-[var(--color-ink)] uppercase bg-[var(--color-paper)] px-2.5 py-1 rounded-lg border border-[var(--color-rule)]"
+                        />
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            min="0"
+                            value={exp.yearsOfExperience ?? 1}
+                            onChange={(e) => {
+                              const val = Number(e.target.value) || 0;
+                              setWorkExperience(prev => prev.map((item, i) => i === idx ? { ...item, yearsOfExperience: val } : item));
+                            }}
+                            className="w-16 text-center font-bold bg-[var(--color-paper)] px-2 py-1 rounded-lg border border-[var(--color-rule)]"
+                          />
+                          <span className="text-[11px] text-[var(--color-ink-muted)]">yr(s)</span>
+                        </div>
+                      </div>
+                      <input
+                        type="text"
+                        value={exp.responsibilities || ''}
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase();
+                          setWorkExperience(prev => prev.map((item, i) => i === idx ? { ...item, responsibilities: val } : item));
+                        }}
+                        placeholder="KEY DUTIES AND ACCOMPLISHMENTS..."
+                        className="w-full text-[11px] text-[var(--color-ink-muted)] uppercase bg-[var(--color-paper)] px-2.5 py-1 rounded-lg border border-[var(--color-rule)] mt-1"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setWorkExperience(prev => prev.filter((_, i) => i !== idx))}
+                      className="text-rose-600 hover:text-rose-800 text-xs font-semibold px-2 py-1 self-end sm:self-center cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add Work Experience Form */}
+            <div className="p-3.5 rounded-xl border border-dashed border-[var(--color-rule)] bg-[var(--color-paper)] space-y-2.5">
+              <p className="text-xs font-semibold text-[var(--color-ink)]">Add Work Experience (Optional for Fresh Graduates)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                <input
+                  type="text"
+                  value={newExpPosition}
+                  onChange={e => setNewExpPosition(e.target.value.toUpperCase())}
+                  placeholder="JOB TITLE (E.G. CASHIER)"
+                  className="px-3 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] uppercase"
+                />
+                <input
+                  type="text"
+                  value={newExpCompany}
+                  onChange={e => setNewExpCompany(e.target.value.toUpperCase())}
+                  placeholder="COMPANY / EMPLOYER"
+                  className="px-3 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] uppercase"
+                />
+                <input
+                  type="number"
+                  min="0"
+                  value={newExpYears}
+                  onChange={e => setNewExpYears(e.target.value)}
+                  placeholder="Years (e.g. 2)"
+                  className="px-3 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!newExpPosition.trim() && !newExpCompany.trim()) return;
+                    setWorkExperience(prev => [
+                      ...prev,
+                      {
+                        id: `exp-${Date.now()}`,
+                        position: newExpPosition.trim() || 'Staff',
+                        company: newExpCompany.trim() || 'Previous Employer',
+                        yearsOfExperience: Number(newExpYears) || 1,
+                        startDate: String(new Date().getFullYear() - (Number(newExpYears) || 1)),
+                        endDate: 'Present',
+                        isCurrent: false,
+                        responsibilities: newExpResponsibilities.trim() || 'Relevant professional work experience.',
+                      },
+                    ]);
+                    setNewExpPosition('');
+                    setNewExpCompany('');
+                    setNewExpYears('1');
+                    setNewExpResponsibilities('');
+                  }}
+                  className="btn btn--quiet text-xs font-semibold py-1.5 px-3 rounded-lg border border-[var(--color-rule)] flex items-center justify-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Add Experience</span>
+                </button>
               </div>
             </div>
           </div>
@@ -1111,11 +1310,11 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
               type="button"
               onClick={() => {
                 if (!firstName.trim() || !lastName.trim()) {
-                  showToast('Please provide your First Name and Last Name.', 'error');
+                  showToast({ title: 'Required Field', message: 'Please provide your First Name and Last Name.', type: 'alert' });
                   return;
                 }
-                if (!primaryDegree.trim()) {
-                  showToast('Please specify your Course or Degree.', 'error');
+                if (!primaryDegree.trim() && !educationalAttainment.trim()) {
+                  showToast({ title: 'Required Field', message: 'Please specify your Educational Attainment or Degree.', type: 'alert' });
                   return;
                 }
                 setCurrentStep(3);
@@ -1186,7 +1385,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={inputSkillTrade}
-                  onChange={e => setInputSkillTrade(e.target.value)}
+                  onChange={e => setInputSkillTrade(e.target.value.toUpperCase())}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill(inputSkillTrade, setTradeSkills, setInputSkillTrade))}
                   placeholder="Add trade skill (e.g. Electrical Wiring, SMAW Welding)"
                   className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
@@ -1225,7 +1424,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={inputSkillAdmin}
-                  onChange={e => setInputSkillAdmin(e.target.value)}
+                  onChange={e => setInputSkillAdmin(e.target.value.toUpperCase())}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill(inputSkillAdmin, setAdminSkills, setInputSkillAdmin))}
                   placeholder="Add admin skill (e.g. Bookkeeping, Data Entry)"
                   className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
@@ -1264,7 +1463,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={inputSkillService}
-                  onChange={e => setInputSkillService(e.target.value)}
+                  onChange={e => setInputSkillService(e.target.value.toUpperCase())}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill(inputSkillService, setServiceSkills, setInputSkillService))}
                   placeholder="Add service skill (e.g. Commercial Cooking, Barista Craft)"
                   className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
@@ -1303,7 +1502,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={inputSkillSales}
-                  onChange={e => setInputSkillSales(e.target.value)}
+                  onChange={e => setInputSkillSales(e.target.value.toUpperCase())}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill(inputSkillSales, setSalesSkills, setInputSkillSales))}
                   placeholder="Add sales skill (e.g. Cashiering, Inventory Management)"
                   className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
@@ -1342,7 +1541,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={inputSkillIt}
-                  onChange={e => setInputSkillIt(e.target.value)}
+                  onChange={e => setInputSkillIt(e.target.value.toUpperCase())}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill(inputSkillIt, setItSkills, setInputSkillIt))}
                   placeholder="Add IT skill (e.g. React.js, Python, AutoCAD)"
                   className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
@@ -1381,7 +1580,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
                 <input
                   type="text"
                   value={inputSkillSoft}
-                  onChange={e => setInputSkillSoft(e.target.value)}
+                  onChange={e => setInputSkillSoft(e.target.value.toUpperCase())}
                   onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleAddSkill(inputSkillSoft, setSoftSkills, setInputSkillSoft))}
                   placeholder="Add soft skill (e.g. Critical Thinking, Work Ethic)"
                   className="flex-1 px-2.5 py-1.5 text-xs rounded-lg border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
@@ -1561,6 +1760,7 @@ export const SeekerProfileSetupWizard: React.FC<SeekerProfileSetupWizardProps> =
               onChange={e => setSelectedSalary(e.target.value)}
               className="w-full sm:w-80 px-3 py-2 text-xs rounded-xl border border-[var(--color-rule)] bg-[var(--color-paper)] text-[var(--color-ink)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)] focus:border-[var(--color-accent)] focus-visible:outline-2 focus-visible:outline-[var(--color-focus)] transition-colors"
             >
+              <option value="">-- Select Expected Salary Bracket --</option>
               {PRESET_SALARIES.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}

@@ -452,13 +452,21 @@ export const SeekerApplicationsPage: React.FC<SeekerApplicationsPageProps> = ({
                   {/* Job Header Strip */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3.5">
-                      <img
-                        src={job?.companyLogo || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
-                        alt={companyName}
-                        onClick={() => setSelectedEmployerProfile({ companyName, employerId: job?.employerId })}
-                        className="w-13 h-13 rounded-2xl object-cover ring-1 ring-slate-200/80 shrink-0 shadow-xs cursor-pointer hover:ring-2 hover:ring-indigo-400 hover:opacity-90 transition-opacity"
-                        title="Click to visit employer profile"
-                      />
+                      {job?.companyLogo ? (
+                        <img
+                          src={job.companyLogo}
+                          alt={companyName}
+                          onClick={() => setSelectedEmployerProfile({ companyName, employerId: job?.employerId })}
+                          className="w-13 h-13 rounded-2xl object-cover ring-1 ring-slate-200/80 shrink-0 shadow-xs cursor-pointer hover:ring-2 hover:ring-indigo-400 hover:opacity-90 transition-opacity"
+                          title="Click to visit employer profile"
+                        />
+                      ) : (
+                        <div
+                          onClick={() => setSelectedEmployerProfile({ companyName, employerId: job?.employerId })}
+                          className="w-13 h-13 rounded-2xl bg-slate-50 border border-slate-200 shrink-0 cursor-pointer"
+                          title="Click to visit employer profile"
+                        />
+                      )}
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <h3 className="text-base sm:text-lg font-bold text-slate-900">{jobTitle}</h3>

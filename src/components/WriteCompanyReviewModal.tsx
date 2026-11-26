@@ -122,24 +122,34 @@ export const WriteCompanyReviewModal: React.FC<WriteCompanyReviewModalProps> = (
             />
           </div>
 
-          {/* Add Photo Simulation */}
+          {/* Add Photo Upload */}
           <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
               Add Photo (Optional)
             </label>
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setPhotoUrl("https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&auto=format&fit=crop&q=80")}
-                className={`flex-1 h-14 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-xs font-semibold transition-colors ${
+              <label
+                className={`flex-1 h-14 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${
                   photoUrl
                     ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
                     : 'border-slate-200 hover:border-blue-400 text-slate-600 hover:bg-slate-50'
                 }`}
               >
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = () => setPhotoUrl(reader.result as string);
+                    reader.readAsDataURL(file);
+                  }}
+                />
                 <Camera className="w-4 h-4 text-blue-600" />
-                <span>{photoUrl ? 'Workplace Photo Attached' : 'Attach Workplace Photo'}</span>
-              </button>
+                <span>{photoUrl ? 'Workplace Photo Attached' : 'Upload Workplace Photo'}</span>
+              </label>
               {photoUrl && (
                 <button
                   type="button"

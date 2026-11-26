@@ -63,12 +63,10 @@ export const SeekerFullProfileOverviewModal: React.FC<SeekerFullProfileOverviewM
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
         <div className="p-5 bg-slate-900 text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center text-white font-bold overflow-hidden">
+            <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden shrink-0">
               {profilePicture ? (
-                <img src={profilePicture} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <User className="w-5 h-5 text-slate-300" />
-              )}
+                <img src={profilePicture} alt="Profile" className="w-full h-full object-cover" />
+              ) : null}
             </div>
             <div>
               <h3 className="text-sm font-bold text-white">

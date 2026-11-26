@@ -43,9 +43,13 @@ export interface JobOfferViewProps {
     salary: string;
     period: string;
     category: string;
+    subCategory?: string;
     description: string;
     type: string;
-    workSetup: 'Remote' | 'On-site' | 'Hybrid';
+    workSetup: 'Remote' | 'On-site' | 'Hybrid' | 'Fieldwork';
+    workSchedule?: string;
+    isUrgent?: boolean;
+    openToFreshGraduates?: boolean;
     experienceLevel: string;
     logoUrl?: string;
   };
@@ -259,12 +263,12 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
 
           <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
             <div className="flex items-start sm:items-center gap-4">
-              {/* Employer Profile Avatar & Verified Badge (Click to open Employer Profile) */}
+              {/* Employer Profile Avatar & Verified Badge (Blank container when no logo uploaded) */}
               <button
                 type="button"
                 onClick={() => setActiveTab('company')}
                 title="View Employer Profile & Accreditation"
-                className={`relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl ${job.logoBg} flex items-center justify-center font-serif font-black text-2xl sm:text-3xl shadow-md shrink-0 border border-white/20 overflow-hidden cursor-pointer hover:ring-4 hover:ring-white/30 transition-all active:scale-95 group`}
+                className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-white/10 flex items-center justify-center shadow-md shrink-0 border border-white/25 overflow-hidden cursor-pointer hover:ring-4 hover:ring-white/30 transition-all active:scale-95 group"
               >
                 {employerLogo ? (
                   <img
@@ -275,9 +279,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                       e.currentTarget.style.display = 'none';
                     }}
                   />
-                ) : (
-                  <span>{job.logoLetter}</span>
-                )}
+                ) : null}
 
                 {/* Verified Employer Shield Badge */}
                 <div
@@ -291,12 +293,17 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
               <div className="space-y-1">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-white/70">
-                    {job.category}
+                    {job.category}{fullJobPost?.subCategory ? ` • ${fullJobPost.subCategory}` : ''}
                   </span>
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-emerald-500/25 text-emerald-200 border border-emerald-400/40 px-2 py-0.5 rounded-full">
                     <ShieldCheck className="w-3 h-3 text-emerald-300" />
                     PESO Verified Employer
                   </span>
+                  {(fullJobPost?.isUrgent || job.isUrgent) && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-orange-500/30 text-orange-100 border border-orange-300/40 px-2 py-0.5 rounded-full">
+                      ⚡ URGENT HIRING
+                    </span>
+                  )}
                 </div>
 
                 <h2 className="text-xl sm:text-2xl font-black text-white tracking-tight leading-tight">
@@ -443,7 +450,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                     </div>
 
                     {/* Criteria Comparison Bars */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
                       {/* 1. Education Match */}
                       <div className="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-2">
                         <div className="flex items-center justify-between text-xs">
@@ -460,7 +467,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                           />
                         </div>
                         <p className="text-[11px] text-slate-300 leading-tight">
-                          Degree & attainment evaluated against vacancy criteria.
+                          Weight: {fullJobPost?.matchWeights?.education ?? Math.round((fullJobPost?.degreeWeight ?? 0.35) * 100)}% • Degree & attainment
                         </p>
                       </div>
 
@@ -480,7 +487,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                           />
                         </div>
                         <p className="text-[11px] text-slate-300 leading-tight">
-                          Primary skills match vs. employer requirements.
+                          Weight: {fullJobPost?.matchWeights?.skills ?? 35}% • Must-Have & Preferred
                         </p>
                       </div>
 
@@ -500,7 +507,27 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                           />
                         </div>
                         <p className="text-[11px] text-slate-300 leading-tight">
-                          Years & field experience assessed for placement.
+                          Weight: {fullJobPost?.matchWeights?.experience ?? 20}% • Years & career level
+                        </p>
+                      </div>
+
+                      {/* 4. Eligibility & Location */}
+                      <div className="p-3.5 bg-white/5 border border-white/10 rounded-2xl space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-slate-300 font-semibold flex items-center gap-1.5">
+                            <ShieldCheck className="w-4 h-4 text-cyan-400" />
+                            <span>Eligibility</span>
+                          </span>
+                          <span className="font-bold text-cyan-300">{applicantMatch.certificationsMatchScore}%</span>
+                        </div>
+                        <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-gradient-to-r from-cyan-500 to-sky-400 rounded-full" 
+                            style={{ width: `${Math.min(100, Math.max(10, applicantMatch.certificationsMatchScore))}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-slate-300 leading-tight">
+                          Weight: {fullJobPost?.matchWeights?.eligibility ?? 10}% • Licenses & Location
                         </p>
                       </div>
                     </div>
@@ -571,6 +598,66 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                       Position Requirements & Qualifications
                     </h3>
                   </div>
+
+                  {/* Multi-Select Accepted Education Levels & Courses Summary */}
+                  {fullJobPost && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs">
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Accepted Educational Levels
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(fullJobPost.acceptedEducationLevels && fullJobPost.acceptedEducationLevels.length > 0
+                            ? fullJobPost.acceptedEducationLevels
+                            : [fullJobPost.minEducationalAttainment || 'Open to All']
+                          ).map((lvl) => (
+                            <span
+                              key={lvl}
+                              className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-800 font-bold text-[11px]"
+                            >
+                              {lvl}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                          Accepted Courses / Specializations
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                          {fullJobPost.anyCourseAllowed ? (
+                            <span className="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 font-bold text-[11px]">
+                              Any Course / Open to All Graduates
+                            </span>
+                          ) : fullJobPost.preferredCourses && fullJobPost.preferredCourses.length > 0 ? (
+                            fullJobPost.preferredCourses.map((course) => (
+                              <span
+                                key={course}
+                                className="px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 font-bold text-[11px]"
+                              >
+                                {course}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-slate-700 font-semibold text-[11px]">
+                              {fullJobPost.preferredDegree || 'Any Course / Open to All'}
+                            </span>
+                          )}
+                          {fullJobPost.preferredTesdaQualifications &&
+                            fullJobPost.preferredTesdaQualifications.map((tesda) => (
+                              <span
+                                key={tesda}
+                                className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 font-bold text-[11px]"
+                              >
+                                {tesda}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2.5">
                     {requirements.map((req, i) => (
                       <div 
@@ -595,51 +682,96 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
 
                 {/* Skills & Competencies */}
                 <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Award className="w-4.5 h-4.5 text-slate-700" />
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                      Target Competencies & Skills
-                    </h3>
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <div className="flex items-center gap-2">
+                      <Award className="w-4.5 h-4.5 text-slate-700" />
+                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                        Target Competencies & Skills
+                      </h3>
+                    </div>
+                    {fullJobPost?.evaluatedSkills && fullJobPost.evaluatedSkills.length > 0 && (
+                      <div className="flex items-center gap-2 text-[10px] font-bold">
+                        <span className="px-2 py-0.5 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                          ★ Must-Have
+                        </span>
+                        <span className="px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                          Preferred
+                        </span>
+                      </div>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    {skillsList.map((skill) => (
-                      <span
-                        key={skill}
-                        className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200/70"
-                      >
-                        {skill}
-                      </span>
-                    ))}
+                    {fullJobPost?.evaluatedSkills && fullJobPost.evaluatedSkills.length > 0 ? (
+                      fullJobPost.evaluatedSkills.map((skillItem) => (
+                        <span
+                          key={skillItem.name}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold border ${
+                            skillItem.required
+                              ? 'bg-orange-50 text-orange-800 border-orange-200'
+                              : 'bg-blue-50 text-blue-800 border-blue-200'
+                          }`}
+                        >
+                          {skillItem.required ? `★ ${skillItem.name}` : skillItem.name}
+                        </span>
+                      ))
+                    ) : (
+                      skillsList.map((skill) => (
+                        <span
+                          key={skill}
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200/70"
+                        >
+                          {skill}
+                        </span>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Required Licenses / Eligibility */}
+                  <div className="pt-3 border-t border-slate-100 space-y-2">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      Required Licenses & Eligibility
+                    </p>
+                    {fullJobPost?.requiredLicenses && fullJobPost.requiredLicenses.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {fullJobPost.requiredLicenses.map((lic) => (
+                          <span
+                            key={lic}
+                            className="px-2.5 py-1 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 text-xs font-semibold"
+                          >
+                            {lic}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs font-semibold text-emerald-700">
+                        None required (No license restriction)
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {/* Statutory DOLE Benefits & Perks */}
-                <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-3">
-                  <div className="flex items-center gap-2">
-                    <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
-                    <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
-                      Compensation & Mandated Benefits
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-600">
-                    <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>SSS, PhilHealth & Pag-IBIG Mandatory Coverage</span>
+                {/* Benefits & Perks (Hidden when benefits array is empty) */}
+                {fullJobPost?.benefits && fullJobPost.benefits.length > 0 && (
+                  <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-3">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-4.5 h-4.5 text-emerald-600" />
+                      <h3 className="text-sm font-black text-slate-900 uppercase tracking-wider">
+                        Benefits &amp; Perks
+                      </h3>
                     </div>
-                    <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>13th Month Pay & Standard Holiday Premiums</span>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Service Incentive Leave (SIL) upon regularization</span>
-                    </div>
-                    <div className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                      <span>Local Transportation & On-site Hazard/Meal Subsidy</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 text-xs text-slate-600">
+                      {fullJobPost.benefits.map((benefit) => (
+                        <div
+                          key={benefit}
+                          className="p-3 rounded-2xl bg-emerald-50/60 border border-emerald-100 flex items-center gap-2.5"
+                        >
+                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <span>{benefit}</span>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                </div>
+                )}
 
               </div>
             )}
@@ -651,7 +783,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                 {/* Company Profile Card */}
                 <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-5">
                   <div className="flex items-start gap-4">
-                    <div className={`relative w-14 h-14 rounded-2xl ${job.logoBg} flex items-center justify-center font-serif font-black text-2xl shrink-0 shadow-sm overflow-hidden border border-slate-200/80`}>
+                    <div className="relative w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center shrink-0 shadow-sm overflow-hidden border border-slate-200">
                       {employerLogo ? (
                         <img
                           src={employerLogo}
@@ -661,9 +793,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                             e.currentTarget.style.display = 'none';
                           }}
                         />
-                      ) : (
-                        <span>{job.logoLetter}</span>
-                      )}
+                      ) : null}
                       <div className="absolute -bottom-0.5 -right-0.5 w-5 h-5 rounded-full bg-emerald-500 border border-white flex items-center justify-center text-white shadow-2xs">
                         <ShieldCheck className="w-3 h-3" />
                       </div>
@@ -673,7 +803,7 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                         {job.companyName}
                       </h3>
                       <p className="text-xs text-slate-500 font-medium">
-                        {employer?.industry || job.category} • Registered in Roxas, Oriental Mindoro
+                        {employer?.industry || job.category} • Registered in {employer?.municipality || 'Roxas'}, Oriental Mindoro
                       </p>
                       <div className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[11px] font-bold">
                         <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
@@ -687,12 +817,11 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                       About the Organization
                     </h4>
                     <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                      {employer?.companyDescription || 
-                        `${job.companyName} is a verified municipal employer operating in Roxas, Oriental Mindoro, actively participating in legitimate workforce recruitment under Public Employment Service Office (PESO) oversight.`}
+                      {employer?.companyDescription || 'No company description added yet.'}
                     </p>
                   </div>
 
-                  {/* Company Contact Card (Exact match to design image with Chat & Call buttons) */}
+                  {/* Company Contact Card */}
                   <div className="bg-slate-50 rounded-3xl p-5 sm:p-6 border border-slate-100 space-y-4">
                     <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                       Company Contact
@@ -700,63 +829,28 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
 
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3">
-                        <div className="relative">
-                          <img
-                            src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=120&auto=format&fit=crop&q=80"
-                            alt="Jenny Wilson"
-                            className="w-12 h-12 rounded-full object-cover shadow-xs border-2 border-white"
-                            referrerPolicy="no-referrer"
-                          />
-                          <span className="w-3 h-3 rounded-full bg-emerald-500 border-2 border-white absolute bottom-0 right-0" />
+                        <div className="w-12 h-12 rounded-full bg-white border border-slate-200 overflow-hidden shrink-0">
+                          {employerLogo ? (
+                            <img
+                              src={employerLogo}
+                              alt={employer?.representativeName || job.companyName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : null}
                         </div>
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <h5 className="text-sm font-bold text-slate-900">Jenny Wilson</h5>
+                            <h5 className="text-sm font-bold text-slate-900">
+                              {employer?.representativeName || job.companyName}
+                            </h5>
                             <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
                           </div>
-                          <p className="text-[11px] text-slate-500 font-medium">HR Recruitment Lead • Mindoro Branch</p>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            {employer?.email || 'Registered Employer Representative'}
+                            {employer?.contactNumber ? ` • ${employer.contactNumber}` : ''}
+                          </p>
                         </div>
                       </div>
-                    </div>
-
-                    {/* Working Hours */}
-                    <div className="pt-3 border-t border-slate-200/70 text-xs">
-                      <div className="flex items-center justify-between text-slate-500 py-1">
-                        <span>Monday - Friday</span>
-                        <span className="font-semibold text-slate-800">08:00 AM - 05:00 PM</span>
-                      </div>
-                      <div className="flex items-center justify-between text-slate-500 py-1">
-                        <span>Saturday</span>
-                        <span className="font-semibold text-slate-800">08:00 AM - 12:00 PM</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Workplace Photos Gallery */}
-                  <div className="bg-white rounded-3xl p-5 sm:p-7 border border-slate-200/80 shadow-xs space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
-                        Workplace Gallery
-                      </h4>
-                      <span className="text-[11px] text-blue-600 font-bold">Roxas Facility</span>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                      {[
-                        "https://images.unsplash.com/photo-1497366216548-37526070297c?w=400&auto=format&fit=crop&q=80",
-                        "https://images.unsplash.com/photo-1497215728101-856f4ea42174?w=400&auto=format&fit=crop&q=80",
-                        "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=400&auto=format&fit=crop&q=80",
-                        "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=400&auto=format&fit=crop&q=80"
-                      ].map((imgUrl, i) => (
-                        <div key={i} className="aspect-square rounded-2xl overflow-hidden bg-slate-100 border border-slate-100 group">
-                          <img
-                            src={imgUrl}
-                            alt="Workplace preview"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                            referrerPolicy="no-referrer"
-                          />
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>
@@ -847,12 +941,16 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <img
-                            src={rev.reviewerAvatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80"}
-                            alt={rev.reviewerName}
-                            className="w-10 h-10 rounded-full object-cover shadow-xs border border-slate-200"
-                            referrerPolicy="no-referrer"
-                          />
+                          {rev.reviewerAvatar ? (
+                            <img
+                              src={rev.reviewerAvatar}
+                              alt={rev.reviewerName}
+                              className="w-10 h-10 rounded-full object-cover shadow-xs border border-slate-200"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-50 border border-slate-200 shrink-0" />
+                          )}
                           <div>
                             <div className="flex items-center gap-1.5">
                               <h5 className="text-xs font-bold text-slate-900">{rev.reviewerName}</h5>
@@ -903,7 +1001,9 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
               <div className="space-y-3 text-xs">
                 <div className="flex items-center justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-400 font-medium">Category</span>
-                  <span className="font-bold text-slate-800 text-right">{job.category}</span>
+                  <span className="font-bold text-slate-800 text-right">
+                    {job.category}{fullJobPost?.subCategory ? ` (${fullJobPost.subCategory})` : ''}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100">
@@ -913,28 +1013,62 @@ export const JobOfferView: React.FC<JobOfferViewProps> = ({
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-400 font-medium">Work Arrangement</span>
-                  <span className="font-bold text-slate-800">{job.workSetup}</span>
+                  <span className="font-bold text-slate-800">{fullJobPost?.workSetup || job.workSetup}</span>
                 </div>
+
+                {(fullJobPost?.workSchedule || job.workSchedule) && (
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-400 font-medium">Work Schedule</span>
+                    <span className="font-bold text-slate-800">{fullJobPost?.workSchedule || job.workSchedule}</span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-400 font-medium">Experience Level</span>
-                  <span className="font-bold text-slate-800">{job.experienceLevel}</span>
+                  <span className="font-bold text-slate-800">
+                    {fullJobPost?.careerLevel || job.experienceLevel}
+                    {fullJobPost?.openToFreshGraduates ? ' (Fresh Grads OK)' : ''}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-400 font-medium">Salary Range</span>
-                  <span className="font-bold text-emerald-700">{job.salary}</span>
+                  <span className="text-slate-400 font-medium">Salary &amp; Pay Schedule</span>
+                  <span className="font-bold text-emerald-700 text-right">
+                    {fullJobPost?.salaryRange || `${job.salary} ${job.period}`.trim()}
+                  </span>
                 </div>
 
+                {(fullJobPost?.paySchedule || fullJobPost?.payFrequency) && (
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-400 font-medium">Payout Cycle</span>
+                    <span className="font-bold text-slate-800 text-right">
+                      {fullJobPost.paySchedule || fullJobPost.payFrequency}
+                    </span>
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between py-1 border-b border-slate-100">
-                  <span className="text-slate-400 font-medium">Municipality</span>
-                  <span className="font-bold text-slate-800">Roxas, Oriental Mindoro</span>
+                  <span className="text-slate-400 font-medium">Location</span>
+                  <span className="font-bold text-slate-800 text-right">
+                    {fullJobPost?.workLocation || `${fullJobPost?.municipality || 'Roxas'}, Oriental Mindoro`}
+                  </span>
                 </div>
 
                 <div className="flex items-center justify-between py-1 border-b border-slate-100">
                   <span className="text-slate-400 font-medium">Vacancies</span>
-                  <span className="font-bold text-slate-800">{fullJobPost?.vacanciesCount || 2} Slot(s)</span>
+                  <span className="font-bold text-slate-800">
+                    {fullJobPost?.vacancies ?? fullJobPost?.vacanciesCount ?? 1} Slot(s)
+                  </span>
                 </div>
+
+                {(fullJobPost?.deadline || fullJobPost?.applicationDeadline) && (
+                  <div className="flex items-center justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-400 font-medium">Application Deadline</span>
+                    <span className="font-bold text-amber-700 text-right">
+                      {fullJobPost?.deadline || fullJobPost?.applicationDeadline}
+                    </span>
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between py-1">
                   <span className="text-slate-400 font-medium">Real-Time Applicants</span>

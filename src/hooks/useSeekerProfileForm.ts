@@ -21,10 +21,10 @@ export function useSeekerProfileForm(
   const [lastName, setLastName] = useState(initialProfile?.lastName || '');
   const [dateOfBirth, setDateOfBirth] = useState(initialProfile?.dateOfBirth || '');
   const [age, setAge] = useState<string>(initialProfile?.age ? String(initialProfile.age) : '');
-  const [civilStatus, setCivilStatus] = useState<string>(initialProfile?.civilStatus || 'Single');
+  const [civilStatus, setCivilStatus] = useState<string>(initialProfile?.civilStatus || '');
   const [sex, setSex] = useState<string>(initialProfile?.sex || '');
   const [barangay, setBarangay] = useState(initialProfile?.barangay || '');
-  const [municipality, setMunicipality] = useState(initialProfile?.municipality || 'Roxas');
+  const [municipality, setMunicipality] = useState(initialProfile?.municipality || '');
   const [address, setAddress] = useState(initialProfile?.address || '');
   const [contactNumber, setContactNumber] = useState(initialProfile?.contactNumber || '');
   const [summary, setSummary] = useState(
@@ -32,7 +32,7 @@ export function useSeekerProfileForm(
   );
   const [primaryDegree, setPrimaryDegree] = useState(initialProfile?.primaryDegree || '');
   const [educationalAttainment, setEducationalAttainment] = useState(
-    initialProfile?.educationalAttainment || "Bachelor's Degree"
+    initialProfile?.educationalAttainment || ''
   );
   const [profilePicture, setProfilePicture] = useState(initialProfile?.profilePicture || '');
 
@@ -41,13 +41,13 @@ export function useSeekerProfileForm(
     initialProfile?.jobPreferences?.categories || []
   );
   const [prefMunicipalities, setPrefMunicipalities] = useState<string[]>(
-    initialProfile?.jobPreferences?.municipalities || ['Roxas']
+    initialProfile?.jobPreferences?.municipalities || []
   );
   const [prefEmploymentTypes, setPrefEmploymentTypes] = useState<string[]>(
-    initialProfile?.jobPreferences?.employmentTypes || ['Full-Time', 'Contract / Project']
+    initialProfile?.jobPreferences?.employmentTypes || []
   );
   const [prefMinSalary, setPrefMinSalary] = useState<string>(
-    initialProfile?.jobPreferences?.minSalary || '₱20,000 - ₱30,000'
+    initialProfile?.jobPreferences?.minSalary || ''
   );
 
   // Re-hydrate when initialProfile updates
@@ -58,22 +58,22 @@ export function useSeekerProfileForm(
       setLastName(initialProfile.lastName || '');
       setDateOfBirth(initialProfile.dateOfBirth || '');
       setAge(initialProfile.age ? String(initialProfile.age) : '');
-      setCivilStatus(initialProfile.civilStatus || 'Single');
+      setCivilStatus(initialProfile.civilStatus || '');
       setSex(initialProfile.sex || '');
       setBarangay(initialProfile.barangay || '');
-      setMunicipality(initialProfile.municipality || 'Roxas');
+      setMunicipality(initialProfile.municipality || '');
       setAddress(initialProfile.address || '');
       setContactNumber(initialProfile.contactNumber || '');
       setSummary(initialProfile.professionalSummary || initialProfile.summary || '');
       setPrimaryDegree(initialProfile.primaryDegree || '');
-      setEducationalAttainment(initialProfile.educationalAttainment || "Bachelor's Degree");
+      setEducationalAttainment(initialProfile.educationalAttainment || '');
       setProfilePicture(initialProfile.profilePicture || '');
 
       if (initialProfile.jobPreferences) {
         setPrefCategories(initialProfile.jobPreferences.categories || []);
-        setPrefMunicipalities(initialProfile.jobPreferences.municipalities || ['Roxas']);
-        setPrefEmploymentTypes(initialProfile.jobPreferences.employmentTypes || ['Full-Time', 'Contract / Project']);
-        setPrefMinSalary(initialProfile.jobPreferences.minSalary || '₱20,000 - ₱30,000');
+        setPrefMunicipalities(initialProfile.jobPreferences.municipalities || []);
+        setPrefEmploymentTypes(initialProfile.jobPreferences.employmentTypes || []);
+        setPrefMinSalary(initialProfile.jobPreferences.minSalary || '');
       }
     }
   }, [initialProfile?.id]);

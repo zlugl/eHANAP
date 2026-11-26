@@ -846,13 +846,11 @@ export const JobSearchPage: React.FC<JobSearchPageProps> = ({
                         
                         <div className="flex items-start gap-4 min-w-0">
                           
-                          {/* Squircle Company Brand Logo */}
-                          <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl ${job.companyLogo ? 'bg-slate-50' : theme.bg} flex items-center justify-center font-serif font-black text-xl sm:text-2xl shadow-xs shrink-0 overflow-hidden border border-slate-200/80`}>
+                          {/* Squircle Company Brand Logo (Blank container when no logo uploaded) */}
+                          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-slate-50 flex items-center justify-center shadow-xs shrink-0 overflow-hidden border border-slate-200/80">
                             {job.companyLogo ? (
                               <img src={job.companyLogo} alt={job.companyName} className="w-full h-full object-cover" />
-                            ) : (
-                              <span>{initial}</span>
-                            )}
+                            ) : null}
                           </div>
 
                           {/* Titles & Meta */}

@@ -51,9 +51,40 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, onNavigate,
 
   const isRemote = job.workLocation?.toLowerCase().includes('remote');
   const isHybrid = job.workLocation?.toLowerCase().includes('hybrid');
-  const workSetup: 'Remote' | 'On-site' | 'Hybrid' = isRemote ? 'Remote' : (isHybrid ? 'Hybrid' : 'On-site');
+  const workSetup: 'Remote' | 'On-site' | 'Hybrid' | 'Fieldwork' =
+    job.workSetup || (isRemote ? 'Remote' : isHybrid ? 'Hybrid' : 'On-site');
   const initial = (job.companyName || 'J').charAt(0).toUpperCase();
   const employer = employers?.find(e => e.id === job.employerId || e.companyName.toLowerCase() === job.companyName.toLowerCase());
+
+  const scheduleLabel = job.paySchedule || job.payFrequency || '';
+  const hasScheduleInSalaryRange =
+    Boolean(job.salaryRange) && job.salaryRange.includes('•');
+
+  const payPeriod = hasScheduleInSalaryRange
+    ? ''
+    : scheduleLabel
+    ? `• ${scheduleLabel}`
+    : '/month';
+
+  const rawSalary = (job.salaryRange || 'Negotiable')
+    .replace(/\s*\/\s*(month|day|hour|project)\b/i, '')
+    .trim();
+
+  const eduTag =
+    job.acceptedEducationLevels && job.acceptedEducationLevels.length > 0
+      ? job.acceptedEducationLevels.length > 1
+        ? `${job.acceptedEducationLevels[0]} +${job.acceptedEducationLevels.length - 1}`
+        : job.acceptedEducationLevels[0]
+      : job.preferredCourses && job.preferredCourses.length > 0
+      ? job.preferredCourses[0]
+      : job.preferredDegree?.split('/')[0]?.trim() || job.minEducationalAttainment || 'Open to All';
+
+  const tags = [
+    job.employmentType || 'Full-time',
+    workSetup,
+    ...(job.workSchedule ? [job.workSchedule] : []),
+    eduTag
+  ];
 
   const displayJob = {
     id: job.id,
@@ -63,19 +94,19 @@ export const JobDetailPage: React.FC<JobDetailPageProps> = ({ jobId, onNavigate,
     logoBg: 'bg-slate-800 text-white',
     logoUrl: job.companyLogo || employer?.logoUrl,
     location: job.workLocation || `${job.municipality || 'Roxas'}, Oriental Mindoro`,
-    tags: [
-      job.employmentType || 'Full-time',
-      workSetup,
-      job.preferredDegree?.split('/')[0]?.trim() || job.minEducationalAttainment || 'Degree Holder'
-    ],
+    tags,
     applicantCount: applications.filter(a => a.jobId === job.id).length,
-    salary: job.salaryRange || 'Competitive',
-    period: '/month',
+    salary: rawSalary,
+    period:
+      hasScheduleInSalaryRange ||
+      ((job.salaryNegotiable ?? job.isSalaryNegotiable) && !job.minSalary && !job.maxSalary && !scheduleLabel)
+        ? ''
+        : payPeriod,
     category: job.category || 'General',
     description: job.description || '',
     type: job.employmentType || 'Full-time',
     workSetup,
-    experienceLevel: job.minExperienceYears >= 3 ? 'Mid-Senior Level' : 'Entry Level'
+    experienceLevel: job.careerLevel || (job.minExperienceYears >= 3 ? 'Mid-Senior Level' : 'Entry Level')
   };
 
   return (

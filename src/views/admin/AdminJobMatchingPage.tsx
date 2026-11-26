@@ -1,7 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '../../context/AppContext';
-import { JobSeekerProfile, JobPost, PesoReferralSlip } from '../../types';
+import { JobSeekerProfile, JobPost, PesoReferralSlip, ApplicationStatus } from '../../types';
 import { PesoReferralSlipModal } from '../../components/admin/PesoReferralSlipModal';
+import { EncodeWalkInModal } from '../../components/admin/EncodeWalkInModal';
+import { getOrCalculateMatch } from '../../utils/matchResolver';
 import { 
   GitPullRequest, 
   Sparkles, 
@@ -31,8 +33,11 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
     jobPosts, 
     jobSeekers, 
     employers, 
+    applications,
+    candidateMatches,
     referralSlips, 
     updateReferralSlipStatus,
+    upsertCandidateApplicationStatus,
     showToast 
   } = useApp();
 
@@ -42,6 +47,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
   );
   const [tierFilter, setTierFilter] = useState<'all' | 'highly' | 'qualified' | 'partial'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [isEncodeWalkInOpen, setIsEncodeWalkInOpen] = useState(false);
 
   // Referral Modal State
   const [isReferralModalOpen, setIsReferralModalOpen] = useState(false);
@@ -52,114 +58,54 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
   const selectedJob = jobPosts.find(j => j.id === selectedJobId);
   const activeJobs = jobPosts.filter(j => j.status === 'active');
 
-  // Decision Tree Engine per Job Seeker for the selected vacancy
+  // Decision Tree Engine per Job Seeker for the selected vacancy (uses unified 5-Node Decision Tree)
   const scoredCandidates = useMemo(() => {
     if (!selectedJob) return [];
 
     return jobSeekers.map(seeker => {
-      let score = 0;
-      const breakdowns: { criterion: string; weight: number; points: number; note: string }[] = [];
-
-      // 1. Education Criteria (25 pts)
-      let eduPoints = 15;
-      let eduNote = 'Basic education satisfied';
-      const reqEdu = (selectedJob.educationalRequirement || selectedJob.minimumEducation || '').toLowerCase();
-      const seekerEdu = (seeker.educationalAttainment || seeker.educationCategory || '').toLowerCase();
-
-      if (reqEdu.includes('college') || reqEdu.includes('bachelor')) {
-        if (seekerEdu.includes('college') || seekerEdu.includes('bachelor') || seeker.educationCategory === 'College Graduate') {
-          eduPoints = 25;
-          eduNote = 'Degree completely matched (College Graduate)';
-        } else {
-          eduPoints = 10;
-          eduNote = 'Degree requirement not fully met';
-        }
-      } else if (reqEdu.includes('high school') || reqEdu.includes('senior')) {
-        if (seekerEdu.includes('high school') || seekerEdu.includes('college') || seeker.educationCategory !== 'Out-of-School Youth') {
-          eduPoints = 25;
-          eduNote = 'High school qualification matched';
-        } else {
-          eduPoints = 15;
-          eduNote = 'Secondary level equivalent';
-        }
-      } else {
-        eduPoints = 25;
-        eduNote = 'No strict educational barrier';
-      }
-      score += eduPoints;
-      breakdowns.push({ criterion: 'Educational Attainment', weight: 25, points: eduPoints, note: eduNote });
-
-      // 2. Practical Skills & TESDA Certifications (35 pts)
-      let skillPoints = 15;
-      const jobSkills = (selectedJob.skills || []).map(s => s.toLowerCase());
-      const seekerSkills = [
-        ...(seeker.technicalSkills || []),
-        ...(seeker.practicalSkills || []),
-        ...(seeker.tradeSkills || []),
-        ...(seeker.tradeCertifications || [])
-      ].map(s => s.toLowerCase());
-
-      const matchedSkills = jobSkills.filter(js => seekerSkills.some(ss => ss.includes(js) || js.includes(ss)));
-      const hasTesda = (seeker.tradeCertifications && seeker.tradeCertifications.length > 0);
-
-      if (matchedSkills.length >= 3 || (matchedSkills.length >= 1 && hasTesda)) {
-        skillPoints = 35;
-      } else if (matchedSkills.length >= 1 || hasTesda) {
-        skillPoints = 25;
-      } else {
-        skillPoints = 12;
-      }
-      score += skillPoints;
-      breakdowns.push({ 
-        criterion: 'Skills & Trade Certifications', 
-        weight: 35, 
-        points: skillPoints, 
-        note: `${matchedSkills.length} skills aligned${hasTesda ? ' + TESDA NC Certified' : ''}` 
+      const existingApp = applications.find(a => a.jobId === selectedJob.id && a.jobSeekerId === seeker.id);
+      const matchResult = getOrCalculateMatch(seeker, selectedJob, {
+        cachedMatches: candidateMatches,
+        application: existingApp,
       });
+      const score = Math.round(matchResult.overallMatch);
 
-      // 3. Location & Proximity (20 pts)
-      let locPoints = 10;
-      const jobLoc = (selectedJob.workLocation || selectedJob.municipality || 'Roxas').toLowerCase();
-      const seekerLoc = (seeker.municipality || 'Roxas').toLowerCase();
-      const isSameMuni = jobLoc.includes(seekerLoc) || seekerLoc.includes(jobLoc) || seeker.municipality === 'Roxas';
+      const breakdowns: { criterion: string; weight: number; points: number; note: string }[] = [
+        {
+          criterion: 'Skills Overlap',
+          weight: 100,
+          points: Math.round(matchResult.skillsMatchScore),
+          note: `${Math.round(matchResult.skillsMatchScore)}% category match`,
+        },
+        {
+          criterion: 'Educational Attainment',
+          weight: 100,
+          points: Math.round(matchResult.educationMatchScore),
+          note: `${Math.round(matchResult.educationMatchScore)}% category match`,
+        },
+        {
+          criterion: 'Degree Alignment',
+          weight: 100,
+          points: Math.round(matchResult.degreeAlignmentScore),
+          note: `${Math.round(matchResult.degreeAlignmentScore)}% category match`,
+        },
+        {
+          criterion: 'Work Experience',
+          weight: 100,
+          points: Math.round(matchResult.experienceMatchScore),
+          note: `${Math.round(matchResult.experienceMatchScore)}% category match`,
+        },
+        {
+          criterion: 'Certifications & TESDA',
+          weight: 100,
+          points: Math.round(matchResult.certificationsMatchScore),
+          note: `${Math.round(matchResult.certificationsMatchScore)}% category match`,
+        },
+      ];
 
-      if (isSameMuni) {
-        locPoints = 20;
-      } else if (seeker.geographicMobility === 'provincial' || seeker.geographicMobility === 'willing_to_relocate') {
-        locPoints = 18;
-      } else {
-        locPoints = 8;
-      }
-      score += locPoints;
-      breakdowns.push({ 
-        criterion: 'Geographic Proximity & Mobility', 
-        weight: 20, 
-        points: locPoints, 
-        note: isSameMuni ? 'Residing in Roxas (Immediate proximity)' : `Mobility: ${seeker.geographicMobility}` 
-      });
-
-      // 4. Experience & Work Readiness (20 pts)
-      let expPoints = 12;
-      const expCount = (seeker.workExperience || []).length;
-      if (expCount >= 2) {
-        expPoints = 20;
-      } else if (expCount === 1 || seeker.employmentStatus === 'employed') {
-        expPoints = 16;
-      } else {
-        expPoints = 12;
-      }
-      score += expPoints;
-      breakdowns.push({ 
-        criterion: 'Work History & Readiness', 
-        weight: 20, 
-        points: expPoints, 
-        note: expCount > 0 ? `${expCount} previous work engagement(s)` : 'Entry-level candidate' 
-      });
-
-      // Categorize Tier
       let tier: 'Highly Qualified' | 'Qualified' | 'Partially Qualified' | 'Underqualified' = 'Underqualified';
-      if (score >= 90) tier = 'Highly Qualified';
-      else if (score >= 75) tier = 'Qualified';
+      if (score >= 85) tier = 'Highly Qualified';
+      else if (score >= 70) tier = 'Qualified';
       else if (score >= 50) tier = 'Partially Qualified';
 
       return {
@@ -167,12 +113,13 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
         score,
         tier,
         breakdowns,
+        existingApp,
         hasIssuedReferral: referralSlips.some(
-          r => r.jobSeekerId === seeker.id && r.jobPostId === selectedJob.id && r.status !== 'declined'
+          r => r.jobSeekerId === seeker.id && r.jobPostId === selectedJob.id && (r.status as string) !== 'declined'
         )
       };
     }).sort((a, b) => b.score - a.score);
-  }, [selectedJob, jobSeekers, referralSlips]);
+  }, [selectedJob, jobSeekers, referralSlips, applications, candidateMatches]);
 
   // Filtered by tier and search
   const filteredCandidates = useMemo(() => {
@@ -376,7 +323,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
 
           {/* Decision Tree Candidates Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredCandidates.map(({ seeker, score, tier, breakdowns, hasIssuedReferral }) => (
+            {filteredCandidates.map(({ seeker, score, tier, breakdowns, existingApp, hasIssuedReferral }) => (
               <div
                 key={seeker.id}
                 className="bg-white rounded-2xl border border-slate-200 shadow-xs p-5 space-y-4 hover:border-amber-400 transition-all relative overflow-hidden"
@@ -384,7 +331,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
                 {/* Score Indicator Badge */}
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
                         tier === 'Highly Qualified' 
                           ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
@@ -397,6 +344,11 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
                       {seeker.isWalkIn && (
                         <span className="px-1.5 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded text-[9px] font-bold">
                           Walk-In Bio-Data
+                        </span>
+                      )}
+                      {existingApp && (
+                        <span className="px-1.5 py-0.5 bg-blue-50 text-blue-800 border border-blue-200 rounded text-[9px] font-bold uppercase">
+                          Status: {existingApp.currentStatus.replace(/_/g, ' ')}
                         </span>
                       )}
                       {hasIssuedReferral && (
@@ -412,12 +364,15 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
                     <p className="text-[11px] text-slate-500">
                       {seeker.educationCategory || seeker.educationalAttainment} • Brgy. {seeker.barangay || 'Bagumbayan'}, Roxas
                     </p>
+                    <p className="text-[11px] text-slate-600 font-medium">
+                      📞 <span className="font-mono font-bold">{seeker.contactNumber}</span> • ✉️ {seeker.email}
+                    </p>
                   </div>
 
                   {/* Circular / Big Match Score */}
                   <div className="text-right">
                     <div className={`text-2xl font-black tabular-nums ${
-                      score >= 90 ? 'text-emerald-700' : score >= 75 ? 'text-blue-700' : 'text-amber-700'
+                      score >= 85 ? 'text-emerald-700' : score >= 70 ? 'text-blue-700' : 'text-amber-700'
                     }`}>
                       {score}%
                     </div>
@@ -437,7 +392,7 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
                         {cert}
                       </span>
                     ))}
-                    {(seeker.practicalSkills || seeker.tradeSkills || seeker.technicalSkills.slice(0, 3)).map(skill => (
+                    {(seeker.practicalSkills || seeker.tradeSkills || seeker.technicalSkills.slice(0, 4)).map(skill => (
                       <span key={skill} className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded text-[10px] font-medium">
                         {skill}
                       </span>
@@ -445,19 +400,18 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
                   </div>
                 </div>
 
-                {/* Decision Tree Breakdown Matrix */}
+                {/* Decision Tree Category-Level Breakdown Matrix */}
                 <div className="bg-slate-50/80 rounded-xl p-3 border border-slate-200/80 space-y-1.5 text-[11px]">
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">
-                    Decision Tree Criteria Breakdown
+                    Category-Level Match Percentages
                   </span>
                   <div className="space-y-1">
                     {breakdowns.map((b, i) => (
                       <div key={i} className="flex items-center justify-between text-slate-700">
                         <span className="truncate pr-2">{b.criterion}:</span>
                         <div className="flex items-center gap-2 shrink-0 font-mono">
-                          <span className="text-[10px] text-slate-500">{b.note}</span>
-                          <span className="font-bold text-slate-900 bg-white px-1.5 py-0.2 rounded border border-slate-200 tabular-nums">
-                            {b.points}/{b.weight}
+                          <span className="font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-slate-200 tabular-nums">
+                            {b.points}%
                           </span>
                         </div>
                       </div>
@@ -465,11 +419,38 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
                   </div>
                 </div>
 
-                {/* Bottom Action Footer */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                  <span className="text-slate-500 text-[11px] font-mono">
-                    Tel: {seeker.contactNumber}
-                  </span>
+                {/* Walk-In Outreach Confirmation & Application Status Controls */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                  <div className="flex items-center gap-1.5">
+                    <select
+                      value={existingApp?.currentStatus || ''}
+                      onChange={(e) => {
+                        const nextStatus = e.target.value as ApplicationStatus;
+                        if (!nextStatus || !selectedJob) return;
+                        upsertCandidateApplicationStatus(
+                          selectedJob.id,
+                          seeker.id,
+                          nextStatus,
+                          `Updated by LGU/PESO Admin during candidate outreach.`
+                        );
+                        showToast({
+                          title: 'Applicant Status Updated',
+                          message: `${seeker.firstName} ${seeker.lastName} status set to ${nextStatus.replace(/_/g, ' ')}.`,
+                          type: 'success',
+                        });
+                      }}
+                      className="px-2.5 py-1.5 bg-white border border-slate-300 rounded-xl text-xs font-bold text-slate-800 cursor-pointer"
+                    >
+                      <option value="">{existingApp ? 'Update Status...' : 'Outreach: Set Status...'}</option>
+                      <option value="submitted">Pending / Submitted</option>
+                      <option value="under_review">Confirmed to Proceed (Under Review)</option>
+                      <option value="shortlisted">Shortlisted</option>
+                      <option value="interview_scheduled">Interview Scheduled</option>
+                      <option value="hired">Hired</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="withdrawn">Declined by Walk-In Applicant</option>
+                    </select>
+                  </div>
 
                   <button
                     onClick={() => handleOpenReferralForSeeker(seeker)}
@@ -595,6 +576,12 @@ export const AdminJobMatchingPage: React.FC<AdminJobMatchingPageProps> = ({ onNa
           existingSlip={viewSlip}
         />
       )}
+
+      {/* Walk-In Applicant Bio-Data Upload Modal */}
+      <EncodeWalkInModal
+        isOpen={isEncodeWalkInOpen}
+        onClose={() => setIsEncodeWalkInOpen(false)}
+      />
 
     </div>
   );

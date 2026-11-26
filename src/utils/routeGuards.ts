@@ -189,6 +189,34 @@ export function isProfileComplete(
 }
 
 /**
+ * Checks all 3 mandatory requirements for an employer to post a job vacancy:
+ * 1. Employer profile setup is complete (company details, representative, contact, address, description).
+ * 2. Required verification documents are uploaded (at least 1 real document).
+ * 3. Employer account status is officially 'verified' by PESO/LGU.
+ */
+export function isEmployerVerifiedToPostJobs(
+  profile?: Partial<EmployerProfile> | null
+): boolean {
+  if (!profile) return false;
+  const isDetailsComplete = Boolean(
+    profile.isProfileCompleted &&
+    profile.companyName?.trim() &&
+    profile.representativeName?.trim() &&
+    profile.contactNumber?.trim() &&
+    profile.address?.trim()
+  );
+  const hasUploadedDocs = Boolean(
+    (profile.documents && profile.documents.length > 0) ||
+    profile.dtiSecFile?.trim() ||
+    profile.mayorsPermitFile?.trim() ||
+    profile.businessPermitFile?.trim()
+  );
+  const isVerifiedStatus = profile.status === 'verified';
+  return isDetailsComplete && hasUploadedDocs && isVerifiedStatus;
+}
+
+
+/**
  * Persists profile completion state across multiple identifiers (ID, email, profile ID) in storage.
  */
 export function markProfileCompletedInStorage(

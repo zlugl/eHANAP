@@ -183,11 +183,15 @@ export const AdminJobsPage: React.FC<AdminJobsPageProps> = ({ onNavigate }) => {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
-                      <img
-                        src={job.companyLogo || employer?.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
-                        alt={job.companyName}
-                        className="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
-                      />
+                      {(job.companyLogo || employer?.logoUrl) ? (
+                        <img
+                          src={job.companyLogo || employer?.logoUrl}
+                          alt={job.companyName}
+                          className="w-11 h-11 rounded-xl object-cover ring-1 ring-slate-200 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-11 h-11 rounded-xl bg-slate-50 border border-slate-200 shrink-0" />
+                      )}
                       <div>
                         <h3 className="text-sm font-bold text-slate-900">{job.title}</h3>
                         <p className="text-xs font-semibold text-slate-600 flex items-center gap-1.5 mt-0.5">

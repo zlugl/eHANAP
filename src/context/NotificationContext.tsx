@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { NotificationItem, UserRole } from '../types';
 import { INITIAL_NOTIFICATIONS } from '../data/mockData';
+import { storageAdapter } from '../lib/storageAdapter';
 import { isSupabaseConfigured } from '../lib/supabase';
 import {
   subscribeToSupabaseTable,
@@ -42,7 +43,13 @@ export interface NotificationContextType {
 export const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(() =>
+    storageAdapter.getStoredNotifications(INITIAL_NOTIFICATIONS)
+  );
+
+  useEffect(() => {
+    storageAdapter.setStoredNotifications(notifications);
+  }, [notifications]);
 
   // Subscribe to real-time notifications in Supabase
   useEffect(() => {
@@ -53,7 +60,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         SUPABASE_TABLES.NOTIFICATIONS,
         (data) => {
           if (data && data.length > 0) {
-            setNotifications(data);
+            setNotifications((prev) => {
+              const map = new Map<string, NotificationItem>();
+              prev.forEach((n) => map.set(n.id, n));
+              data.forEach((n) => map.set(n.id, n));
+              return Array.from(map.values()).sort(
+                (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+              );
+            });
           }
         }
       );
@@ -114,7 +128,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const markAllNotificationsRead = useCallback((recipientId: string) => {
     setNotifications((prev) =>
       prev.map((n) => {
-        if (n.recipientId === recipientId) {
+        if (n.recipientId === recipientId || (recipientId === 'admin' && n.recipientRole === 'admin')) {
           if (isSupabaseConfigured()) {
             updateRecord(SUPABASE_TABLES.NOTIFICATIONS, n.id, { read: true }).catch((err) => {
               console.warn('[Supabase] Failed to mark all notifications read:', err);
@@ -158,6 +172,7 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             (emailLower && n.recipientId?.toLowerCase() === emailLower) ||
             (seekerId && n.recipientId === seekerId) ||
             (seekerUserId && n.recipientId === seekerUserId) ||
+            (role === 'admin' && n.recipientRole === 'admin') ||
             (!n.recipientId && role && n.recipientRole === role);
 
           if (isTarget) {

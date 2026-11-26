@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { storageAdapter } from '../lib/storageAdapter';
 import {
   User,
   EmployerProfile,
@@ -13,17 +14,6 @@ import {
   PesoReferralSlip,
   LocalRecruitmentActivity,
 } from '../types';
-import {
-  INITIAL_USERS,
-  INITIAL_EMPLOYERS,
-  INITIAL_JOB_POSTS,
-  INITIAL_JOB_SEEKERS,
-  INITIAL_APPLICATIONS,
-  INITIAL_INTERVIEWS,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_AUDIT_LOGS,
-  INITIAL_ANNOUNCEMENTS,
-} from '../data/mockData';
 
 export const SUPABASE_TABLES = {
   USERS: 'users',
@@ -166,7 +156,8 @@ export async function fetchAll<T = any>(table: SupabaseTableName): Promise<T[]> 
       console.warn(`[Supabase] Error fetching all from ${table}:`, error.message);
       return [];
     }
-    return (data || []).map((row) => toCamelCase<T>(row));
+    const mapped = (data || []).map((row) => toCamelCase<T>(row));
+    return storageAdapter.filterOutLegacyDemoRecords(mapped);
   } catch (err) {
     console.warn(`[Supabase] Exception in fetchAll for ${table}:`, err);
     return [];
@@ -336,100 +327,33 @@ export function subscribeToSupabaseTable<T extends { id: string }>(
 }
 
 /**
- * Verifies if the official Roxas PESO Admin account exists in Supabase.
- * If not present, automatically provisions initial demo accounts.
+ * Clean-slate mode: does not auto-seed hardcoded demo accounts.
  */
 export async function ensureAdminAccountExistsInSupabase(): Promise<boolean> {
-  return ensureDemoAccountsExistInSupabase();
+  return true;
 }
 
 /**
- * Checks if demo accounts exist in Supabase; seeds them if missing.
+ * Clean-slate mode: does not auto-seed demo accounts; all records are created dynamically.
  */
 export async function ensureDemoAccountsExistInSupabase(): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
-
-  try {
-    const adminUser = await fetchById<User>(SUPABASE_TABLES.USERS, 'user-peso-admin-01');
-    if (!adminUser) {
-      console.log('[Supabase] Seeding initial Roxas demo accounts and vacancies into Supabase...');
-      return seedDemoDataToSupabase();
-    }
-    return true;
-  } catch (error) {
-    console.warn('[Supabase] Error verifying demo accounts in Supabase:', error);
-    return false;
-  }
+  return true;
 }
 
 /**
- * Seeds complete Roxas demo data (Users, Employers, Job Seekers, Job Posts, Announcements, Audit Logs) into Supabase.
+ * Clean-slate mode: no demo data is seeded.
  */
 export async function seedDemoDataToSupabase(): Promise<boolean> {
-  if (!isSupabaseConfigured()) return false;
-
-  try {
-    // 1. Users
-    for (const u of INITIAL_USERS) {
-      await saveRecord(SUPABASE_TABLES.USERS, u);
-    }
-
-    // 2. Employers
-    for (const e of INITIAL_EMPLOYERS) {
-      await saveRecord(SUPABASE_TABLES.EMPLOYERS, e);
-    }
-
-    // 3. Job Seekers
-    for (const s of INITIAL_JOB_SEEKERS) {
-      await saveRecord(SUPABASE_TABLES.JOB_SEEKERS, s);
-    }
-
-    // 4. Job Posts
-    for (const j of INITIAL_JOB_POSTS) {
-      await saveRecord(SUPABASE_TABLES.JOB_POSTS, j);
-    }
-
-    // 5. Applications
-    for (const a of INITIAL_APPLICATIONS) {
-      await saveRecord(SUPABASE_TABLES.APPLICATIONS, a);
-    }
-
-    // 6. Interviews
-    for (const i of INITIAL_INTERVIEWS) {
-      await saveRecord(SUPABASE_TABLES.INTERVIEWS, i);
-    }
-
-    // 7. Notifications
-    for (const n of INITIAL_NOTIFICATIONS) {
-      await saveRecord(SUPABASE_TABLES.NOTIFICATIONS, n);
-    }
-
-    // 8. Audit Logs
-    for (const l of INITIAL_AUDIT_LOGS) {
-      await saveRecord(SUPABASE_TABLES.AUDIT_LOGS, l);
-    }
-
-    // 9. Announcements
-    for (const an of INITIAL_ANNOUNCEMENTS) {
-      await saveRecord(SUPABASE_TABLES.ANNOUNCEMENTS, an);
-    }
-
-    console.log('[Supabase] Successfully seeded initial Roxas demo accounts and records.');
-    return true;
-  } catch (error) {
-    console.warn('[Supabase] Error seeding demo data to Supabase:', error);
-    return false;
-  }
+  return true;
 }
 
 /**
- * Purges demo records and resets the Supabase database to a clean zero-data initial state.
+ * Purges all records and resets the Supabase database to a clean zero-data initial state.
  */
 export async function resetSupabaseDatabase(): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
 
   try {
-    console.log('[Supabase] Purging legacy test records for clean zero-data state...');
     const tablesToClean: SupabaseTableName[] = [
       SUPABASE_TABLES.AUDIT_LOGS,
       SUPABASE_TABLES.NOTIFICATIONS,
@@ -453,13 +377,6 @@ export async function resetSupabaseDatabase(): Promise<boolean> {
       }
     }
 
-    // Re-seed essential PESO administrator
-    const adminUser = INITIAL_USERS.find((u) => u.id === 'user-peso-admin-01');
-    if (adminUser) {
-      await saveRecord(SUPABASE_TABLES.USERS, adminUser);
-    }
-
-    console.log('[Supabase] Clean zero-data initial state established.');
     return true;
   } catch (error) {
     console.warn('[Supabase] Error resetting database:', error);
@@ -629,8 +546,8 @@ export async function signInWithSupabaseOAuth(
           id: `offline-oauth-${Date.now()}`,
           email: 'google.user@example.com',
           user_metadata: {
-            full_name: 'Demo Google User',
-            avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+            full_name: 'Google User',
+            avatar_url: '',
           },
         },
       },

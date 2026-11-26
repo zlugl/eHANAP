@@ -210,23 +210,41 @@ export const SeekerProfilePage: React.FC<SeekerProfilePageProps> = ({ onNavigate
     setIsAtsModalOpen(true);
   };
 
-  // Profile Display Strings
-  const candidateFirstName = currentSeekerProfile.firstName || form.firstName || 'Amanda';
-  const candidateLastName = currentSeekerProfile.lastName || form.lastName || 'Reis';
-  const rawMiddle = currentSeekerProfile.middleName || form.middleName || (currentSeekerProfile as any).middleInitial || '';
-  const fullName = `${candidateFirstName} ${rawMiddle ? `${rawMiddle.trim()[0].toUpperCase()}.` : 'M.'} ${candidateLastName}`.trim();
-  const categoryHeadline = (currentSeekerProfile.primaryDegree || currentSeekerProfile.jobTitle || currentSeekerProfile.preferredJobTitle || 'BUSINESS COACH').toUpperCase();
-  const phoneText = currentSeekerProfile.phone || currentSeekerProfile.contactNumber || '0917-123-4567';
-  const emailText = currentSeekerProfile.email || 'amanda.reis@example.com';
-  const locationText = [currentSeekerProfile.barangay, currentSeekerProfile.cityMunicipality || currentSeekerProfile.municipality || 'Roxas', currentSeekerProfile.province || 'Oriental Mindoro'].filter(Boolean).join(', ');
-  const bioNarrative = currentSeekerProfile.bio || currentSeekerProfile.professionalSummary || currentSeekerProfile.summary ||
-    `With more than 10 years of experience, ${fullName} has built a reputation as a dynamic coach dedicated to helping entrepreneurs unlock their true potential.`;
+  // Profile Display Strings (strictly from real user profile data — no pre-filled templates or dummy bios)
+  const candidateFirstName = (currentSeekerProfile.firstName || form.firstName || '').trim();
+  const candidateLastName = (currentSeekerProfile.lastName || form.lastName || '').trim();
+  const rawMiddle = (currentSeekerProfile.middleName || form.middleName || (currentSeekerProfile as any).middleInitial || '').trim();
+  const fullName = [
+    candidateFirstName,
+    rawMiddle ? `${rawMiddle[0].toUpperCase()}.` : '',
+    candidateLastName
+  ].filter(Boolean).join(' ').trim();
+  const categoryHeadline = (
+    currentSeekerProfile.primaryDegree ||
+    currentSeekerProfile.jobTitle ||
+    currentSeekerProfile.preferredJobTitle ||
+    currentSeekerProfile.educationalAttainment ||
+    ''
+  ).toUpperCase();
+  const phoneText = currentSeekerProfile.phone || currentSeekerProfile.contactNumber || '';
+  const emailText = currentSeekerProfile.email || '';
+  const locationText = [
+    currentSeekerProfile.barangay ? `Brgy. ${currentSeekerProfile.barangay}` : '',
+    currentSeekerProfile.cityMunicipality || currentSeekerProfile.municipality || '',
+    currentSeekerProfile.province || (currentSeekerProfile.municipality ? 'Oriental Mindoro' : '')
+  ].filter(Boolean).join(', ');
+  const bioNarrative = (
+    currentSeekerProfile.bio ||
+    currentSeekerProfile.professionalSummary ||
+    currentSeekerProfile.summary ||
+    ''
+  ).trim();
 
   const expertiseList = [
     ...(currentSeekerProfile.technicalSkills || []),
     ...(currentSeekerProfile.softSkills || [])
   ].filter((v, i, a) => Boolean(v && v.trim()) && a.indexOf(v) === i);
-  const displayedExpertise = expertiseList.length > 0 ? expertiseList.slice(0, 6) : ['Startup Development', 'Lean Business Planning', 'Growth Strategy'];
+  const displayedExpertise = expertiseList;
 
   return (
     <div className="min-h-screen bg-[var(--color-paper)] text-[var(--color-ink)] font-body pb-28 md:pb-12 select-none">

@@ -1,8 +1,19 @@
 export type UserRole = 'admin' | 'employer' | 'job_seeker';
 
-export type EmployerStatus = 'pending' | 'verified' | 'for_compliance' | 'rejected' | 'suspended';
+export type EmployerStatus = 'incomplete' | 'pending_verification' | 'pending' | 'verified' | 'for_compliance' | 'rejected' | 'suspended';
 
-export type JobStatus = 'active' | 'closed' | 'pending_approval' | 'for_compliance' | 'rejected' | 'archived';
+export interface EmployerVerificationDocument {
+  id: string;
+  requirementId?: string;
+  requirementTitle?: string;
+  fileName: string;
+  fileSize: string;
+  mimeType: string;
+  fileUrl: string; // data URL or object URL for in-app preview & download
+  uploadedAt: string;
+}
+
+export type JobStatus = 'active' | 'closed' | 'paused' | 'pending_approval' | 'for_compliance' | 'rejected' | 'archived';
 
 export type ApplicationStatus = 
   | 'applied'
@@ -34,7 +45,7 @@ export type DegreeAlignmentType = 'exact' | 'related' | 'unrelated';
 
 export type InterviewType = 'face_to_face' | 'in_person' | 'phone' | 'video';
 
-export type InterviewStatus = 'scheduled' | 'accepted' | 'reschedule_requested' | 'declined' | 'completed' | 'cancelled';
+export type InterviewStatus = 'scheduled' | 'rescheduled' | 'accepted' | 'reschedule_requested' | 'declined' | 'completed' | 'cancelled';
 
 export interface User {
   id: string;
@@ -95,6 +106,7 @@ export interface EmployerProfile {
   bir2303No?: string;
   bir2303File?: string;
   documentUrl?: string;
+  documents?: EmployerVerificationDocument[];
   submittedRequirements?: string[];
   requirementsSubmitted?: boolean;
   complianceRemarks?: string;
@@ -316,6 +328,23 @@ export interface JobPostRequirement {
   value: string; // e.g. "Bachelor's Degree", "BS Computer Science", "React.js", "2 years"
 }
 
+export interface EvaluatedSkillItem {
+  name: string;
+  required: boolean;
+}
+
+export interface JobSkillItem {
+  name: string;
+  priority: 'required' | 'preferred';
+}
+
+export interface JobMatchWeights {
+  education: number;
+  skills: number;
+  experience: number;
+  eligibility: number;
+}
+
 export interface JobPost {
   id: string;
   employerId: string;
@@ -325,15 +354,42 @@ export interface JobPost {
   companyVerified: boolean;
   title: string;
   category: string;
+  subCategory?: string;
+  department?: string;
   industry?: string;
   description: string;
   responsibilities: string[];
-  employmentType: 'Full-time' | 'Part-time' | 'Contract' | 'Temporary' | 'Internship';
-  workLocation: string;
+  employmentType:
+    | 'Full-time'
+    | 'Part-time'
+    | 'Contract'
+    | 'Contractual / Project-Based'
+    | 'Probationary'
+    | 'Seasonal'
+    | 'Seasonal / Temporary'
+    | 'Temporary'
+    | 'Internship'
+    | 'Internship / OJT'
+    | 'Freelance'
+    | string;
+  workSetup?: 'On-site' | 'Hybrid' | 'Remote' | 'Fieldwork';
+  workSchedule?: 'Day Shift' | 'Mid Shift' | 'Night Shift' | 'Shifting / Rotating' | 'Flexible' | 'Weekends Included' | string;
+  workLocation?: string;
   municipality: string;
+  barangay?: string;
   vacanciesCount: number;
+  vacancies?: number;
+  positionsAvailable?: number;
   salaryRange?: string;
+  minSalary?: number | null;
+  maxSalary?: number | null;
+  payFrequency?: string;
+  paySchedule?: string;
+  isSalaryNegotiable?: boolean;
+  salaryNegotiable?: boolean;
+  isUrgent?: boolean;
   applicationDeadline: string;
+  deadline?: string;
   postedDate: string;
   updatedAt?: string;
   status: JobStatus;
@@ -345,20 +401,34 @@ export interface JobPost {
   deploymentLocationType?: 'local' | 'out_of_town'; // Local in Roxas/Oriental Mindoro or Out-of-town deployment
   lraEventId?: string; // Linked Local Recruitment Activity (if external visiting company)
   
-  // Structured Requirements
+  // Structured Requirements & Conditional Decision Tree Parameters
   minEducationalAttainment: string;
+  requiredEducationLevel?: string;
+  acceptedEducationLevels?: string[];
   preferredDegree: string;
-  degreeImportance: RequirementImportance;
+  preferredCourses?: string[];
+  preferredTesdaQualifications?: string[];
+  anyCourseAllowed?: boolean;
+  degreeImportance?: RequirementImportance | number;
+  careerLevel?: 'Entry-Level' | 'Junior' | 'Mid-Level' | 'Senior' | 'Supervisory' | string;
+  experienceLevel?: string;
+  minExperienceYears: number;
+  openToFreshGraduates?: boolean;
+  experienceImportance?: RequirementImportance;
+  requiredLicenses?: string[];
+  requiredCertifications?: string[];
   requiredSkills: string[];
   preferredSkills: string[];
-  minExperienceYears: number;
-  experienceImportance: RequirementImportance;
-  requiredCertifications: string[];
-  technicalSkills: string[];
-  softSkills: string[];
+  skills?: JobSkillItem[];
+  evaluatedSkills?: EvaluatedSkillItem[];
+  skillsRequired?: string[];
+  technicalSkills?: string[];
+  softSkills?: string[];
+  matchWeights?: JobMatchWeights;
+  benefits?: string[];
   otherQualifications?: string;
   
-  requirements: JobPostRequirement[];
+  requirements?: JobPostRequirement[];
 }
 
 export interface PesoReferralSlip {
@@ -526,36 +596,51 @@ export interface Interview {
   id: string;
   applicationId: string;
   jobId: string;
+  vacancyId?: string;
   jobTitle: string;
   employerId: string;
   companyName: string;
   jobSeekerId: string;
+  seekerId?: string;
   applicantName: string;
   interviewType: InterviewType;
+  format?: InterviewType;
   date: string;
   time: string;
   locationOrLink: string;
   instructions?: string;
+  notes?: string;
   contactPerson: string;
   contactPhone?: string;
   status: InterviewStatus;
   proposedSlots?: { id: string; date: string; time: string; status?: 'proposed' | 'accepted' | 'declined' }[];
   rescheduleNotes?: string;
+  remindersSent?: {
+    h24?: boolean;
+    h1?: boolean;
+    m15?: boolean;
+  };
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CandidateInvitation {
   id: string;
   jobId: string;
+  vacancyId?: string;
   employerId: string;
   companyName: string;
   jobTitle: string;
   jobSeekerId: string;
+  seekerId?: string;
   seekerName: string;
   matchScore: number;
   message?: string;
+  note?: string;
   status: 'pending' | 'accepted' | 'declined';
   sentAt: string;
+  createdAt?: string;
+  respondedAt?: string;
 }
 
 export interface NotificationItem {

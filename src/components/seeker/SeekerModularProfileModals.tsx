@@ -98,8 +98,8 @@ export const ContactInfoModal: React.FC<{
             <input
               type="text"
               value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              onChange={(e) => setAddress(e.target.value.toUpperCase())}
+              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none"
               required
             />
           </div>
@@ -175,9 +175,9 @@ export const AboutMeModal: React.FC<{
               rows={6}
               maxLength={500}
               value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              placeholder="Tell employers about your experience, key strengths, and career aspirations..."
-              className="w-full p-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none resize-none leading-relaxed"
+              onChange={(e) => setBio(e.target.value.toUpperCase())}
+              placeholder="TELL EMPLOYERS ABOUT YOUR EXPERIENCE, KEY STRENGTHS, AND CAREER ASPIRATIONS..."
+              className="w-full p-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none resize-none leading-relaxed"
             />
           </div>
 
@@ -270,9 +270,9 @@ export const ProjectsModal: React.FC<{
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g., E-Commerce Agri-Hub Roxas"
-                className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                onChange={(e) => setName(e.target.value.toUpperCase())}
+                placeholder="E.G., E-COMMERCE AGRI-HUB ROXAS"
+                className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none"
                 required
               />
             </div>
@@ -282,9 +282,9 @@ export const ProjectsModal: React.FC<{
               <input
                 type="text"
                 value={client}
-                onChange={(e) => setClient(e.target.value)}
-                placeholder="e.g., Roxas LGU / Private Enterprise"
-                className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+                onChange={(e) => setClient(e.target.value.toUpperCase())}
+                placeholder="E.G., ROXAS LGU / PRIVATE ENTERPRISE"
+                className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none"
               />
             </div>
 
@@ -304,9 +304,9 @@ export const ProjectsModal: React.FC<{
               <textarea
                 rows={3}
                 value={desc}
-                onChange={(e) => setDesc(e.target.value)}
-                placeholder="Tech stack used and key features..."
-                className="w-full p-3 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none resize-none"
+                onChange={(e) => setDesc(e.target.value.toUpperCase())}
+                placeholder="TECH STACK USED AND KEY FEATURES..."
+                className="w-full p-3 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none resize-none"
               />
             </div>
 
@@ -373,9 +373,9 @@ export const VolunteerModal: React.FC<{
             <input
               type="text"
               value={role}
-              onChange={(e) => setRole(e.target.value)}
-              placeholder="e.g., Youth Community Volunteer / Red Cross Responder"
-              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              onChange={(e) => setRole(e.target.value.toUpperCase())}
+              placeholder="E.G., YOUTH COMMUNITY VOLUNTEER / RED CROSS RESPONDER"
+              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none"
               required
             />
           </div>
@@ -385,9 +385,9 @@ export const VolunteerModal: React.FC<{
             <input
               type="text"
               value={org}
-              onChange={(e) => setOrg(e.target.value)}
-              placeholder="e.g., Philippine Red Cross Oriental Mindoro / SK Roxas"
-              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              onChange={(e) => setOrg(e.target.value.toUpperCase())}
+              placeholder="E.G., PHILIPPINE RED CROSS ORIENTAL MINDORO / SK ROXAS"
+              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none"
               required
             />
           </div>
@@ -397,9 +397,9 @@ export const VolunteerModal: React.FC<{
             <textarea
               rows={3}
               value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              placeholder="Brief description of outreach or volunteer initiative..."
-              className="w-full p-3 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none resize-none"
+              onChange={(e) => setDesc(e.target.value.toUpperCase())}
+              placeholder="BRIEF DESCRIPTION OF OUTREACH OR VOLUNTEER INITIATIVE..."
+              className="w-full p-3 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none resize-none"
             />
           </div>
 
@@ -465,9 +465,9 @@ export const AwardsModal: React.FC<{
             <input
               type="text"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Best in Technical Proficiency / Cum Laude"
-              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              onChange={(e) => setTitle(e.target.value.toUpperCase())}
+              placeholder="E.G., BEST IN TECHNICAL PROFICIENCY / CUM LAUDE"
+              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none"
               required
             />
           </div>
@@ -477,9 +477,9 @@ export const AwardsModal: React.FC<{
             <input
               type="text"
               value={org}
-              onChange={(e) => setOrg(e.target.value)}
-              placeholder="e.g., Mindoro State University / DOLE"
-              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              onChange={(e) => setOrg(e.target.value.toUpperCase())}
+              placeholder="E.G., MINDORO STATE UNIVERSITY / DOLE"
+              className="w-full h-11 px-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none"
               required
             />
           </div>
@@ -522,7 +522,7 @@ export const SkillsModal: React.FC<{
   if (!isOpen) return null;
 
   const handleAddSkill = (skillToAdd: string) => {
-    const trimmed = skillToAdd.trim();
+    const trimmed = skillToAdd.trim().toUpperCase();
     if (trimmed && !skills.includes(trimmed)) {
       setSkills([...skills, trimmed]);
       setNewSkill('');
@@ -567,15 +567,15 @@ export const SkillsModal: React.FC<{
             <input
               type="text"
               value={newSkill}
-              onChange={(e) => setNewSkill(e.target.value)}
+              onChange={(e) => setNewSkill(e.target.value.toUpperCase())}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   handleAddSkill(newSkill);
                 }
               }}
-              placeholder="Add skill tag (e.g., Bookkeeping)..."
-              className="flex-1 h-11 px-4 rounded-2xl border border-slate-200 text-xs focus:ring-2 focus:ring-blue-600 focus:outline-none"
+              placeholder="ADD SKILL TAG (E.G., BOOKKEEPING)..."
+              className="flex-1 h-11 px-4 rounded-2xl border border-slate-200 text-xs uppercase focus:ring-2 focus:ring-blue-600 focus:outline-none"
             />
             <button
               type="button"

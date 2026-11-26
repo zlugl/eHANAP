@@ -295,12 +295,15 @@ Available upon request from PESO Oriental Mindoro.
 
         {showPhoto && (
           <div className="relative shrink-0">
-            <img
-              src={seeker.profilePicture || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
-              alt={seeker.firstName}
-              className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-slate-200 shadow-xs"
-            />
-            <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full" title="Verified Active" />
+            {seeker.profilePicture ? (
+              <img
+                src={seeker.profilePicture}
+                alt={seeker.firstName}
+                className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-slate-200 shadow-xs"
+              />
+            ) : (
+              <div className="w-18 h-18 sm:w-20 sm:h-20 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-300" />
+            )}
           </div>
         )}
       </div>
@@ -482,11 +485,15 @@ Available upon request from PESO Oriental Mindoro.
 
         {showPhoto && (
           <div className="shrink-0 p-1 rounded-2xl bg-gradient-to-tr from-amber-500 to-slate-700 shadow-lg">
-            <img
-              src={seeker.profilePicture || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
-              alt={seeker.firstName}
-              className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover"
-            />
+            {seeker.profilePicture ? (
+              <img
+                src={seeker.profilePicture}
+                alt={seeker.firstName}
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover"
+              />
+            ) : (
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-slate-900 border border-slate-700" />
+            )}
           </div>
         )}
       </div>
@@ -864,16 +871,14 @@ Available upon request from PESO Oriental Mindoro.
 
         {/* Bento Box 2: Photo & Availability Box (Spans 1 col) */}
         <div className="bg-white border border-slate-200 p-4 rounded-2xl flex flex-col items-center justify-center text-center shadow-2xs relative">
-          {showPhoto ? (
+          {showPhoto && seeker.profilePicture ? (
             <img
-              src={seeker.profilePicture || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80'}
+              src={seeker.profilePicture}
               alt={seeker.firstName}
               className="w-20 h-20 rounded-2xl object-cover ring-2 ring-slate-200 mb-2"
             />
           ) : (
-            <div className={`w-16 h-16 rounded-2xl ${currentTheme.lightBg} ${currentTheme.primary} flex items-center justify-center mb-2 font-black text-xl`}>
-              {seeker.firstName?.charAt(0)}{seeker.lastName?.charAt(0)}
-            </div>
+            <div className="w-16 h-16 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-300 mb-2" />
           )}
           <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />

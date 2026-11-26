@@ -125,7 +125,7 @@ export const MobileRoleQuickNav: React.FC<MobileRoleQuickNavProps> = ({
               () => onNavigate('seeker-applications')
             )}
             {renderTabButton(
-              'Interviews',
+              'Calendar',
               <Calendar className="w-4.5 h-4.5" aria-hidden="true" />,
               currentView === 'seeker-interviews',
               () => onNavigate('seeker-interviews')
@@ -161,7 +161,7 @@ export const MobileRoleQuickNav: React.FC<MobileRoleQuickNavProps> = ({
               () => onNavigate('employer-applicants')
             )}
             {renderTabButton(
-              'Interviews',
+              'Calendar',
               <Calendar className="w-4.5 h-4.5" aria-hidden="true" />,
               currentView === 'employer-interviews',
               () => onNavigate('employer-interviews')

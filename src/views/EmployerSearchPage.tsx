@@ -235,11 +235,15 @@ export const EmployerSearchPage: React.FC<EmployerSearchPageProps> = ({ onNaviga
                   <div className="space-y-3">
                     {/* Top Row: Logo, Name & Verified Badge */}
                     <div className="flex items-start gap-3.5">
-                      <img
-                        src={emp.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
-                        alt={emp.companyName}
-                        className="w-14 h-14 rounded-2xl object-cover ring-1 ring-slate-200 shrink-0"
-                      />
+                      {emp.logoUrl ? (
+                        <img
+                          src={emp.logoUrl}
+                          alt={emp.companyName}
+                          className="w-14 h-14 rounded-2xl object-cover ring-1 ring-slate-200 shrink-0"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-200 shrink-0" />
+                      )}
                       <div>
                         <h3 className="text-base font-bold text-slate-900 line-clamp-1">
                           {emp.companyName}
@@ -300,11 +304,15 @@ export const EmployerSearchPage: React.FC<EmployerSearchPageProps> = ({ onNaviga
             {/* Modal Header */}
             <div className="bg-slate-900 px-5 sm:px-6 py-4 sm:py-5 text-white flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <img
-                  src={selectedEmployerModal.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
-                  alt={selectedEmployerModal.companyName}
-                  className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover ring-2 ring-indigo-400/40 shrink-0"
-                />
+                {selectedEmployerModal.logoUrl ? (
+                  <img
+                    src={selectedEmployerModal.logoUrl}
+                    alt={selectedEmployerModal.companyName}
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover ring-2 ring-indigo-400/40 shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-white/10 border border-white/20 shrink-0" />
+                )}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <h2 className="text-base sm:text-lg font-bold text-white truncate">{selectedEmployerModal.companyName}</h2>

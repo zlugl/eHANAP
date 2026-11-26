@@ -44,16 +44,16 @@ export const EmployerProfileModal: React.FC<EmployerProfileModalProps> = ({
   const displayProfile = matchedEmployer || {
     id: employerId || `emp-${Date.now()}`,
     userId: 'user-emp',
-    companyName: companyName || 'Oriental Mindoro Business Partner',
-    companyDescription: `${companyName || 'This employer'} is an accredited business operating in Oriental Mindoro. Registered with the Public Employment Service Office (PESO) for legitimate local workforce recruitment and placement.`,
-    industry: 'Commercial & Services',
-    address: 'Roxas, Oriental Mindoro, Philippines',
+    companyName: companyName || 'Employer',
+    companyDescription: '',
+    industry: '',
+    address: '',
     municipality: 'Roxas',
-    representativeName: 'HR Recruitment Officer',
-    contactNumber: '(043) 283-5000',
-    email: `careers@${(companyName || 'employer').toLowerCase().replace(/[^a-z0-9]/g, '')}.ph`,
-    logoUrl: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80',
-    status: 'verified' as const,
+    representativeName: '',
+    contactNumber: '',
+    email: '',
+    logoUrl: '',
+    status: 'pending' as const,
     isEstablishedLocal: true,
     establishmentType: 'local_established',
     createdAt: new Date().toISOString(),
@@ -75,11 +75,15 @@ export const EmployerProfileModal: React.FC<EmployerProfileModalProps> = ({
         {/* Header Banner */}
         <div className="p-6 bg-gradient-to-r from-slate-900 via-slate-850 to-blue-950 text-white flex items-start justify-between gap-4">
           <div className="flex items-start gap-4">
-            <img
-              src={displayProfile.logoUrl || 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?w=150&auto=format&fit=crop&q=80'}
-              alt={displayProfile.companyName}
-              className="w-16 h-16 rounded-2xl object-cover ring-2 ring-blue-400/40 bg-white shadow-md shrink-0"
-            />
+            {displayProfile.logoUrl ? (
+              <img
+                src={displayProfile.logoUrl}
+                alt={displayProfile.companyName}
+                className="w-16 h-16 rounded-2xl object-cover ring-2 ring-blue-400/40 bg-white shadow-md shrink-0"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-2xl bg-white/10 border border-white/20 shrink-0" />
+            )}
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded-full border border-blue-400/20">
